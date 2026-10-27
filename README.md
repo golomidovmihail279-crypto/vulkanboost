@@ -2,9 +2,9 @@
 
 **A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-This release broadens the bundle to 20 top-level mod/library JARs: the core optimizers, chunk-generation experiments, dynamic view distance, entity/particle/texture optimizers, and their libraries.
+This release broadens the bundle to 19 top-level mod/library JARs: the core optimizers, chunk-generation experiments, dynamic view distance, entity/particle/texture optimizers, and their libraries.
 
-> **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura, Fast Noise and Afterburner touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
+> **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura and Fast Noise touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
 ## Platform
 
@@ -34,7 +34,6 @@ This release broadens the bundle to 20 top-level mod/library JARs: the core opti
 | [Epitaph Optimizer](https://modrinth.com/mod/epitaph-optimizer) | 1.0.0* | Applies performance-friendly video settings | CC0-1.0 |
 | [Dynamic FPS](https://modrinth.com/mod/dynamic-fps) | 3.11.4 | Reduces background resource use | MIT |
 | [FastQuit](https://modrinth.com/mod/fastquit) | 3.1.3+mc1.21.11 | Returns to menu while save finishes | MIT |
-| [Optis](https://modrinth.com/mod/optis) | 1.0.0 | Texture/VRAM residency management | MIT |
 | [Smart Particles](https://modrinth.com/mod/smart-particles) | 1.11.10 | Particle rendering/limits | MIT |
 | [Architectury API](https://modrinth.com/mod/architectury-api) | 19.0.1+fabric | Required library for DynamicRenderDistance | LGPL-3.0-only |
 | [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153+fabric | Required library for FastQuit | LGPL-3.0-only |
@@ -43,7 +42,7 @@ PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but
 
 ## Installation
 
-1. Download **VulkanBoost-0.4.0-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
+1. Download **VulkanBoost-0.4.1-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
 2. Put that one JAR in your Fabric profile's `mods` folder.
 3. Remove separate copies of Fabric API, VulkanMod, the bundled optimization mods and their bundled libraries to avoid duplicate mod IDs.
 4. Use Fabric Loader **0.19.3 or newer**, Java 21, and Minecraft 1.21.11.
@@ -52,11 +51,10 @@ Fabric Loader itself is still required; it is not inside the mod JAR.
 
 ## Test plan and known risks
 
-This release is intended as a broad experiment, not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
+Version 0.4.1 removes Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
 
-- C2ME, Bura, Fast Noise and Afterburner overlap in chunk/render scheduling. If issues occur, the first diagnostic build should remove one at a time.
-- PerceptiFrame changes entity feature detail and shadows; test it with VulkanMod's renderer.
-- Optis adjusts texture residency, so test with high-resolution packs and watch for missing textures or VRAM spikes.
+- C2ME, Bura and Fast Noise overlap in chunk/render scheduling. If issues occur, the first diagnostic build should remove one at a time.
+- Optis was removed in 0.4.1 after a startup crash in OsmiumClient: it references the missing Minecraft class `net.minecraft.client.texture.AbstractTexture` on Minecraft 1.21.11.
 - DynamicRenderDistance changes view distance on the fly; set reasonable minimum and maximum limits.
 - Dynamic FPS and FastQuit are convenience/background/save optimizers, not guaranteed active-game FPS boosters.
 - PerceptiFrame is a rendering-detail candidate and Afterburner: Optimized modifies chunk drawing/culling. Both need exact build coordinates and separate VulkanMod runtime testing before bundling.
