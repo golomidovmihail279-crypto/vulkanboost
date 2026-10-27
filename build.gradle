@@ -30,6 +30,12 @@ dependencies {
     include(modImplementation("maven.modrinth:uXXizFIs:Ii0gP3D8")) // FerriteCore 8.2.0
     include(modImplementation("maven.modrinth:r0v8vy1s:XdouG8YV")) // Alternate Current 1.9.0
     include(modImplementation("maven.modrinth:g96Z4WVZ:Q3Dusz2j")) // BadOptimizations 2.4.1
+
+    // Additional 1.21.11-compatible optimizations selected from Modrinth.
+    include(modImplementation("maven.modrinth:TjSm1wrD:QrRIY2rV")) // ModernFix-mVUS 5.26.3-build.2
+    include(modImplementation("maven.modrinth:Ps1zyz6x:PV9KcrYQ")) // ScalableLux 0.1.6+fabric.c25518a
+    include(modImplementation("maven.modrinth:OnlVIpq5:WBTi826Z")) // Fast Noise 1.0.36+1.21.11
+    include(modImplementation("maven.modrinth:fQEb0iXm:O9LmWYR7")) // Krypton 0.2.10
 }
 
 processResources {
