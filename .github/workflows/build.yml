@@ -30,13 +30,19 @@ jobs:
       - name: Build remapped mod JAR
         run: gradle --no-daemon clean build
 
-      - name: Validate single-JAR bundle
+      - name: Validate single-JAR bundle and nested metadata
         shell: python
         run: |
           import glob
           import io
           import json
           import zipfile
+
+          EXPECTED_TOP_LEVEL = {
+              "fabric-api", "vulkanmod", "lithium", "ferritecore",
+              "alternate_current", "badoptimizations", "modernfix",
+              "scalablelux", "zfastnoise", "krypton"
+          }
 
           candidates = [
               path for path in glob.glob("build/libs/vulkanboost-*.jar")
@@ -45,21 +51,37 @@ jobs:
           if len(candidates) != 1:
               raise SystemExit(f"Expected exactly one installable JAR, found: {candidates}")
 
+          def inspect_nested(jar_bytes, label):
+              with zipfile.ZipFile(io.BytesIO(jar_bytes)) as archive:
+                  metadata = json.loads(archive.read("fabric.mod.json"))
+                  for item in metadata.get("jars", []):
+                      name = item["file"]
+                      child_bytes = archive.read(name)
+                      child_meta = inspect_nested(child_bytes, f"{label}!/{name}")
+                      print(f"Nested mod OK: {child_meta.get('id')} {child_meta.get('version')}")
+                  return metadata
+
           jar_path = candidates[0]
           with zipfile.ZipFile(jar_path) as archive:
               metadata = json.loads(archive.read("fabric.mod.json"))
               nested = metadata.get("jars", [])
-              if len(nested) != 9:
-                  raise SystemExit(f"Expected 9 nested mod JARs, found {len(nested)}")
+              if len(nested) != 10:
+                  raise SystemExit(f"Expected 10 top-level nested mod JARs, found {len(nested)}")
 
+              found_ids = set()
               for item in nested:
                   name = item["file"]
-                  with zipfile.ZipFile(io.BytesIO(archive.read(name))) as nested_archive:
-                      child_metadata = json.loads(nested_archive.read("fabric.mod.json"))
-                  print(f"Nested mod OK: {child_metadata.get('id')} {child_metadata.get('version')}")
+                  child_meta = inspect_nested(archive.read(name), f"{jar_path}!/{name}")
+                  found_ids.add(child_meta.get("id"))
+                  print(f"Top-level component OK: {child_meta.get('id')} {child_meta.get('version')}")
+
+              if found_ids != EXPECTED_TOP_LEVEL:
+                  raise SystemExit(
+                      f"Top-level component IDs differ. Missing: {EXPECTED_TOP_LEVEL - found_ids}; "
+                      f"unexpected: {found_ids - EXPECTED_TOP_LEVEL}"
+                  )
 
           print(f"Validated installable bundle: {jar_path}")
-
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:
