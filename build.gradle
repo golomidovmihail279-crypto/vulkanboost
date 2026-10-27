@@ -101,9 +101,10 @@ tasks.named("jar") {
 
 /*
  * The VulkanMod GLSL converter used with Minecraft 1.21.11 rejects the GLSL
- * unary bitwise-NOT token (~) in RenderScale's bundled FidelityFX helper.
- * Rewrite those masks as equivalent XOR expressions in the nested shader
- * resource, leaving RenderScale's classes and metadata untouched.
+ * unary bitwise-NOT token (~) in RenderScale's bundled FidelityFX helper and
+ * does not reliably skip block comments in an imported EASU shader. Rewrite
+ * the masks as equivalent XOR expressions and turn that block comment into
+ * ordinary line comments, leaving RenderScale's classes and metadata untouched.
  */
 tasks.register("patchBundledRenderScaleShader") {
     group = "build"
@@ -163,16 +164,16 @@ tasks.register("patchBundledRenderScaleShader") {
         }
 
         final String shaderPath = "assets/renderscale/shaders/include/ffx_a.glsl"
+        final String easuShaderPath = "assets/renderscale/shaders/include/fsr_easu.glsl"
         ByteArrayOutputStream patchedNestedBuffer = new ByteArrayOutputStream()
         ZipInputStream renderScaleZip = new ZipInputStream(new ByteArrayInputStream(renderScaleBytes))
         ZipOutputStream patchedNestedZip = new ZipOutputStream(patchedNestedBuffer)
-        boolean shaderFound = false
+        Set<String> patchedShaderPaths = [] as Set
         try {
             ZipEntry item
             while ((item = renderScaleZip.nextEntry) != null) {
                 byte[] bytes = renderScaleZip.readAllBytes()
                 if (item.name == shaderPath) {
-                    shaderFound = true
                     String shader = new String(bytes, StandardCharsets.UTF_8)
                     shader = shader
                         .replace("~mask", "(AU1_(0xFFFFFFFF)^mask)")
@@ -186,10 +187,36 @@ tasks.register("patchBundledRenderScaleShader") {
                     }
                     if (!shader.contains("AU1_(0xFFFFFFFF)^mask")
                             || !shader.contains("AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31))")
-                            || !shader.contains("AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15))")) {
+                            || !shader.contains("AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15))")
+                            || !shader.contains("AW1_(0xFFFF)^AShrSW1(x,AW1_(15))")
+                            || !shader.contains("AW2_(0xFFFF)^AShrSW2(x,AW2_(15))")) {
                         throw new GradleException("RenderScale FSR shader did not contain all expected bitwise-NOT expressions")
                     }
                     bytes = shader.getBytes(StandardCharsets.UTF_8)
+                    patchedShaderPaths.add(item.name)
+                } else if (item.name == easuShaderPath) {
+                    String shader = new String(bytes, StandardCharsets.UTF_8)
+                    String blockComment = """/*
+ * These callbacks implement the prototypes declared by ffx_fsr1.glsl.
+ *
+ * Minecraft samplers are normally combined sampler2D objects, unlike
+ * AMD's Vulkan example, which declares separate texture and sampler objects.
+ */"""
+                    String lineComment = """// These callbacks implement the prototypes declared by ffx_fsr1.glsl.
+// Minecraft samplers are normally combined sampler2D objects, unlike
+// AMD's Vulkan example, which declares separate texture and sampler objects."""
+                    if (!shader.contains(blockComment)) {
+                        throw new GradleException("Expected RenderScale EASU block comment was not found")
+                    }
+                    shader = shader.replace(blockComment, lineComment)
+                    if (shader.contains("/*") || shader.contains("*/")) {
+                        throw new GradleException("Unsupported block comment remains in RenderScale EASU shader")
+                    }
+                    if (!shader.contains("// AMD's Vulkan example, which declares separate texture and sampler objects.")) {
+                        throw new GradleException("RenderScale EASU comment compatibility patch is incomplete")
+                    }
+                    bytes = shader.getBytes(StandardCharsets.UTF_8)
+                    patchedShaderPaths.add(item.name)
                 }
 
                 ZipEntry outputEntry = new ZipEntry(item.name)
@@ -205,8 +232,8 @@ tasks.register("patchBundledRenderScaleShader") {
             patchedNestedZip.close()
         }
 
-        if (!shaderFound) {
-            throw new GradleException("Could not find ${shaderPath} inside nested RenderScale JAR")
+        if (!patchedShaderPaths.contains(shaderPath) || !patchedShaderPaths.contains(easuShaderPath)) {
+            throw new GradleException("Could not patch all required RenderScale FSR shader resources: " + patchedShaderPaths)
         }
 
         byte[] patchedRenderScaleBytes = patchedNestedBuffer.toByteArray()
@@ -246,7 +273,7 @@ tasks.register("patchBundledRenderScaleShader") {
         }
 
         Files.move(temporaryJar.toPath(), bundleJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        logger.lifecycle("Patched RenderScale FSR shader in ${bundleJar.name} for VulkanMod's GLSL converter.")
+        logger.lifecycle("Patched RenderScale FSR shader sources in ${bundleJar.name} for VulkanMod's GLSL converter.")
     }
 }
 
