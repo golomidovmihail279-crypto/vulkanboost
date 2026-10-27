@@ -81,7 +81,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v0.4.5
-          name: VulkanBoost-0.4.4-for-1.21.11
+          name: VulkanBoost-0.4.5-for-1.21.11
           target_commitish: ${{ github.event.workflow_run.head_sha }}
           body_path: .github/RELEASE_NOTES.md
           prerelease: false

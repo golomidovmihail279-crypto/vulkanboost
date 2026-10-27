@@ -51,13 +51,13 @@ public final class NoHurtCamSetupScreen extends Screen {
         this.doneButton = this.addRenderableWidget(Button.builder(
             Component.translatable("gui.done"),
             button -> this.finishSetup()
-        ).bounds(this.width / 2 - 100, centerY + 29, 200, 20).build());
+        ).bounds(this.width / 2 - 100, centerY + 37, 200, 20).build());
         this.doneButton.active = VulkanBoostClient.isToggleKeyAssigned();
 
         this.addRenderableWidget(Button.builder(
             Component.translatable("screen.vulkanboost.setup.later"),
             button -> this.onClose()
-        ).bounds(this.width / 2 - 100, centerY + 56, 200, 20).build());
+        ).bounds(this.width / 2 - 100, centerY + 64, 200, 20).build());
     }
 
     private Component bindLabel() {
@@ -154,7 +154,7 @@ public final class NoHurtCamSetupScreen extends Screen {
         graphics.drawCenteredString(
             this.font,
             Component.translatable("screen.vulkanboost.setup.strength_hint"),
-            this.width / 2, this.height / 2 + 2, 0xAAAAAA
+            this.width / 2, this.height / 2 + 18, 0xAAAAAA
         );
     }
 
