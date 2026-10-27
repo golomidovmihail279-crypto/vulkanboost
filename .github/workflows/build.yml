@@ -49,8 +49,8 @@ jobs:
           with zipfile.ZipFile(jar_path) as archive:
               metadata = json.loads(archive.read("fabric.mod.json"))
               nested = metadata.get("jars", [])
-              if len(nested) != 5:
-                  raise SystemExit(f"Expected 5 nested mod JARs, found {len(nested)}")
+              if len(nested) != 9:
+                  raise SystemExit(f"Expected 9 nested mod JARs, found {len(nested)}")
 
               for item in nested:
                   name = item["file"]
