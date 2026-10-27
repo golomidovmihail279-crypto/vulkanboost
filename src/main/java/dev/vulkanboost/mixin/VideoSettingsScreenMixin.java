@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class VideoSettingsScreenMixin {
     private static final float VULKANBOOST_IMAGE_SCALE = 0.77F;
 
-    @Inject(method = "addOptions", at = @At("TAIL"))
+    @Inject(method = "addOptions", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/components/OptionsList;addHeader(Lnet/minecraft/network/chat/Component;)V", ordinal = 2))
     private void vulkanboost$addImageEnhancementOption(CallbackInfo callbackInfo) {
         RenderScaleConfig config = RenderScale.getConfig();
         boolean enabled = config.fsr && config.getScale() < 0.999F;

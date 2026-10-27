@@ -1,12 +1,12 @@
 # VulkanBoost 0.5 for Minecraft 1.21.11
 
-VulkanBoost 0.5 keeps its single-JAR install model and adds one simple Image Enhancement toggle directly to Minecraft's Video Settings.
+VulkanBoost 0.5 keeps its single-JAR install model and adds one simple Image Enhancement toggle in the Video Settings list directly below Quality & Performance, near the render-distance controls.
 
 ## Changes
 
 - Adds **RenderScale 1.4.0-alpha.1 for Minecraft 1.21.11** as an upstream nested dependency.
 - Adds experimental **FSR 1 spatial upscaling**. RenderScale and its existing dependencies (Fabric API and Cloth Config API) are included inside the same VulkanBoost JAR.
-- Adds one client-side Video Settings toggle that controls the bundled RenderScale FSR 1 mode: ON selects a 77% internal render scale with FSR 1 reconstruction; OFF returns to native scale and disables FSR.
+- Adds one client-side Video Settings toggle just after the Quality & Performance section, near the render-distance controls; it controls the bundled RenderScale FSR 1 mode: ON selects a 77% internal render scale with FSR 1 reconstruction; OFF returns to native scale and disables FSR.
 - Keeps BetterHurtCam and Ukulib as their original upstream JARs; no BetterHurtCam screens, keybindings, translations, or resource overrides are introduced.
 - Leaves the original BetterHurtCam and Ukulib JARs unchanged.
 - DLSS/DLAA and temporal FSR 2+ are not part of version 0.5; they need a separate compatibility plan for VulkanMod's renderer.

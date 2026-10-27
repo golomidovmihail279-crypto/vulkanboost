@@ -43,7 +43,7 @@ PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but
 
 ## Upscaling (experimental)
 
-VulkanBoost 0.5 bundles the upstream [RenderScale 1.4.0-alpha.1 build for Minecraft 1.21.11](https://modrinth.com/mod/renderscale/version/1.4.0-alpha.1-fabric%2B1.21.11) and adds a single **Options → Video Settings → VulkanBoost → Image enhancement** switch. ON sets the world render scale to **77%** and enables **FSR 1 spatial reconstruction**; OFF restores 100% scale and turns FSR 1 off. The HUD and menus remain at native resolution. FSR 1 is GPU-agnostic, so it is not limited to Radeon GPUs; RTX cards are eligible in principle. However, RenderScale's support on Minecraft 1.21.11 is experimental and compatibility with this exact VulkanMod bundle is **not confirmed in-game**. This is not DLSS, temporal FSR 2/3, or frame generation.
+VulkanBoost 0.5 bundles the upstream [RenderScale 1.4.0-alpha.1 build for Minecraft 1.21.11](https://modrinth.com/mod/renderscale/version/1.4.0-alpha.1-fabric%2B1.21.11) and adds a single **Options → Video Settings → just below the Quality & Performance settings → VulkanBoost → Image enhancement** switch. ON sets the world render scale to **77%** and enables **FSR 1 spatial reconstruction**; OFF restores 100% scale and turns FSR 1 off. The HUD and menus remain at native resolution. FSR 1 is GPU-agnostic, so it is not limited to Radeon GPUs; RTX cards are eligible in principle. However, RenderScale's support on Minecraft 1.21.11 is experimental and compatibility with this exact VulkanMod bundle is **not confirmed in-game**. This is not DLSS, temporal FSR 2/3, or frame generation.
 
 ## BetterHurtCam (upstream component)
 
