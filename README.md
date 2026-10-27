@@ -57,7 +57,7 @@ A native, redistributable FXAA/SMAA-style post-processing pass remains a separat
 
 ## Build from source
 
-Requirements: JDK 21 and Gradle 9.3.0.
+Requirements: JDK 21 and Gradle 9.5.0.
 
 ```bash
 gradle --no-daemon clean build
