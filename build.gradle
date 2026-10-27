@@ -234,6 +234,7 @@ tasks.register("patchBundledRenderScaleShader") {
                     bytes = shader.getBytes(StandardCharsets.UTF_8)
                     patchedShaderPaths.add(item.name)
                     easuCommentPatched = true
+                }
 
                 // Remove apostrophes from shader comments only. An apostrophe in GLSL code must fail the build.
                 if (item.name.startsWith("assets/renderscale/shaders/") && item.name ==~ /.*\.(glsl|fsh|vsh)$/) {
