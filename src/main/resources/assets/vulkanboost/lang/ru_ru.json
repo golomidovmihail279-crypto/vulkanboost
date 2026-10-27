@@ -1,6 +1,5 @@
 {
   "key.vulkanboost.open_no_hurt_cam": "Настройки NoHurtCam",
-  "key.vulkanboost.toggle_no_hurt_cam": "Включить/выключить NoHurtCam",
   "key.category.vulkanboost.controls": "VulkanBoost",
   "screen.vulkanboost.no_hurt_cam.title": "VulkanBoost — NoHurtCam",
   "screen.vulkanboost.no_hurt_cam.description": "0% — как в Minecraft; 50% — наклон камеры примерно вдвое слабее; 100% — наклон от урона отключён",
@@ -13,7 +12,5 @@
   "screen.vulkanboost.setup.press_key": "Нажми клавишу или кнопку мыши…",
   "screen.vulkanboost.setup.key_conflict": "Эта клавиша уже назначена. Выбери другую.",
   "screen.vulkanboost.setup.strength_hint": "0% — без изменений; 50% — наклон примерно вдвое слабее; 100% — отключён.",
-  "screen.vulkanboost.setup.later": "Настроить позже",
-  "message.vulkanboost.no_hurt_cam.enabled": "NoHurtCam включён",
-  "message.vulkanboost.no_hurt_cam.disabled": "NoHurtCam выключен"
+  "screen.vulkanboost.setup.later": "Настроить позже"
 }

@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 with a configurable built-in NoHurtCam slider.",
+  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 with official BetterHurtCam and a VulkanBoost setup UI.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
@@ -18,11 +18,10 @@
     "fabricloader": ">=0.19.3",
     "minecraft": "1.21.11",
     "vulkanmod": ">=0.6.8",
-    "fabric-api": "*"
+    "fabric-api": "*",
+    "betterhurtcam": ">=1.12.0",
+    "ukulib": "^1.10.0"
   },
-  "mixins": [
-    "vulkanboost.mixins.json"
-  ],
   "entrypoints": {
     "client": [
       "dev.vulkanboost.VulkanBoostClient"

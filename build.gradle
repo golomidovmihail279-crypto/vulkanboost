@@ -52,6 +52,10 @@ dependencies {
     include(modImplementation("maven.modrinth:l8rWP4Tc:dN2uh6Yw")) // Smart Particles 1.11.10
     // Library dependency for FastQuit.
     include(modImplementation("maven.modrinth:9s6osm5g:xuX40TN5")) // Cloth Config API 21.11.153+fabric
+
+    // Official BetterHurtCam for Minecraft 1.21.11 and its required config/UI library.
+    include(modImplementation("maven.modrinth:o4y0N2hu:bacofMP2")) // BetterHurtCam 1.12.0+mc1.21.11 (MIT)
+    include(modImplementation("maven.modrinth:Y8uFrUil:t9ZJ7RPT")) // Ukulib 1.10.2+1.21.11 (MPL-2.0)
 }
 
 processResources {

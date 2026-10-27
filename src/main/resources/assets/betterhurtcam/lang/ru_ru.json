@@ -1,0 +1,13 @@
+{
+  "betterhurtcam.option.enabled": "Наклон камеры от урона",
+  "betterhurtcam.option.strength": "Множитель наклона камеры",
+  "betterhurtcam.option.heartBlink": "Мигание полоски здоровья",
+  "betterhurtcam.option.type": "Тип наклона камеры",
+  "betterhurtcam.option.type.tooltip": "- Старый: как в Minecraft 1.19.3 и старше, без смены направления\n- По рысканию: направление наклона зависит от источника урона",
+  "key.category.betterhurtcam.key": "BetterHurtCam",
+  "key.betterhurtcam.plus": "Увеличить силу наклона камеры",
+  "key.betterhurtcam.minus": "Уменьшить силу наклона камеры",
+  "key.betterhurtcam.toggle": "Включить/выключить наклон камеры",
+  "betterhurtcam.type.old": "Старый",
+  "betterhurtcam.type.yawBased": "По направлению урона"
+}

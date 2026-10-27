@@ -39,7 +39,7 @@ jobs:
           import zipfile
           from pathlib import Path
 
-          EXPECTED_TOP_LEVEL_COUNT = 17
+          EXPECTED_TOP_LEVEL_COUNT = 19
           candidates = [
               path for path in glob.glob("build/libs/vulkanboost-*.jar")
               if not path.endswith("-dev.jar") and not path.endswith("-sources.jar")
@@ -75,15 +75,20 @@ jobs:
 
               if len(set(found_ids)) != len(found_ids):
                   raise SystemExit(f"Duplicate top-level mod IDs found: {found_ids}")
-              # Validate VulkanBoost's own client mixin, separately from nested third-party mods.
-              root_mixin_configs = metadata.get("mixins", [])
-              if "vulkanboost.mixins.json" not in root_mixin_configs:
-                  raise SystemExit("VulkanBoost's NoHurtCam mixin config is missing from fabric.mod.json")
-              mixin_config = json.loads(archive.read("vulkanboost.mixins.json"))
-              if "NoHurtCamMixin" not in mixin_config.get("client", []):
-                  raise SystemExit("NoHurtCamMixin is missing from the client mixin config")
+
+              # The official BetterHurtCam JAR must be the only hurt-camera implementation.
+              if metadata.get("mixins"):
+                  raise SystemExit("VulkanBoost must not register a competing NoHurtCam mixin.")
+              required_upstream_ids = {"betterhurtcam", "ukulib"}
+              if not required_upstream_ids.issubset(set(found_ids)):
+                  missing = sorted(required_upstream_ids - set(found_ids))
+                  raise SystemExit(f"Official BetterHurtCam and Ukulib are missing: {missing}")
+              if Path("src/main/java/dev/vulkanboost/mixin/NoHurtCamMixin.java").exists():
+                  raise SystemExit("The old custom NoHurtCam mixin must be removed.")
+              if Path("src/main/resources/vulkanboost.mixins.json").exists():
+                  raise SystemExit("The old custom VulkanBoost mixin config must be removed.")
+
               required_project_files = [
-                  "dev/vulkanboost/mixin/NoHurtCamMixin.class",
                   "dev/vulkanboost/NoHurtCamConfig.class",
                   "dev/vulkanboost/NoHurtCamScreen.class",
                   "dev/vulkanboost/NoHurtCamSetupScreen.class",
@@ -92,36 +97,40 @@ jobs:
                   "dev/vulkanboost/VulkanBoostClient.class",
                   "assets/vulkanboost/lang/en_us.json",
                   "assets/vulkanboost/lang/ru_ru.json",
+                  "assets/betterhurtcam/lang/ru_ru.json",
               ]
               for required_file in required_project_files:
                   if required_file not in archive.namelist():
-                      raise SystemExit(f"Required NoHurtCam/settings file is missing: {required_file}")
+                      raise SystemExit(f"Required settings/translation file is missing: {required_file}")
 
-              entrypoints = metadata.get("entrypoints", {}).get("client", [])
-              if "dev.vulkanboost.VulkanBoostClient" not in entrypoints:
-                  raise SystemExit("VulkanBoostClient entrypoint is missing")
+              if archive.read("fabric.mod.json") is None:
+                  raise SystemExit("Root Fabric metadata missing")
 
-              # Regression checks for the native settings keybind wizard and translations.
-              client_source = Path("src/main/java/dev/vulkanboost/VulkanBoostClient.java").read_text(encoding="utf-8")
+              # The 1.21.11 client crashes if these screens invoke the blur background path twice.
               setup_source = Path("src/main/java/dev/vulkanboost/NoHurtCamSetupScreen.java").read_text(encoding="utf-8")
-              mixin_source = Path("src/main/java/dev/vulkanboost/mixin/NoHurtCamMixin.java").read_text(encoding="utf-8")
-              required_mixin_tokens = [
-                  'method = "bobHurt"',
-                  'target = "Lcom/mojang/math/Axis;rotationDegrees(F)Lorg/joml/Quaternionf;"',
-                  "ordinal = 2",
-                  "require = 1",
-                  "NoHurtCamConfig.isEnabled()",
-                  "NoHurtCamConfig.getReduction()",
-                  "return vanillaDegrees * rotationScale;",
+              screen_source = Path("src/main/java/dev/vulkanboost/NoHurtCamScreen.java").read_text(encoding="utf-8")
+              for screen_name, source in [("setup", setup_source), ("settings", screen_source)]:
+                  if "this.renderBackground(" in source:
+                      raise SystemExit(f"NoHurtCam {screen_name} screen still calls the blur background path.")
+                  if "graphics.fill(0, 0, this.width, this.height, 0xC0101010);" not in source:
+                      raise SystemExit(f"NoHurtCam {screen_name} screen is missing the non-blurred background.")
+
+              client_source = Path("src/main/java/dev/vulkanboost/VulkanBoostClient.java").read_text(encoding="utf-8")
+              config_source = Path("src/main/java/dev/vulkanboost/NoHurtCamConfig.java").read_text(encoding="utf-8")
+              required_config_tokens = [
+                  "BetterHurtCam.getManager()",
+                  "getMultiplier()",
+                  "setMultiplier(",
+                  "setEnabled(",
+                  "saveConfig()",
+                  "betterHurtCamMigrationComplete",
+                  "betterhurtcam.toml",
               ]
-              for token in required_mixin_tokens:
-                  if token not in mixin_source:
-                      raise SystemExit(f"NoHurtCam mixin does not target the exact 1.21.11 hurt-tilt angle: {token}")
-              if "PoseStack;mulPose" in mixin_source:
-                  raise SystemExit("NoHurtCam must not modify every PoseStack rotation in bobHurt.")
+              for token in required_config_tokens:
+                  if token not in config_source:
+                      raise SystemExit(f"VulkanBoost settings are not bridged to BetterHurtCam: {token}")
 
               required_client_tokens = [
-                  '"key.vulkanboost.toggle_no_hurt_cam"',
                   '"key.vulkanboost.open_no_hurt_cam"',
                   "KeyBindingHelper.registerKeyBinding",
                   "public static boolean hasKeyConflict(",
@@ -129,7 +138,7 @@ jobs:
               ]
               for token in required_client_tokens:
                   if token not in client_source:
-                      raise SystemExit(f"Missing expected native keybinding API in VulkanBoostClient: {token}")
+                      raise SystemExit(f"Missing expected settings keybinding API in VulkanBoostClient: {token}")
 
               required_setup_tokens = [
                   "assignSettingsKey",
@@ -140,16 +149,15 @@ jobs:
               ]
               for token in required_setup_tokens:
                   if token not in setup_source:
-                      raise SystemExit(f"Setup wizard does not configure the settings key correctly: {token}")
+                      raise SystemExit(f"Setup wizard is missing expected keybinding behavior: {token}")
               if "assignToggleKey" in setup_source:
-                  raise SystemExit("Setup wizard must configure the settings-opening key, not the toggle key.")
+                  raise SystemExit("Setup wizard must configure the settings-opening key, not a duplicate toggle.")
 
               translation_keys = []
               for locale in ("en_us.json", "ru_ru.json"):
                   locale_path = f"src/main/resources/assets/vulkanboost/lang/{locale}"
                   locale_data = json.loads(Path(locale_path).read_text(encoding="utf-8"))
                   required_locale_keys = {
-                      "key.vulkanboost.toggle_no_hurt_cam",
                       "key.vulkanboost.open_no_hurt_cam",
                       "screen.vulkanboost.setup.description",
                       "screen.vulkanboost.setup.bind",
@@ -162,7 +170,27 @@ jobs:
               if translation_keys[0] != translation_keys[1]:
                   raise SystemExit("English and Russian translation keys do not match.")
 
-              # Keep slider text explicit: these percentages are reduction, not effect strength.
+              # Validate that the official BetterHurtCam UI is localized too.
+              bhc_locale = json.loads(
+                  Path("src/main/resources/assets/betterhurtcam/lang/ru_ru.json").read_text(encoding="utf-8")
+              )
+              required_bhc_ru_keys = {
+                  "betterhurtcam.option.enabled",
+                  "betterhurtcam.option.strength",
+                  "betterhurtcam.option.heartBlink",
+                  "betterhurtcam.option.type",
+                  "betterhurtcam.option.type.tooltip",
+                  "key.betterhurtcam.toggle",
+                  "key.betterhurtcam.plus",
+                  "key.betterhurtcam.minus",
+                  "betterhurtcam.type.old",
+                  "betterhurtcam.type.yawBased",
+              }
+              missing_bhc_ru = sorted(required_bhc_ru_keys - set(bhc_locale))
+              if missing_bhc_ru:
+                  raise SystemExit(f"Russian translations for BetterHurtCam are missing: {missing_bhc_ru}")
+
+              # Keep the meaning of the slider's reduction percentage explicit.
               for locale, phrase in [
                   ("en_us.json", "hurt-camera tilt"),
                   ("ru_ru.json", "наклона камеры"),
@@ -180,9 +208,9 @@ jobs:
               forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
               present_forbidden = sorted(forbidden_ids.intersection(found_ids))
               if present_forbidden:
-                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.7: {present_forbidden}")
+                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.9: {present_forbidden}")
 
-          print(f"Validated 17 nested components and built-in NoHurtCam: {jar_path}")
+          print(f"Validated 19 nested components including official BetterHurtCam and Ukulib: {jar_path}")
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:

@@ -1,26 +1,29 @@
-# VulkanBoost 0.4.8 for Minecraft 1.21.11
+# VulkanBoost 0.4.9 for Minecraft 1.21.11
 
-Fix update: retarget NoHurtCam to the exact damage-tilt angle in Minecraft 1.21.11.
+Integration and crash-fix update: use official BetterHurtCam and prevent the first-server setup screen from crashing while drawing its background.
 
 ## Changes
 
-- Replaced the broad `PoseStack.mulPose(Quaternionfc)` modifier with a targeted argument modifier for `Axis.rotationDegrees(float)` inside `GameRenderer.bobHurt`.
-- Targets the third matching invocation (`ordinal = 2`) in the verified Minecraft 1.21.11 method, which is the directional hurt-tilt angle. The modifier no longer rewrites the death roll and the two surrounding yaw rotations.
-- A reduction of 0% leaves the vanilla angle unchanged; 50% halves that angle; 100% sets it to zero.
-- The injection declares `require = 1`, so if this target is not found on startup, Mixin fails loudly instead of silently applying no change.
-- Kept all 17 bundled mod/library JARs, NoHurtCam settings, first-join key wizard, keybinds and translations.
+- Bundles the unmodified upstream BetterHurtCam 1.12.0+mc1.21.11 JAR and required Ukulib 1.10.2+1.21.11 JAR in the single VulkanBoost artifact.
+- Removes the custom VulkanBoost hurt-camera mixin and its mixin registration so two competing implementations cannot target GameRenderer.
+- Keeps the VulkanBoost first-multiplayer-join setup prompt and settings UI; they now read and write BetterHurtCam's actual config through its public manager.
+- Migrates previous VulkanBoost reduction/enabled values into BetterHurtCam once. After migration, BetterHurtCam's `config/betterhurtcam.toml` is the single source of truth; setup-complete state remains in the legacy properties file.
+- The reduction slider maps to BetterHurtCam's multiplier: 0% reduction = 1.0 (vanilla tilt), 50% = 0.5, 100% = 0.0 (tilt removed).
+- Removes the duplicate VulkanBoost toggle binding. BetterHurtCam's real Toggle, Increase Strength and Decrease Strength actions appear in the standard Controls menu; VulkanBoost keeps its separate settings-opening key.
+- Adds Russian translations for BetterHurtCam's UI and hotkeys.
+- Fixes the 0.4.8 crash `IllegalStateException: Can only blur once per frame`. Both VulkanBoost screens now draw a normal dark background instead of invoking the blurred background path twice.
+- Preserves all existing optimization mods and includes both upstream license notices.
 
-## Research basis
+## Upstream sources and licenses
 
-- Cross-checked the 1.21.11 `GameRenderer.bobHurt` call order against the public Minecraft 1.21.11 source mirror.
-- Compared the exact `Axis.rotationDegrees(float)` injection strategy with [BetterHurtCam's 1.21.11 source](https://github.com/uku3lig/betterhurtcam/tree/1.21.11). VulkanBoost retains its own implementation and settings.
+- [BetterHurtCam 1.12.0+mc1.21.11](https://github.com/uku3lig/betterhurtcam/tree/1.21.11) — MIT
+- [Ukulib 1.10.2+1.21.11](https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11) — MPL-2.0
 
 ## Verification
 
-- GitHub Actions builds the Java 21 remapped JAR and validates nested mod metadata, the NoHurtCam class, the targeted method/ordinal, and Russian/English UI text.
-- A successful build confirms compilation and packaging, not actual runtime behavior in a Minecraft client. The new hook still needs to be tested in-game.
-- Minecraft 1.21.11, Fabric Loader 0.19.3+, Java 21 and a Vulkan 1.2+ compatible GPU/driver are required.
-- No optimizers were removed. C2ME still has no fabricated keybinding.
+- CI builds the Java 21 remapped JAR and checks all 19 nested components, including BetterHurtCam and Ukulib, the absence of the old competing mixin, the config migration bridge, Russian translations, and non-blurred rendering on both VulkanBoost screens.
+- A successful build verifies compilation and packaging, not gameplay. BetterHurtCam's effect and the fix still need confirmation in a real Minecraft 1.21.11 client.
+- Fabric Loader 0.19.3+, Java 21 and a Vulkan 1.2+ compatible GPU/driver are required. Fabric Loader itself is not bundled.
 
 ## Bundled components
 
@@ -41,8 +44,9 @@ Fix update: retarget NoHurtCam to the exact damage-tilt angle in Minecraft 1.21.
 - FastQuit 3.1.3+mc1.21.11
 - Smart Particles 1.11.10
 - Cloth Config API 21.11.153+fabric
+- BetterHurtCam 1.12.0+mc1.21.11
+- Ukulib 1.10.2+1.21.11
 
 ## Installation
 
-- Download `VulkanBoost-0.4.8-for-1.21.11.jar` and put it in `mods`.
-- Remove separate copies of the bundled mods/libraries to avoid duplicate mod IDs. Fabric Loader itself is required and is not bundled.
+Download `VulkanBoost-0.4.9-for-1.21.11.jar` and place it in `mods`. Remove separate copies of mods already bundled in VulkanBoost to avoid duplicate mod IDs.

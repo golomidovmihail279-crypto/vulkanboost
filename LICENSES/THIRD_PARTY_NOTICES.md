@@ -1,6 +1,6 @@
 # Third-party notices
 
-VulkanBoost bundles unmodified upstream mod JARs using Fabric Loader's nested-JAR mechanism. It does not merge, shade or rewrite third-party mod code. The root MIT license covers VulkanBoost's own project files only.
+VulkanBoost bundles upstream mod JARs using Fabric Loader's nested-JAR mechanism. BetterHurtCam and Ukulib are included as their original upstream JARs; the VulkanBoost settings screen is a small compatibility frontend, not a replacement implementation. The root MIT license covers VulkanBoost's own project files only.
 
 | Component | Bundled version | Upstream license | Project page |
 |---|---|---|---|
@@ -20,6 +20,8 @@ VulkanBoost bundles unmodified upstream mod JARs using Fabric Loader's nested-JA
 | Dynamic FPS | 3.11.4 | MIT | https://modrinth.com/mod/dynamic-fps |
 | FastQuit | 3.1.3+mc1.21.11 | MIT | https://modrinth.com/mod/fastquit |
 | Smart Particles | 1.11.10 | MIT | https://modrinth.com/mod/smart-particles |
+| BetterHurtCam | 1.12.0+mc1.21.11 (unmodified upstream JAR) | MIT | https://github.com/uku3lig/betterhurtcam/tree/1.21.11 |
+| Ukulib | 1.10.2+1.21.11 (unmodified upstream JAR) | MPL-2.0 | https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11 |
 | Cloth Config API | 21.11.153+fabric | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
 
 PerceptiFrame and Afterburner: Optimized are listed as future candidates but are not bundled in 0.4.2 because the guessed Maven coordinates did not resolve; pin their exact upstream releases before redistribution. Keep these notices and comply with each upstream project's license conditions.
