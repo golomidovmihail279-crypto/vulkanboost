@@ -25,6 +25,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
 
     // These stay as separate upstream mods nested inside the one installable JAR.
+    include(modImplementation("maven.modrinth:P7dR8mSH:gB6TkYEJ")) // Fabric API 0.140.2+1.21.11
     include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
     include(modImplementation("maven.modrinth:gvQqBUqZ:Ow7wA0kG")) // Lithium 0.21.4
     include(modImplementation("maven.modrinth:uXXizFIs:Ii0gP3D8")) // FerriteCore 8.2.0
