@@ -16,7 +16,6 @@ import zipfile
 SHADER_RE = re.compile(r"^assets/renderscale/shaders/.*\.(glsl|fsh|vsh)$")
 REQUIRED_SHADERS = {
     "assets/renderscale/shaders/include/ffx_a.glsl",
-    "assets/renderscale/shaders/include/fsr_easu.glsl",
 }
 
 
@@ -195,13 +194,20 @@ def check_jar(path):
                 if required not in shader_names:
                     findings.append(("ERROR", required, 0, "required shader missing from nested RenderScale JAR", ""))
 
-            easu_path = "assets/renderscale/shaders/include/fsr_easu.glsl"
-            if easu_path in shader_names:
-                easu_text = render_scale.read(easu_path).decode("utf-8")
+            easu_marker = "// AMDs Vulkan example, which declares separate texture and sampler objects."
+            easu_candidates = []
+            for candidate_path in sorted(shader_names):
+                candidate_text = render_scale.read(candidate_path).decode("utf-8")
+                if easu_marker in candidate_text:
+                    easu_candidates.append((candidate_path, candidate_text))
+            if not easu_candidates:
+                findings.append(("ERROR", "RenderScale shaders", 0, "normalized EASU comment marker not found in any shader resource", ""))
+            elif len(easu_candidates) > 1:
+                findings.append(("ERROR", "RenderScale shaders", 0, "normalized EASU comment marker found in multiple shader resources", ""))
+            else:
+                easu_path, easu_text = easu_candidates[0]
                 if "/*" in easu_text or "*/" in easu_text:
                     findings.append(("ERROR", easu_path, 0, "EASU still contains block-comment markers", ""))
-                if "// AMDs Vulkan example, which declares separate texture and sampler objects." not in easu_text:
-                    findings.append(("ERROR", easu_path, 0, "normalized EASU comment marker missing", ""))
 
             for shader_path in sorted(shader_names):
                 try:
