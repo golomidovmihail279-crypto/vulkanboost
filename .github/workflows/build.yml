@@ -103,7 +103,7 @@ jobs:
               if "vulkanboost.mixins.json" not in archive.namelist():
                   raise SystemExit("VulkanBoost mixin config is missing.")
               mixin_config = json.loads(archive.read("vulkanboost.mixins.json"))
-              expected_mixins = {"VulkanModOptionsMixin"}
+              expected_mixins = {"VulkanModOptionsMixin", "RenderScaleDiagnosticsMixin"}
               if mixin_config.get("package") != "dev.vulkanboost.mixin":
                   raise SystemExit("Unexpected VulkanBoost mixin package.")
               if set(mixin_config.get("client", [])) != expected_mixins:
@@ -112,6 +112,7 @@ jobs:
                   raise SystemExit("VulkanBoost option-page mixin must remain client-only.")
               allowed_classes = {
                   "dev/vulkanboost/mixin/VulkanModOptionsMixin.class",
+                  "dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.class",
               }
               root_classes = {
                   path for path in archive.namelist()
@@ -142,9 +143,20 @@ jobs:
                   }
                   allowed_sources = {
                       "src/main/java/dev/vulkanboost/mixin/VulkanModOptionsMixin.java",
+                      "src/main/java/dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.java",
                   }
                   if java_sources != allowed_sources:
                       raise SystemExit(f"Unexpected custom Java runtime sources: {sorted(java_sources)}")
+
+              diagnostic_source = source_root / "dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.java"
+              diagnostic_text = diagnostic_source.read_text(encoding="utf-8")
+              for marker in (
+                  "Entered FSR branch:",
+                  "EASU draw command issued.",
+                  "RCAS draw command issued.",
+              ):
+                  if marker not in diagnostic_text:
+                      raise SystemExit(f"Missing FSR runtime diagnostic: {marker}")
 
               asset_root = Path("src/main/resources/assets")
               if asset_root.exists():
@@ -166,7 +178,7 @@ jobs:
 
           print(
               "Validated 20 nested components; BetterHurtCam and Ukulib match their pinned upstream versions; "
-              "the only root runtime code is the client-side VulkanMod option-page mixin, with its own language strings."
+              "the root runtime code includes the VulkanMod option-page mixin and one-shot FSR render-pass diagnostics."
           )
 
       - name: Upload installable JAR
@@ -179,3 +191,24 @@ jobs:
             !build/libs/*-sources.jar
           if-no-files-found: error
           retention-days: 14
+
+
+  publish-v0-5:
+    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[update-v0.5]')
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download validated installable JAR
+        uses: actions/download-artifact@v4
+        with:
+          name: vulkanboost-minecraft-1.21.11
+          path: artifact
+
+      - name: Replace the existing v0.5 release asset
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp artifact/vulkanboost-0.5.jar VulkanBoost-0.5-for-1.21.11.jar
+          gh release upload v0.5 VulkanBoost-0.5-for-1.21.11.jar --clobber --repo "$GITHUB_REPOSITORY"
