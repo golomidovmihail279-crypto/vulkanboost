@@ -1,18 +1,16 @@
 # VulkanBoost 0.4.0 for Minecraft 1.21.11
 
-An expanded experimental optimization bundle with 22 top-level nested mod/library JARs.
+An expanded experimental optimization bundle with 20 top-level nested mod/library JARs.
 
 ## Additional components in 0.4.0
 
 - C2ME 0.3.6.0.0
 - DynamicRenderDistance 1.2.0
-- PerceptiFrame (candidate build)
 - Bura 0.1.0 alpha
 - Epitaph Optimizer (candidate build)
 - Dynamic FPS 3.11.4
 - FastQuit 3.1.3+mc1.21.11
 - Optis 1.0.0
-- Afterburner: Optimized (experimental 1.21.11 build)
 - Smart Particles 1.11.10
 - Architectury API 19.0.1+fabric
 - Cloth Config API 21.11.153+fabric
@@ -30,4 +28,4 @@ An expanded experimental optimization bundle with 22 top-level nested mod/librar
 - Compare against 0.3.0 using the same world/position/settings. If issues appear, remove new optimizers one-by-one to identify the conflict.
 - Native anti-aliasing, FSR and DLSS/DLAA are still not included; these remain a later development milestone.
 
-ARR projects are not redistributed, and OptiLeaves is withheld pending license clarification.
+PerceptiFrame and Afterburner: Optimized remain future candidates pending exact reproducible version coordinates and dedicated VulkanMod testing. ARR projects are not redistributed, and OptiLeaves is withheld pending license clarification.

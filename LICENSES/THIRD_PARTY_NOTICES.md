@@ -16,17 +16,15 @@ VulkanBoost bundles unmodified upstream mod JARs using Fabric Loader's nested-JA
 | Krypton | 0.2.10 | LGPL-3.0-only | https://modrinth.com/mod/krypton |
 | C2ME | 0.3.6.0.0 | MIT | https://modrinth.com/mod/c2me-fabric |
 | DynamicRenderDistance | 1.2.0 | MIT | https://modrinth.com/mod/dynamicrenderdistance |
-| PerceptiFrame | 1.0.0* | MIT | https://modrinth.com/mod/perceptiframe |
 | Bura | 0.1.0 alpha | MIT | https://modrinth.com/mod/bura |
 | Epitaph Optimizer | 1.0.0* | CC0-1.0 | https://modrinth.com/mod/epitaph-optimizer |
 | Dynamic FPS | 3.11.4 | MIT | https://modrinth.com/mod/dynamic-fps |
 | FastQuit | 3.1.3+mc1.21.11 | MIT | https://modrinth.com/mod/fastquit |
 | Optis | 1.0.0 | MIT | https://modrinth.com/mod/optis |
-| Afterburner: Optimized | experimental 1.21.11 build* | MIT | https://modrinth.com/mod/afterburner-optimized |
 | Smart Particles | 1.11.10 | MIT | https://modrinth.com/mod/smart-particles |
 | Architectury API | 19.0.1+fabric | LGPL-3.0-only | https://modrinth.com/mod/architectury-api |
 | Cloth Config API | 21.11.153+fabric | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
 
-* The associated upstream version coordinate must successfully resolve and its actual embedded metadata should be checked before publishing. Keep these notices and comply with each upstream project's license conditions.
+PerceptiFrame and Afterburner: Optimized are listed as future candidates but are not bundled in 0.4.0 because the guessed Maven coordinates did not resolve; pin their exact upstream releases before redistribution. Keep these notices and comply with each upstream project's license conditions.
 
 VulkanBoost does not redistribute StackCluster Optimizer, OptimizeMod, or NoRender+ because their listings state ARR (All Rights Reserved). OptiLeaves has been held back because public license listings conflict; do not embed or redistribute it until the license and permission are clarified. Beryl remains excluded: it is ARR, and should not be repackaged without explicit permission.

@@ -2,7 +2,7 @@
 
 **A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-This release broadens the bundle to 22 top-level mod/library JARs: the core optimizers, chunk-generation experiments, dynamic view distance, entity/particle/texture optimizers, and their libraries.
+This release broadens the bundle to 20 top-level mod/library JARs: the core optimizers, chunk-generation experiments, dynamic view distance, entity/particle/texture optimizers, and their libraries.
 
 > **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura, Fast Noise and Afterburner touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
@@ -30,18 +30,16 @@ This release broadens the bundle to 22 top-level mod/library JARs: the core opti
 | [Krypton](https://modrinth.com/mod/krypton) | 0.2.10 | Network stack | LGPL-3.0-only |
 | [C2ME](https://modrinth.com/mod/c2me-fabric) | 0.3.6.0.0 | Concurrent chunk management | MIT |
 | [DynamicRenderDistance](https://modrinth.com/mod/dynamicrenderdistance) | 1.2.0 | Adapts view distance to FPS | MIT |
-| [PerceptiFrame](https://modrinth.com/mod/perceptiframe) | 1.0.0* | Adaptive entity detail/shadows | MIT |
 | [Bura](https://modrinth.com/mod/bura) | 0.1.0 alpha | Chunk compilation/upload scheduling | MIT |
 | [Epitaph Optimizer](https://modrinth.com/mod/epitaph-optimizer) | 1.0.0* | Applies performance-friendly video settings | CC0-1.0 |
 | [Dynamic FPS](https://modrinth.com/mod/dynamic-fps) | 3.11.4 | Reduces background resource use | MIT |
 | [FastQuit](https://modrinth.com/mod/fastquit) | 3.1.3+mc1.21.11 | Returns to menu while save finishes | MIT |
 | [Optis](https://modrinth.com/mod/optis) | 1.0.0 | Texture/VRAM residency management | MIT |
-| [Afterburner: Optimized](https://modrinth.com/mod/afterburner-optimized) | experimental 1.21.11 build* | Chunk drawing/culling optimizations | MIT |
 | [Smart Particles](https://modrinth.com/mod/smart-particles) | 1.11.10 | Particle rendering/limits | MIT |
 | [Architectury API](https://modrinth.com/mod/architectury-api) | 19.0.1+fabric | Required library for DynamicRenderDistance | LGPL-3.0-only |
 | [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153+fabric | Required library for FastQuit | LGPL-3.0-only |
 
-* These selected version coordinates must be confirmed by CI resolution; the exact upstream version may differ if the maintainer changed the listing. Do not consider the release ready unless the dependency resolution and recursive metadata checks succeed.
+PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but are not inside this JAR: the first artifact version pin and the second artifact coordinate did not resolve in Gradle. I will not ship them until exact, reproducible versions are pinned.
 
 ## Installation
 
@@ -61,6 +59,7 @@ This release is intended as a broad experiment, not a promise of more FPS. Bench
 - Optis adjusts texture residency, so test with high-resolution packs and watch for missing textures or VRAM spikes.
 - DynamicRenderDistance changes view distance on the fly; set reasonable minimum and maximum limits.
 - Dynamic FPS and FastQuit are convenience/background/save optimizers, not guaranteed active-game FPS boosters.
+- PerceptiFrame is a rendering-detail candidate and Afterburner: Optimized modifies chunk drawing/culling. Both need exact build coordinates and separate VulkanMod runtime testing before bundling.
 - Native anti-aliasing, FSR upscaling and DLSS/DLAA are **not** implemented yet.
 
 ## License notes

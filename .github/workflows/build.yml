@@ -38,7 +38,7 @@ jobs:
           import json
           import zipfile
 
-          EXPECTED_TOP_LEVEL_COUNT = 22
+          EXPECTED_TOP_LEVEL_COUNT = 20
           candidates = [
               path for path in glob.glob("build/libs/vulkanboost-*.jar")
               if not path.endswith("-dev.jar") and not path.endswith("-sources.jar")
