@@ -3,7 +3,8 @@
   "package": "dev.vulkanboost.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
-    "VulkanModOptionsMixin"
+    "VulkanModOptionsMixin",
+    "RenderScaleDiagnosticsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
