@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 built around VulkanMod.",
+  "description": "A single-JAR experimental optimization bundle for Minecraft 1.21.11 built around VulkanMod.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
@@ -15,7 +15,7 @@
   "license": "MIT",
   "environment": "client",
   "depends": {
-    "fabricloader": ">=0.18.4",
+    "fabricloader": ">=0.19.3",
     "minecraft": "1.21.11",
     "vulkanmod": ">=0.6.8",
     "fabric-api": "*"

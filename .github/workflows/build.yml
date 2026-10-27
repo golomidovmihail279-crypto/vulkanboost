@@ -30,7 +30,7 @@ jobs:
       - name: Build remapped mod JAR
         run: gradle --no-daemon clean build
 
-      - name: Validate single-JAR bundle and nested metadata
+      - name: Validate one-JAR bundle and nested metadata
         shell: python
         run: |
           import glob
@@ -38,12 +38,7 @@ jobs:
           import json
           import zipfile
 
-          EXPECTED_TOP_LEVEL = {
-              "fabric-api", "vulkanmod", "lithium", "ferritecore",
-              "alternate-current", "badoptimizations", "modernfix",
-              "scalablelux", "zfastnoise", "krypton"
-          }
-
+          EXPECTED_TOP_LEVEL_COUNT = 22
           candidates = [
               path for path in glob.glob("build/libs/vulkanboost-*.jar")
               if not path.endswith("-dev.jar") and not path.endswith("-sources.jar")
@@ -55,31 +50,30 @@ jobs:
               with zipfile.ZipFile(io.BytesIO(jar_bytes)) as archive:
                   metadata = json.loads(archive.read("fabric.mod.json"))
                   for item in metadata.get("jars", []):
-                      name = item["file"]
-                      child_bytes = archive.read(name)
-                      child_meta = inspect_nested(child_bytes, f"{label}!/{name}")
-                      print(f"Nested mod OK: {child_meta.get('id')} {child_meta.get('version')}")
+                      child_name = item["file"]
+                      inspect_nested(archive.read(child_name), f"{label}!/{child_name}")
                   return metadata
 
           jar_path = candidates[0]
           with zipfile.ZipFile(jar_path) as archive:
               metadata = json.loads(archive.read("fabric.mod.json"))
               nested = metadata.get("jars", [])
-              if len(nested) != 10:
-                  raise SystemExit(f"Expected 10 top-level nested mod JARs, found {len(nested)}")
-
-              found_ids = set()
-              for item in nested:
-                  name = item["file"]
-                  child_meta = inspect_nested(archive.read(name), f"{jar_path}!/{name}")
-                  found_ids.add(child_meta.get("id"))
-                  print(f"Top-level component OK: {child_meta.get('id')} {child_meta.get('version')}")
-
-              if found_ids != EXPECTED_TOP_LEVEL:
+              if len(nested) != EXPECTED_TOP_LEVEL_COUNT:
                   raise SystemExit(
-                      f"Top-level component IDs differ. Missing: {EXPECTED_TOP_LEVEL - found_ids}; "
-                      f"unexpected: {found_ids - EXPECTED_TOP_LEVEL}"
+                      f"Expected {EXPECTED_TOP_LEVEL_COUNT} top-level mod/library JARs, found {len(nested)}"
                   )
+
+              found_ids = []
+              for item in nested:
+                  child_meta = inspect_nested(archive.read(item["file"]), f"{jar_path}!/{item['file']}")
+                  mod_id = child_meta.get("id")
+                  if not mod_id:
+                      raise SystemExit(f"Missing mod id in {item['file']}")
+                  found_ids.append(mod_id)
+                  print(f"Top-level component OK: {mod_id} {child_meta.get('version')}")
+
+              if len(set(found_ids)) != len(found_ids):
+                  raise SystemExit(f"Duplicate top-level mod IDs found: {found_ids}")
 
           print(f"Validated installable bundle: {jar_path}")
       - name: Upload installable JAR

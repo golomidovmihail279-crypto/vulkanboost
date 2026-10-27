@@ -1,62 +1,75 @@
 # VulkanBoost
 
-**A single-JAR performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
+**A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-VulkanBoost packages selected upstream Fabric mods as nested JARs. Fabric Loader discovers the bundled components through their own metadata; the projects are not merged, shaded, or rewritten.
+This release broadens the bundle to 22 top-level mod/library JARs: the core optimizers, chunk-generation experiments, dynamic view distance, entity/particle/texture optimizers, and their libraries.
 
-> **Release status:** the JAR and nested-mod metadata are validated in CI. The combined mod set still needs full in-game compatibility and stability testing across GPU vendors.
+> **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura, Fast Noise and Afterburner touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
-## Target platform
+## Platform
 
 - Minecraft Java Edition **1.21.11**
-- Fabric Loader **0.18.4 or newer** (still required in the game profile)
+- Fabric Loader **0.19.3 or newer** (required by Epitaph Optimizer)
 - Java **21**
-- A graphics device and driver supporting **Vulkan 1.2 or newer**
-- VulkanMod **0.6.8+1.21.11** and Fabric API (both included)
+- GPU/driver supporting **Vulkan 1.2+**
+- VulkanMod **0.6.8+1.21.11** and Fabric API are included
 
-## Included components
+## Bundled components
 
 | Component | Version | Purpose | License |
 |---|---|---|---|
-| [Fabric API](https://modrinth.com/mod/fabric-api) | 0.140.2+1.21.11 | Hooks and compatibility APIs for Fabric mods | Apache-2.0 |
+| [Fabric API](https://modrinth.com/mod/fabric-api) | 0.140.2+1.21.11 | Fabric compatibility APIs | Apache-2.0 |
 | [VulkanMod](https://modrinth.com/mod/vulkanmod) | 0.6.8+1.21.11 | Vulkan rendering backend | LGPL-3.0-only |
-| [Lithium](https://modrinth.com/mod/lithium) | 0.21.4 | Optimizes game logic and ticks | LGPL-3.0-only |
-| [FerriteCore](https://modrinth.com/mod/ferrite-core) | 8.2.0-fabric | Reduces memory use | MIT |
-| [Alternate Current](https://modrinth.com/mod/alternate-current) | 1.9.0 | Optimizes redstone dust calculations | MIT |
+| [Lithium](https://modrinth.com/mod/lithium) | 0.21.4 | Game logic/tick optimization | LGPL-3.0-only |
+| [FerriteCore](https://modrinth.com/mod/ferrite-core) | 8.2.0-fabric | Reduces memory usage | MIT |
+| [Alternate Current](https://modrinth.com/mod/alternate-current) | 1.9.0 | Redstone calculations | MIT |
 | [BadOptimizations](https://modrinth.com/mod/badoptimizations) | 2.4.1 | Non-rendering micro-optimizations | MIT |
-| [ModernFix-mVUS](https://modrinth.com/mod/modernfix-mvus) | 5.26.3-build.2 | Memory, loading and bug-fix optimizations | LGPL-3.0-only |
-| [ScalableLux](https://modrinth.com/mod/scalablelux) | 0.1.6+fabric.c25518a | Faster lighting updates | LGPL-3.0-only |
-| [Fast Noise](https://modrinth.com/mod/zfastnoise) | 1.0.36+1.21.11 | World-generation optimizations | MPL-2.0 |
-| [Krypton](https://modrinth.com/mod/krypton) | 0.2.10 | Network-stack optimizations for multiplayer | LGPL-3.0-only |
+| [ModernFix-mVUS](https://modrinth.com/mod/modernfix-mvus) | 5.26.3-build.2 | Memory/loading fixes | LGPL-3.0-only |
+| [ScalableLux](https://modrinth.com/mod/scalablelux) | 0.1.6+fabric.c25518a | Lighting updates | LGPL-3.0-only |
+| [Fast Noise](https://modrinth.com/mod/zfastnoise) | 1.0.36+1.21.11 | World generation | MPL-2.0 |
+| [Krypton](https://modrinth.com/mod/krypton) | 0.2.10 | Network stack | LGPL-3.0-only |
+| [C2ME](https://modrinth.com/mod/c2me-fabric) | 0.3.6.0.0 | Concurrent chunk management | MIT |
+| [DynamicRenderDistance](https://modrinth.com/mod/dynamicrenderdistance) | 1.2.0 | Adapts view distance to FPS | MIT |
+| [PerceptiFrame](https://modrinth.com/mod/perceptiframe) | 1.0.0* | Adaptive entity detail/shadows | MIT |
+| [Bura](https://modrinth.com/mod/bura) | 0.1.0 alpha | Chunk compilation/upload scheduling | MIT |
+| [Epitaph Optimizer](https://modrinth.com/mod/epitaph-optimizer) | 1.0.0* | Applies performance-friendly video settings | CC0-1.0 |
+| [Dynamic FPS](https://modrinth.com/mod/dynamic-fps) | 3.11.4 | Reduces background resource use | MIT |
+| [FastQuit](https://modrinth.com/mod/fastquit) | 3.1.3+mc1.21.11 | Returns to menu while save finishes | MIT |
+| [Optis](https://modrinth.com/mod/optis) | 1.0.0 | Texture/VRAM residency management | MIT |
+| [Afterburner: Optimized](https://modrinth.com/mod/afterburner-optimized) | experimental 1.21.11 build* | Chunk drawing/culling optimizations | MIT |
+| [Smart Particles](https://modrinth.com/mod/smart-particles) | 1.11.10 | Particle rendering/limits | MIT |
+| [Architectury API](https://modrinth.com/mod/architectury-api) | 19.0.1+fabric | Required library for DynamicRenderDistance | LGPL-3.0-only |
+| [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153+fabric | Required library for FastQuit | LGPL-3.0-only |
 
-The 0.3.0 release adds Fabric API so it does not need to be downloaded separately. The bundle contains ten top-level components. This does **not** guarantee that every combination will work perfectly with VulkanMod; full in-game testing is still needed.
+* These selected version coordinates must be confirmed by CI resolution; the exact upstream version may differ if the maintainer changed the listing. Do not consider the release ready unless the dependency resolution and recursive metadata checks succeed.
 
 ## Installation
 
-1. Download **VulkanBoost-0.3.0-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
-2. Put that one JAR into your Fabric instance's `mods` folder.
-3. Remove separate copies of Fabric API, VulkanMod and the other bundled mods to avoid duplicate mod IDs.
-4. Ensure your game profile already uses Fabric Loader and your GPU/driver supports Vulkan 1.2 or newer, then launch Minecraft 1.21.11.
+1. Download **VulkanBoost-0.4.0-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
+2. Put that one JAR in your Fabric profile's `mods` folder.
+3. Remove separate copies of Fabric API, VulkanMod, the bundled optimization mods and their bundled libraries to avoid duplicate mod IDs.
+4. Use Fabric Loader **0.19.3 or newer**, Java 21, and Minecraft 1.21.11.
 
-The goal is one JAR in `mods`; **Fabric Loader itself is still required** and must be installed by your launcher/profile. The [Actions tab](https://github.com/golomidovmihail279-crypto/vulkanboost/actions) contains build and bundle-validation logs.
+Fabric Loader itself is still required; it is not inside the mod JAR.
 
-## Anti-aliasing / jagged edges
+## Test plan and known risks
 
-**Native anti-aliasing is not implemented in 0.3.0.** VulkanMod's current pipeline uses single-sample rasterization. Proper MSAA requires compatible multisampled render targets and a resolve pass; changing a sample-count constant alone would not be sufficient.
+This release is intended as a broad experiment, not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
 
-For an existing Vulkan shader pipeline, [Beryl](https://modrinth.com/mod/beryl) is the companion recommended by the VulkanMod project for supported versions. It is licensed **ARR (All Rights Reserved)**, so VulkanBoost does not redistribute or embed it. Installing Beryl requires a separate JAR and is optional.
+- C2ME, Bura, Fast Noise and Afterburner overlap in chunk/render scheduling. If issues occur, the first diagnostic build should remove one at a time.
+- PerceptiFrame changes entity feature detail and shadows; test it with VulkanMod's renderer.
+- Optis adjusts texture residency, so test with high-resolution packs and watch for missing textures or VRAM spikes.
+- DynamicRenderDistance changes view distance on the fly; set reasonable minimum and maximum limits.
+- Dynamic FPS and FastQuit are convenience/background/save optimizers, not guaranteed active-game FPS boosters.
+- Native anti-aliasing, FSR upscaling and DLSS/DLAA are **not** implemented yet.
 
-A native, redistributable FXAA/SMAA-style post-processing pass remains a separate task. FSR-style upscaling and NVIDIA DLSS/DLAA feasibility are tracked in [issue #2](https://github.com/golomidovmihail279-crypto/vulkanboost/issues/2) and [issue #3](https://github.com/golomidovmihail279-crypto/vulkanboost/issues/3). None of these features is included in this release.
+## License notes
 
-## Compatibility decisions
+The MIT project license applies only to VulkanBoost's own files. Each nested component retains its own license; see [LICENSES/THIRD_PARTY_NOTICES.md](LICENSES/THIRD_PARTY_NOTICES.md).
 
-- Do **not** install Sodium alongside VulkanMod; they replace the rendering pipeline in incompatible ways.
-- Iris depends on Sodium and is not included.
-- ImmediatelyFast and More Culling are not included because VulkanMod's compatibility notes warn about crashes or visual issues with listed versions. Those notes are older and are not a substitute for testing Minecraft 1.21.11.
-- C2ME was not bundled in 0.3.0. Its 1.21.11 releases are alpha builds, and Fast Noise was chosen for world-generation optimization rather than combining overlapping chunk-generation systems before testing.
-- The compatibility of the complete ten-component bundle has not been validated in a live Minecraft session. Back up worlds before testing and report issues with the latest log.
+Three candidates were deliberately **not** redistributed: StackCluster Optimizer, OptimizeMod and NoRender+ list ARR (All Rights Reserved). OptiLeaves is also held back because its listing/license information appears inconsistent and it modifies render/culling paths. They can be reconsidered after permission/license clarification and separate compatibility testing.
 
-## Build from source
+## Build
 
 Requirements: JDK 21 and Gradle 9.5.0.
 
@@ -64,14 +77,4 @@ Requirements: JDK 21 and Gradle 9.5.0.
 gradle --no-daemon clean build
 ```
 
-The internal remapped JAR is produced in `build/libs/`. GitHub Actions builds the project, recursively validates the nested mod metadata, checks the expected ten top-level components and uploads the artifact. After a successful build of the current `main` commit, a normal Latest GitHub Release is published with the user-facing filename `VulkanBoost-0.3.0-for-1.21.11.jar`.
-
-## Licenses
-
-The MIT license at the repository root applies to **VulkanBoost's own project files only**. Third-party components retain their own licenses. See [LICENSES/THIRD_PARTY_NOTICES.md](LICENSES/THIRD_PARTY_NOTICES.md) for project links and license details.
-
-## Development goals
-
-- Test the combined mod set on a clean Minecraft 1.21.11 + Fabric + VulkanMod profile.
-- Add reproducible benchmarks rather than making unmeasured FPS claims.
-- Implement and test a Vulkan-native anti-aliasing/upscaling path.
+GitHub Actions validates the single installable JAR, the expected top-level component count, unique top-level mod IDs, and recursive nested Fabric metadata. A normal Latest Release is published only after CI succeeds for the current `main` commit.

@@ -1,20 +1,32 @@
 # Third-party notices
 
-VulkanBoost is a bundle, not a merged or forked copy of its included mods. Fabric Loader discovers the bundled components through their own metadata. The MIT license at the repository root applies only to VulkanBoost's own project files; each nested component retains its own license and metadata.
+VulkanBoost bundles unmodified upstream mod JARs using Fabric Loader's nested-JAR mechanism. It does not merge, shade or rewrite third-party mod code. The root MIT license covers VulkanBoost's own project files only.
 
 | Component | Bundled version | Upstream license | Project page |
 |---|---|---|---|
 | Fabric API | 0.140.2+1.21.11 | Apache-2.0 | https://modrinth.com/mod/fabric-api |
 | VulkanMod | 0.6.8+1.21.11 | LGPL-3.0-only | https://modrinth.com/mod/vulkanmod |
-| Lithium | 0.21.4 for Minecraft 1.21.11 | LGPL-3.0-only | https://modrinth.com/mod/lithium |
+| Lithium | 0.21.4 | LGPL-3.0-only | https://modrinth.com/mod/lithium |
 | FerriteCore | 8.2.0-fabric | MIT | https://modrinth.com/mod/ferrite-core |
-| Alternate Current | 1.9.0 for Minecraft 1.21.11 | MIT | https://modrinth.com/mod/alternate-current |
-| BadOptimizations | 2.4.1 for Minecraft 1.21.11 | MIT | https://modrinth.com/mod/badoptimizations |
-| ModernFix-mVUS | 5.26.3-build.2 for Minecraft 1.21.11 | LGPL-3.0-only | https://modrinth.com/mod/modernfix-mvus |
+| Alternate Current | 1.9.0 | MIT | https://modrinth.com/mod/alternate-current |
+| BadOptimizations | 2.4.1 | MIT | https://modrinth.com/mod/badoptimizations |
+| ModernFix-mVUS | 5.26.3-build.2 | LGPL-3.0-only | https://modrinth.com/mod/modernfix-mvus |
 | ScalableLux | 0.1.6+fabric.c25518a | LGPL-3.0-only | https://modrinth.com/mod/scalablelux |
 | Fast Noise | 1.0.36+1.21.11 | MPL-2.0 | https://modrinth.com/mod/zfastnoise |
 | Krypton | 0.2.10 | LGPL-3.0-only | https://modrinth.com/mod/krypton |
+| C2ME | 0.3.6.0.0 | MIT | https://modrinth.com/mod/c2me-fabric |
+| DynamicRenderDistance | 1.2.0 | MIT | https://modrinth.com/mod/dynamicrenderdistance |
+| PerceptiFrame | 1.0.0* | MIT | https://modrinth.com/mod/perceptiframe |
+| Bura | 0.1.0 alpha | MIT | https://modrinth.com/mod/bura |
+| Epitaph Optimizer | 1.0.0* | CC0-1.0 | https://modrinth.com/mod/epitaph-optimizer |
+| Dynamic FPS | 3.11.4 | MIT | https://modrinth.com/mod/dynamic-fps |
+| FastQuit | 3.1.3+mc1.21.11 | MIT | https://modrinth.com/mod/fastquit |
+| Optis | 1.0.0 | MIT | https://modrinth.com/mod/optis |
+| Afterburner: Optimized | experimental 1.21.11 build* | MIT | https://modrinth.com/mod/afterburner-optimized |
+| Smart Particles | 1.11.10 | MIT | https://modrinth.com/mod/smart-particles |
+| Architectury API | 19.0.1+fabric | LGPL-3.0-only | https://modrinth.com/mod/architectury-api |
+| Cloth Config API | 21.11.153+fabric | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
 
-Consult each project's official page for the corresponding source repository and full license text. Keep these notices and comply with each upstream project's redistribution terms when publishing a bundle.
+* The associated upstream version coordinate must successfully resolve and its actual embedded metadata should be checked before publishing. Keep these notices and comply with each upstream project's license conditions.
 
-VulkanBoost does not bundle Beryl. Beryl is listed as ARR (All Rights Reserved); do not redistribute it inside VulkanBoost without explicit permission from its author.
+VulkanBoost does not redistribute StackCluster Optimizer, OptimizeMod, or NoRender+ because their listings state ARR (All Rights Reserved). OptiLeaves has been held back because public license listings conflict; do not embed or redistribute it until the license and permission are clarified. Beryl remains excluded: it is ARR, and should not be repackaged without explicit permission.

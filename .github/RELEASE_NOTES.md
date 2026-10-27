@@ -1,31 +1,33 @@
-# VulkanBoost 0.3.0 for Minecraft 1.21.11
+# VulkanBoost 0.4.0 for Minecraft 1.21.11
 
-The main goal of this release is simple installation: **one JAR in the `mods` folder**, with Fabric API included alongside the optimization components.
+An expanded experimental optimization bundle with 22 top-level nested mod/library JARs.
 
-## Included top-level components
+## Additional components in 0.4.0
 
-- Fabric API 0.140.2+1.21.11
-- VulkanMod 0.6.8+1.21.11
-- Lithium 0.21.4
-- FerriteCore 8.2.0-fabric
-- Alternate Current 1.9.0
-- BadOptimizations 2.4.1
-- ModernFix-mVUS 5.26.3-build.2
-- ScalableLux 0.1.6+fabric.c25518a
-- Fast Noise 1.0.36+1.21.11
-- Krypton 0.2.10
+- C2ME 0.3.6.0.0
+- DynamicRenderDistance 1.2.0
+- PerceptiFrame (candidate build)
+- Bura 0.1.0 alpha
+- Epitaph Optimizer (candidate build)
+- Dynamic FPS 3.11.4
+- FastQuit 3.1.3+mc1.21.11
+- Optis 1.0.0
+- Afterburner: Optimized (experimental 1.21.11 build)
+- Smart Particles 1.11.10
+- Architectury API 19.0.1+fabric
+- Cloth Config API 21.11.153+fabric
 
 ## Installation
 
-- Requires Minecraft 1.21.11, Fabric Loader 0.18.4 or newer, Java 21 and a GPU/driver supporting Vulkan 1.2+.
-- Download `VulkanBoost-0.3.0-for-1.21.11.jar` and put it in the `mods` folder.
-- Do not also install separate copies of Fabric API, VulkanMod, or the other bundled components; duplicate IDs can prevent launch.
-- Fabric Loader itself is still required; it is installed by the launcher/profile, not bundled inside the mod.
+- Minecraft 1.21.11, Fabric Loader 0.19.3+, Java 21 and a Vulkan 1.2+ compatible GPU/driver are required.
+- Download `VulkanBoost-0.4.0-for-1.21.11.jar` and put only this bundle in the `mods` folder; do not also install duplicates of bundled mods/libraries.
+- Fabric Loader itself is still required and is not bundled.
 
-## Verification and limitations
+## Important test notes
 
-- GitHub Actions builds the remapped JAR and validates the ten top-level bundled mod IDs and nested Fabric metadata.
-- The bundle still needs full in-game compatibility and stability testing across GPU vendors. Please test on a disposable profile and back up worlds.
-- Native anti-aliasing, FSR upscaling and DLSS/DLAA are not implemented in this release.
+- CI builds the JAR and validates nested metadata, but does not launch Minecraft or prove in-game compatibility.
+- This release combines several experimental chunk scheduling/culling changes. Test on a disposable profile and back up worlds.
+- Compare against 0.3.0 using the same world/position/settings. If issues appear, remove new optimizers one-by-one to identify the conflict.
+- Native anti-aliasing, FSR and DLSS/DLAA are still not included; these remain a later development milestone.
 
-See the README and third-party notices for installation details and licenses.
+ARR projects are not redistributed, and OptiLeaves is withheld pending license clarification.
