@@ -4,7 +4,7 @@
 
 VulkanBoost packages selected upstream Fabric mods as nested JARs. Fabric Loader loads each component normally, so this project does **not** merge, shade, or rewrite their code.
 
-> **Status: early alpha.** CI builds the package automatically. The mod combination still needs in-game testing on a clean Minecraft 1.21.11 profile with VulkanMod before it should be described as fully verified.
+> **Release status:** the packaged JAR and nested-mod metadata pass CI validation. Full in-game compatibility and stability testing across GPU vendors is still outstanding.
 
 ## Target platform
 
@@ -33,7 +33,7 @@ The bundled components are intentionally conservative: shader/rendering mods tha
 3. Remove separate copies of VulkanMod and the bundled mods from that instance to avoid duplicate mod IDs.
 4. Make sure your GPU and driver support Vulkan 1.2 or newer, then launch Minecraft 1.21.11 with Fabric.
 
-The alpha build is published automatically as a prerelease after the latest `main` commit passes CI. Download `VulkanBoost-0.1.0-alpha.1.jar` from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases). The [Actions tab](https://github.com/golomidovmihail279-crypto/vulkanboost/actions) contains the build and bundle-validation logs.
+The latest `main` build is published automatically as the current GitHub Release after CI passes. Download `VulkanBoost-0.1.0.jar` from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases). The [Actions tab](https://github.com/golomidovmihail279-crypto/vulkanboost/actions) contains the build and bundle-validation logs.
 
 ## Anti-aliasing / jagged edges
 
