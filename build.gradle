@@ -202,33 +202,38 @@ tasks.register("patchBundledRenderScaleShader") {
                     String shader = new String(bytes, StandardCharsets.UTF_8)
                     String commentMarker = "AMD's Vulkan example"
                     int markerIndex = shader.indexOf(commentMarker)
-                    int commentStart = markerIndex >= 0 ? shader.lastIndexOf("/*", markerIndex) : -1
-                    int commentEnd = markerIndex >= 0 ? shader.indexOf("*/", markerIndex) : -1
-                    if (commentStart < 0 || commentEnd < markerIndex) {
-                        throw new GradleException("Could not locate the enclosing EASU block comment in " + item.name)
+                    if (markerIndex < 0) {
+                        throw new GradleException("Could not locate the EASU comment marker in " + item.name)
                     }
 
-                    String commentBody = shader.substring(commentStart + 2, commentEnd)
-                    String afterComment = shader.substring(commentEnd + 2)
-                    if (!afterComment.split("\n", 2)[0].trim().isEmpty()) {
-                        throw new GradleException("Code follows the EASU block comment on the same line in " + item.name)
-                    }
-                    String lineComment = commentBody.split("\n", -1).collect { String line ->
-                        String cleanedLine = line.replaceFirst("^[ \\t]*\\*", "")
-                        cleanedLine.trim().isEmpty() ? "" : "//" + cleanedLine
-                    }.join("\n")
-                    shader = shader.substring(0, commentStart) + lineComment + afterComment
+                    int lineStart = shader.lastIndexOf("\n", markerIndex) + 1
+                    int lineCommentStart = shader.lastIndexOf("//", markerIndex)
+                    boolean markerIsLineComment = lineCommentStart >= lineStart
+                    int commentStart = shader.lastIndexOf("/*", markerIndex)
+                    int commentEnd = shader.indexOf("*/", markerIndex)
+                    if (!markerIsLineComment) {
+                        if (commentStart < 0 || commentEnd < markerIndex) {
+                            throw new GradleException("EASU marker is neither in a line comment nor a complete block comment in " + item.name)
+                        }
 
-                    if (shader.contains("/*") || shader.contains("*/")) {
-                        throw new GradleException("Unsupported block comment remains in RenderScale EASU shader: " + item.name)
+                        String commentBody = shader.substring(commentStart + 2, commentEnd)
+                        String afterComment = shader.substring(commentEnd + 2)
+                        if (!afterComment.split("\n", 2)[0].trim().isEmpty()) {
+                            throw new GradleException("Code follows the EASU block comment on the same line in " + item.name)
+                        }
+                        String lineComment = commentBody.split("\n", -1).collect { String line ->
+                            String cleanedLine = line.replaceFirst("^[ \t]*\\*", "")
+                            cleanedLine.trim().isEmpty() ? "" : "//" + cleanedLine
+                        }.join("\n")
+                        shader = shader.substring(0, commentStart) + lineComment + afterComment
                     }
+
                     if (!shader.contains("// AMD's Vulkan example")) {
                         throw new GradleException("RenderScale EASU comment compatibility patch is incomplete: " + item.name)
                     }
                     bytes = shader.getBytes(StandardCharsets.UTF_8)
                     patchedShaderPaths.add(item.name)
                     easuCommentPatched = true
-                }
 
                 // Remove apostrophes from shader comments only. An apostrophe in GLSL code must fail the build.
                 if (item.name.startsWith("assets/renderscale/shaders/") && item.name ==~ /.*\.(glsl|fsh|vsh)$/) {
