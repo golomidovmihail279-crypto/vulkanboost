@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 including the unmodified upstream BetterHurtCam and its required Ukulib dependency.",
+  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 with VulkanMod, unmodified BetterHurtCam, and experimental RenderScale FSR 1 upscaling.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
@@ -20,6 +20,7 @@
     "vulkanmod": ">=0.6.8",
     "fabric-api": "*",
     "betterhurtcam": ">=1.12.0",
-    "ukulib": "^1.10.0"
+    "ukulib": "^1.10.0",
+    "renderscale": "*"
   }
 }

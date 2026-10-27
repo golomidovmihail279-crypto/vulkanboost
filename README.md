@@ -2,7 +2,7 @@
 
 **A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-This release contains 19 nested mod/library JARs, including the upstream **BetterHurtCam 1.12.0 for Minecraft 1.21.11** and its required **Ukulib 1.10.2** dependency. VulkanBoost bundles the original BetterHurtCam artifact as-is, without a fork, custom runtime code, keybindings, screens, config bridge, or resource overrides.
+This release contains 20 nested mod/library JARs, including the upstream **BetterHurtCam 1.12.0**, its required **Ukulib 1.10.2** dependency, and **RenderScale 1.4.0-alpha.1** for experimental FSR 1 upscaling on Minecraft 1.21.11. BetterHurtCam remains unmodified, and RenderScale is bundled as an upstream nested JAR.
 
 > **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura and Fast Noise touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
@@ -34,11 +34,16 @@ This release contains 19 nested mod/library JARs, including the upstream **Bette
 | [Dynamic FPS](https://modrinth.com/mod/dynamic-fps) | 3.11.4 | Reduces background resource use | MIT |
 | [FastQuit](https://modrinth.com/mod/fastquit) | 3.1.3+mc1.21.11 | Returns to menu while save finishes | MIT |
 | [Smart Particles](https://modrinth.com/mod/smart-particles) | 1.11.10 | Particle rendering/limits | MIT |
-| [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153+fabric | Required library for FastQuit | LGPL-3.0-only |
+| [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153+fabric | Shared config library for FastQuit and RenderScale | LGPL-3.0-only |
+| [RenderScale](https://modrinth.com/mod/renderscale/version/1.4.0-alpha.1-fabric%2B1.21.11) | 1.4.0-alpha.1 | Experimental FSR 1 spatial upscaling | MIT |
 | [BetterHurtCam](https://github.com/uku3lig/betterhurtcam/tree/1.21.11) | 1.12.0+mc1.21.11 | Official damage-camera effect, multiplier and direction modes | MIT |
 | [Ukulib](https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11) | 1.10.2+1.21.11 | Required configuration and UI library for BetterHurtCam | MPL-2.0 |
 
 PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but are not inside this JAR: the first artifact version pin and the second artifact coordinate did not resolve in Gradle. I will not ship them until exact, reproducible versions are pinned.
+
+## Upscaling (experimental)
+
+VulkanBoost 0.5 adds the upstream [RenderScale 1.4.0-alpha.1 build for Minecraft 1.21.11](https://modrinth.com/mod/renderscale/version/1.4.0-alpha.1-fabric%2B1.21.11) as a nested dependency. This first step provides **FSR 1 spatial upscaling** and stays inside the single VulkanBoost JAR. The feature is experimental for 1.21.11; verify it with VulkanMod on your exact game instance before relying on it. This is not DLSS, and it does not add FSR 2/3 temporal reconstruction. DLSS is not part of 0.5 yet.
 
 ## BetterHurtCam (upstream component)
 
@@ -50,7 +55,7 @@ The normal Minecraft **Options → Controls → Key Binds** screen automatically
 
 ## Installation
 
-1. Download **VulkanBoost-0.4.11-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
+1. Download **VulkanBoost-0.5-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
 2. Put that one JAR in your Fabric profile's `mods` folder.
 3. Remove separate copies of Fabric API, VulkanMod, the bundled optimization mods and their bundled libraries to avoid duplicate mod IDs.
 4. Use Fabric Loader **0.19.3 or newer**, Java 21, and Minecraft 1.21.11.
@@ -59,14 +64,14 @@ Fabric Loader itself is still required; it is not inside the mod JAR.
 
 ## Test plan and known risks
 
-Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. Version 0.4.2 removed DynamicRenderDistance and its now-unused Architectury API library. Version 0.4.9 switched to the upstream BetterHurtCam dependency and fixed a crash in the temporary first-server setup screen. Version 0.4.11 removes that custom integration entirely and bundles the upstream component without a wrapper or resource overrides. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
+Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. Version 0.4.2 removed DynamicRenderDistance and its now-unused Architectury API library. Version 0.4.9 switched to the upstream BetterHurtCam dependency and fixed a crash in the temporary first-server setup screen. Version 0.4.11 removed that custom integration entirely. Version 0.5 adds RenderScale's experimental FSR 1 path as an upstream nested mod; test renderer compatibility and compare performance before keeping it enabled. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
 
 - C2ME, Bura and Fast Noise overlap in chunk/render scheduling. If issues occur, the first diagnostic build should remove one at a time.
 - Optis was removed in 0.4.1 after a startup crash in OsmiumClient: it references the missing Minecraft class `net.minecraft.client.texture.AbstractTexture` on Minecraft 1.21.11.
 - Automatic render-distance adjustment is intentionally excluded; VulkanBoost leaves the configured view distance alone.
 - Dynamic FPS and FastQuit are convenience/background/save optimizers, not guaranteed active-game FPS boosters.
 - PerceptiFrame is a rendering-detail candidate and Afterburner: Optimized modifies chunk drawing/culling. Both need exact build coordinates and separate VulkanMod runtime testing before bundling.
-- Native anti-aliasing, FSR upscaling and DLSS/DLAA are **not** implemented yet.
+- FSR 1 spatial upscaling is included through RenderScale 1.4.0-alpha.1 and is experimental on Minecraft 1.21.11; VulkanMod compatibility needs in-game confirmation. DLSS/DLAA and temporal FSR 2+ are **not** included in 0.5.
 
 ## License notes
 

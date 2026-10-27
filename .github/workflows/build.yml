@@ -39,7 +39,7 @@ jobs:
           import zipfile
           from pathlib import Path
 
-          EXPECTED_TOP_LEVEL_COUNT = 19
+          EXPECTED_TOP_LEVEL_COUNT = 20
           candidates = [
               path for path in glob.glob("build/libs/vulkanboost-*.jar")
               if not path.endswith("-dev.jar") and not path.endswith("-sources.jar")
@@ -86,9 +86,16 @@ jobs:
                           f"Expected upstream {mod_id} {expected_version}, found {actual_version}"
                       )
 
+              render_scale_version = component_versions.get("renderscale")
+              if not render_scale_version or not str(render_scale_version).startswith("1.4.0-alpha.1"):
+                  raise SystemExit(
+                      f"Expected RenderScale 1.4.0-alpha.1 for Minecraft 1.21.11, found {render_scale_version}"
+                  )
+
               root_depends = metadata.get("depends", {})
-              if "betterhurtcam" not in root_depends or "ukulib" not in root_depends:
-                  raise SystemExit("Root metadata must declare BetterHurtCam and Ukulib dependencies.")
+              for required_dependency in ("betterhurtcam", "ukulib", "renderscale"):
+                  if required_dependency not in root_depends:
+                      raise SystemExit(f"Root metadata must declare {required_dependency}.")
               if metadata.get("entrypoints"):
                   raise SystemExit("The root bundle must not register custom runtime entrypoints.")
               if metadata.get("mixins"):
@@ -122,7 +129,7 @@ jobs:
               forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
               present_forbidden = sorted(forbidden_ids.intersection(component_versions))
               if present_forbidden:
-                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.11: {present_forbidden}")
+                  raise SystemExit(f"These components must stay out of VulkanBoost 0.5: {present_forbidden}")
 
           print(
               "Validated 19 nested components; BetterHurtCam and Ukulib match the pinned upstream versions, "
