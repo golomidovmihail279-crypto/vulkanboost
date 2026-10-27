@@ -56,7 +56,7 @@ jobs:
           shopt -s nullglob
           jars=(dist/vulkanboost-0.4.1.jar)
           if [[ "${#jars[@]}" -ne 1 ]]; then
-            echo "Expected exactly one validated build artifact: dist/vulkanboost-0.4.0.jar"
+            echo "Expected exactly one validated build artifact: dist/vulkanboost-0.4.1.jar"
             find dist -maxdepth 3 -type f -print
             exit 1
           fi
@@ -89,7 +89,7 @@ jobs:
           make_latest: true
           fail_on_unmatched_files: true
           files: |
-            dist/VulkanBoost-0.4.0-for-1.21.11.jar
-            dist/VulkanBoost-0.4.0-for-1.21.11.jar.sha256
+            dist/VulkanBoost-0.4.1-for-1.21.11.jar
+            dist/VulkanBoost-0.4.1-for-1.21.11.jar.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
