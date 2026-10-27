@@ -264,4 +264,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp artifact/vulkanboost-0.5.jar VulkanBoost-0.5-for-1.21.11.jar
-          gh release upload v0.5 VulkanBoost-0.5-for-1.21.11.jar --clobber --repo "$GITHUB_REPOSITORY"
+          sha256sum VulkanBoost-0.5-for-1.21.11.jar > VulkanBoost-0.5-for-1.21.11.jar.sha256
+          gh release upload v0.5 VulkanBoost-0.5-for-1.21.11.jar VulkanBoost-0.5-for-1.21.11.jar.sha256 --clobber --repo "$GITHUB_REPOSITORY"
