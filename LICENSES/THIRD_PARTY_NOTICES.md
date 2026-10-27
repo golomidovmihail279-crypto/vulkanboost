@@ -1,6 +1,6 @@
 # Third-party notices
 
-VulkanBoost bundles upstream mod JARs using Fabric Loader's nested-JAR mechanism. BetterHurtCam and Ukulib are included as their original upstream JARs; the VulkanBoost settings screen is a small compatibility frontend, not a replacement implementation. The root MIT license covers VulkanBoost's own project files only.
+VulkanBoost bundles upstream mod JARs using Fabric Loader's nested-JAR mechanism. BetterHurtCam and Ukulib are included as their original upstream JARs; VulkanBoost adds no wrapper integration or resource overrides for BetterHurtCam. The root MIT license covers VulkanBoost's own project files only.
 
 | Component | Bundled version | Upstream license | Project page |
 |---|---|---|---|
