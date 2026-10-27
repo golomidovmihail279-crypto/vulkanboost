@@ -79,6 +79,7 @@ jobs:
 
                   if mod_id == "renderscale":
                       shader_path = "assets/renderscale/shaders/include/ffx_a.glsl"
+                      # Find the EASU helper by content; its packaged path can differ by artifact.
                       easu_comment_marker = "// AMD's Vulkan example, which declares separate texture and sampler objects."
                       with zipfile.ZipFile(io.BytesIO(child_bytes)) as render_scale_archive:
                           shader = render_scale_archive.read(shader_path).decode("utf-8")
