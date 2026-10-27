@@ -104,6 +104,22 @@ jobs:
               # Regression checks for the native settings keybind wizard and translations.
               client_source = Path("src/main/java/dev/vulkanboost/VulkanBoostClient.java").read_text(encoding="utf-8")
               setup_source = Path("src/main/java/dev/vulkanboost/NoHurtCamSetupScreen.java").read_text(encoding="utf-8")
+              mixin_source = Path("src/main/java/dev/vulkanboost/mixin/NoHurtCamMixin.java").read_text(encoding="utf-8")
+              required_mixin_tokens = [
+                  'method = "bobHurt"',
+                  'target = "Lcom/mojang/math/Axis;rotationDegrees(F)Lorg/joml/Quaternionf;"',
+                  "ordinal = 2",
+                  "require = 1",
+                  "NoHurtCamConfig.isEnabled()",
+                  "NoHurtCamConfig.getReduction()",
+                  "return vanillaDegrees * rotationScale;",
+              ]
+              for token in required_mixin_tokens:
+                  if token not in mixin_source:
+                      raise SystemExit(f"NoHurtCam mixin does not target the exact 1.21.11 hurt-tilt angle: {token}")
+              if "PoseStack;mulPose" in mixin_source:
+                  raise SystemExit("NoHurtCam must not modify every PoseStack rotation in bobHurt.")
+
               required_client_tokens = [
                   '"key.vulkanboost.toggle_no_hurt_cam"',
                   '"key.vulkanboost.open_no_hurt_cam"',
