@@ -79,10 +79,21 @@ jobs:
 
                   if mod_id == "renderscale":
                       shader_path = "assets/renderscale/shaders/include/ffx_a.glsl"
-                      easu_shader_path = "assets/renderscale/shaders/include/fsr_easu.glsl"
+                      easu_comment_marker = "// AMD's Vulkan example, which declares separate texture and sampler objects."
                       with zipfile.ZipFile(io.BytesIO(child_bytes)) as render_scale_archive:
                           shader = render_scale_archive.read(shader_path).decode("utf-8")
-                          easu_shader = render_scale_archive.read(easu_shader_path).decode("utf-8")
+                          easu_shader = None
+                          for resource_path in render_scale_archive.namelist():
+                              if not resource_path.startswith("assets/renderscale/shaders/"):
+                                  continue
+                              if not resource_path.endswith((".glsl", ".fsh")):
+                                  continue
+                              candidate = render_scale_archive.read(resource_path).decode("utf-8")
+                              if easu_comment_marker in candidate:
+                                  easu_shader = candidate
+                                  break
+                      if easu_shader is None:
+                          raise SystemExit("Could not find the patched EASU shader comment in nested RenderScale resources.")
                       required_shader_markers = (
                           "AU1_(0xFFFFFFFF)^mask",
                           "AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31))",
@@ -101,7 +112,7 @@ jobs:
                           raise SystemExit("Unsupported bitwise-NOT expressions remain in RenderScale FSR shader.")
                       if "/*" in easu_shader or "*/" in easu_shader:
                           raise SystemExit("Unsupported block comment remains in RenderScale EASU shader.")
-                      if "// AMD's Vulkan example, which declares separate texture and sampler objects." not in easu_shader:
+                      if easu_comment_marker not in easu_shader:
                           raise SystemExit("RenderScale EASU block-comment compatibility patch is incomplete.")
                       patched_render_scale_shader = True
                       print("RenderScale FSR shader compatibility patch OK.")
