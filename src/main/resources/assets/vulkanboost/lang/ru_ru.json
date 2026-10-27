@@ -1,0 +1,5 @@
+{
+  "options.vulkanboost.category": "VulkanBoost",
+  "options.vulkanboost.image_enhancement": "Улучшение изображения",
+  "options.vulkanboost.image_enhancement.tooltip": "Экспериментальный FSR 1: мир рендерится в масштабе 77% и восстанавливается до размера экрана. Совместимость с VulkanMod в Minecraft 1.21.11 не подтверждена."
+}

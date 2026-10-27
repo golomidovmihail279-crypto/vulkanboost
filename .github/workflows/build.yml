@@ -30,7 +30,7 @@ jobs:
       - name: Build remapped mod JAR
         run: gradle --no-daemon clean build
 
-      - name: Validate one-JAR bundle and untouched upstream BetterHurtCam
+      - name: Validate one-JAR bundle, upstream BetterHurtCam, and image-enhancement option
         shell: python
         run: |
           import glob
@@ -98,33 +98,67 @@ jobs:
                       raise SystemExit(f"Root metadata must declare {required_dependency}.")
               if metadata.get("entrypoints"):
                   raise SystemExit("The root bundle must not register custom runtime entrypoints.")
-              if metadata.get("mixins"):
-                  raise SystemExit("The root bundle must not register custom mixins.")
-              if any(path.startswith("dev/vulkanboost/") for path in archive.namelist()):
-                  raise SystemExit("The root JAR must not contain custom compiled runtime classes.")
-              forbidden_asset_prefixes = ("assets/vulkanboost/", "assets/betterhurtcam/")
-              for entry in archive.namelist():
-                  if entry.startswith(forbidden_asset_prefixes):
-                      raise SystemExit(f"The root JAR must not override bundled mod resources: {entry}")
+              if metadata.get("mixins") != ["vulkanboost.mixins.json"]:
+                  raise SystemExit("Root metadata must register exactly the intended VulkanBoost mixin config.")
+              if "vulkanboost.mixins.json" not in archive.namelist():
+                  raise SystemExit("Root mixin config is missing.")
+              mixin_config = json.loads(archive.read("vulkanboost.mixins.json"))
+              expected_mixins = {"VideoSettingsScreenMixin", "OptionsSubScreenAccessor"}
+              if mixin_config.get("package") != "dev.vulkanboost.mixin":
+                  raise SystemExit("Unexpected VulkanBoost mixin package.")
+              if set(mixin_config.get("client", [])) != expected_mixins:
+                  raise SystemExit(f"Unexpected client mixins: {mixin_config.get('client')}")
+              if mixin_config.get("mixins"):
+                  raise SystemExit("VulkanBoost mixins must remain client-only.")
+              allowed_classes = {
+                  "dev/vulkanboost/mixin/VideoSettingsScreenMixin.class",
+                  "dev/vulkanboost/mixin/OptionsSubScreenAccessor.class",
+              }
+              root_classes = {
+                  path for path in archive.namelist()
+                  if path.startswith("dev/vulkanboost/") and path.endswith(".class")
+              }
+              if root_classes != allowed_classes:
+                  raise SystemExit(f"Unexpected root runtime classes: {sorted(root_classes)}")
+              allowed_assets = {
+                  "assets/vulkanboost/lang/en_us.json",
+                  "assets/vulkanboost/lang/ru_ru.json",
+              }
+              root_assets = {
+                  path for path in archive.namelist()
+                  if path.startswith("assets/vulkanboost/") or path.startswith("assets/betterhurtcam/")
+              }
+              if root_assets != allowed_assets:
+                  raise SystemExit(f"Unexpected root language/override assets: {sorted(root_assets)}")
 
               if "fabric.mod.json" not in archive.namelist():
                   raise SystemExit("Root Fabric metadata is missing.")
 
               source_root = Path("src/main/java")
               if source_root.exists():
-                  java_sources = list(source_root.rglob("*.java"))
-                  if java_sources:
-                      raise SystemExit(
-                          f"The bundle must contain no custom Java runtime code: {[str(p) for p in java_sources]}"
-                      )
+                  java_sources = {
+                      str(p.relative_to(Path("."))).replace("\\", "/")
+                      for p in source_root.rglob("*.java")
+                  }
+                  allowed_sources = {
+                      "src/main/java/dev/vulkanboost/mixin/VideoSettingsScreenMixin.java",
+                      "src/main/java/dev/vulkanboost/mixin/OptionsSubScreenAccessor.java",
+                  }
+                  if java_sources != allowed_sources:
+                      raise SystemExit(f"Unexpected custom Java runtime sources: {sorted(java_sources)}")
 
               asset_root = Path("src/main/resources/assets")
               if asset_root.exists():
-                  root_assets = [p for p in asset_root.rglob("*") if p.is_file()]
-                  if root_assets:
-                      raise SystemExit(
-                          f"The bundle must not patch nested mods' resources: {[str(p) for p in root_assets]}"
-                      )
+                  root_assets = {
+                      str(p.relative_to(Path("src/main/resources"))).replace("\\", "/")
+                      for p in asset_root.rglob("*") if p.is_file()
+                  }
+                  expected_assets = {
+                      "assets/vulkanboost/lang/en_us.json",
+                      "assets/vulkanboost/lang/ru_ru.json",
+                  }
+                  if root_assets != expected_assets:
+                      raise SystemExit(f"Unexpected root resource assets: {sorted(root_assets)}")
 
               forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
               present_forbidden = sorted(forbidden_ids.intersection(component_versions))
@@ -132,8 +166,8 @@ jobs:
                   raise SystemExit(f"These components must stay out of VulkanBoost 0.5: {present_forbidden}")
 
           print(
-              "Validated 19 nested components; BetterHurtCam and Ukulib match the pinned upstream versions, "
-              "with no custom runtime classes or asset overrides."
+              "Validated 20 nested components; BetterHurtCam and Ukulib match their pinned upstream versions; "
+              "the only root runtime code is the client-side video-settings toggle, with its own language strings."
           )
 
       - name: Upload installable JAR
