@@ -54,15 +54,16 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          jars=(dist/vulkanboost-0.2.0.jar)
+          jars=(dist/vulkanboost-0.3.0.jar)
           if [[ "${#jars[@]}" -ne 1 ]]; then
-            echo "Expected build/libs/vulkanboost-0.2.0.jar in the validated artifact."
+            echo "Expected exactly one validated build artifact: dist/vulkanboost-0.3.0.jar"
             find dist -maxdepth 3 -type f -print
             exit 1
           fi
-          cp "${jars[0]}" dist/VulkanBoost-0.2.0.jar
+          output="VulkanBoost-0.3.0-for-1.21.11.jar"
+          cp "${jars[0]}" "dist/${output}"
           cd dist
-          sha256sum VulkanBoost-0.2.0.jar > VulkanBoost-0.2.0.jar.sha256
+          sha256sum "${output}" > "${output}.sha256"
 
       - name: Remove superseded alpha release and tag
         if: steps.guard.outputs.publish == 'true'
@@ -73,12 +74,12 @@ jobs:
           gh release delete v0.1.0-alpha.1 --yes || true
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.1.0-alpha.1" || true
 
-      - name: Publish VulkanBoost 0.2.0 as the latest release
+      - name: Publish VulkanBoost 0.3.0 for Minecraft 1.21.11 as Latest
         if: steps.guard.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.2.0
-          name: VulkanBoost 0.2.0
+          tag_name: v0.3.0
+          name: VulkanBoost-0.3.0-for-1.21.11
           target_commitish: ${{ github.event.workflow_run.head_sha }}
           body_path: .github/RELEASE_NOTES.md
           prerelease: false
@@ -86,7 +87,7 @@ jobs:
           make_latest: true
           fail_on_unmatched_files: true
           files: |
-            dist/VulkanBoost-0.2.0.jar
-            dist/VulkanBoost-0.2.0.jar.sha256
+            dist/VulkanBoost-0.3.0-for-1.21.11.jar
+            dist/VulkanBoost-0.3.0-for-1.21.11.jar.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
