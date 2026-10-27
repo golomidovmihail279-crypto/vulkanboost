@@ -117,6 +117,13 @@ class CheckerTests(unittest.TestCase):
         path = build_jar("// ok\nuint a = mask;\n", easu)
         self.assertEqual(errors(path), [])
 
+    def test_existing_line_comment_easu_is_normalized(self):
+        source = "// AMD's Vulkan example, which declares separate texture and sampler objects.\n"
+        patched = chk.sanitize_comment_apostrophes(source)
+        self.assertIn("// AMDs Vulkan example, which declares separate texture and sampler objects.", patched)
+        self.assertNotIn("'", patched)
+        self.assertFalse(any("apostrophe" in item[2] for item in chk.scan_glsl(patched)))
+
     def test_apostrophe_in_code_is_not_silently_removed(self):
         with self.assertRaises(ValueError):
             chk.sanitize_comment_apostrophes("float x = value's;\n")
