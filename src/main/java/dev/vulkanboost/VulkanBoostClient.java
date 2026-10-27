@@ -8,12 +8,12 @@ import net.minecraft.client.KeyMapping;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public final class VulkanBoostClient implements ClientModInitializer {
     private static final KeyMapping.Category VULKANBOOST_CATEGORY =
-        KeyMapping.Category.register(ResourceLocation.fromNamespaceAndPath("vulkanboost", "controls"));
+        KeyMapping.Category.register(Identifier.fromNamespaceAndPath("vulkanboost", "controls"));
 
     private static final KeyMapping TOGGLE_NO_HURT_CAM = KeyBindingHelper.registerKeyBinding(
         new KeyMapping(
@@ -82,11 +82,11 @@ public final class VulkanBoostClient implements ClientModInitializer {
     }
 
     public static InputConstants.Key getToggleKey() {
-        return TOGGLE_NO_HURT_CAM.getKey();
+        return InputConstants.getKey(TOGGLE_NO_HURT_CAM.saveString());
     }
 
     public static InputConstants.Key getOpenSettingsKey() {
-        return OPEN_NO_HURT_CAM_SETTINGS.getKey();
+        return InputConstants.getKey(OPEN_NO_HURT_CAM_SETTINGS.saveString());
     }
 
     public static Component getToggleKeyName() {
@@ -94,7 +94,7 @@ public final class VulkanBoostClient implements ClientModInitializer {
     }
 
     public static boolean isToggleKeyAssigned() {
-        return TOGGLE_NO_HURT_CAM.getKey().getValue() != GLFW.GLFW_KEY_UNKNOWN;
+        return !TOGGLE_NO_HURT_CAM.isUnbound();
     }
 
     public static void setToggleKeyInMemory(InputConstants.Key key) {

@@ -2,6 +2,8 @@ package dev.vulkanboost;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
@@ -110,14 +112,14 @@ public final class NoHurtCamSetupScreen extends Screen {
     }
 
     @Override
-    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+    public boolean keyPressed(KeyEvent event) {
         if (this.listeningForKey) {
-            if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
+            if (event.key() == GLFW.GLFW_KEY_ESCAPE) {
                 this.listeningForKey = false;
                 this.updateBindLabel();
                 return true;
             }
-            if (keyCode == GLFW.GLFW_KEY_BACKSPACE) {
+            if (event.key() == GLFW.GLFW_KEY_BACKSPACE) {
                 VulkanBoostClient.setToggleKeyInMemory(
                     InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_UNKNOWN)
                 );
@@ -126,19 +128,19 @@ public final class NoHurtCamSetupScreen extends Screen {
                 return true;
             }
 
-            this.assignToggleKey(InputConstants.getKey(keyCode, scanCode));
+            this.assignToggleKey(InputConstants.getKey(event));
             return true;
         }
-        return super.keyPressed(keyCode, scanCode, modifiers);
+        return super.keyPressed(event);
     }
 
     @Override
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
+    public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (this.listeningForKey) {
-            this.assignToggleKey(InputConstants.Type.MOUSE.getOrCreate(button));
+            this.assignToggleKey(InputConstants.Type.MOUSE.getOrCreate(event.button()));
             return true;
         }
-        return super.mouseClicked(mouseX, mouseY, button);
+        return super.mouseClicked(event, doubleClick);
     }
 
     @Override
