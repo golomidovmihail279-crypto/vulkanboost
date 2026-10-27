@@ -14,9 +14,11 @@
   },
   "license": "MIT",
   "environment": "client",
-  "mixins": [
-    "vulkanboost.mixins.json"
-  ],
+  "entrypoints": {
+    "vulkanmod:mod_settings_registry": [
+      "dev.vulkanboost.VulkanBoostSettingsFactory"
+    ]
+  },
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "1.21.11",
