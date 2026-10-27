@@ -33,7 +33,7 @@ The bundled components are intentionally conservative: shader/rendering mods tha
 3. Remove separate copies of VulkanMod and the bundled mods from that instance to avoid duplicate mod IDs.
 4. Make sure your GPU and driver support Vulkan 1.2 or newer, then launch Minecraft 1.21.11 with Fabric.
 
-If the build artifact is not available yet, check the [Actions tab](https://github.com/golomidovmihail279-crypto/vulkanboost/actions) for the first build result.
+The alpha build is published automatically as a prerelease after the latest `main` commit passes CI. Download `VulkanBoost-0.1.0-alpha.1.jar` from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases). The [Actions tab](https://github.com/golomidovmihail279-crypto/vulkanboost/actions) contains the build and bundle-validation logs.
 
 ## Anti-aliasing / jagged edges
 
@@ -41,7 +41,7 @@ If the build artifact is not available yet, check the [Actions tab](https://gith
 
 For an existing Vulkan shader pipeline, [Beryl](https://modrinth.com/mod/beryl) is the VulkanMod companion recommended by the VulkanMod project and targets Minecraft 1.21.11. It is licensed **ARR (All Rights Reserved)**, so VulkanBoost does not redistribute or embed it. Installing Beryl requires a separate JAR and is optional.
 
-A native, redistributable FXAA/SMAA-style post-processing pass is tracked as a separate development task. It needs a VulkanMod-specific integration and in-game testing; this README will be updated when it is actually implemented.
+A native, redistributable FXAA/SMAA-style post-processing pass is tracked separately. FSR-style upscaling and NVIDIA DLSS/DLAA feasibility are tracked in [issue #2](https://github.com/golomidovmihail279-crypto/vulkanboost/issues/2) and [issue #3](https://github.com/golomidovmihail279-crypto/vulkanboost/issues/3). None of these features is included in alpha.1; each needs a VulkanMod-specific integration and in-game testing before it can be advertised as supported.
 
 ## Compatibility notes
 
