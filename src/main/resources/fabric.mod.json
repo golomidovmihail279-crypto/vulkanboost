@@ -17,6 +17,7 @@
   "depends": {
     "fabricloader": ">=0.18.4",
     "minecraft": "1.21.11",
-    "vulkanmod": ">=0.6.8"
+    "vulkanmod": ">=0.6.8",
+    "fabric-api": "*"
   }
 }
