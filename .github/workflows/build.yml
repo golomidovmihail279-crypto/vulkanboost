@@ -65,8 +65,10 @@ jobs:
                   )
 
               component_versions = {}
+              patched_render_scale_shader = False
               for item in nested:
-                  child_meta = inspect_nested(archive.read(item["file"]), f"{jar_path}!/{item['file']}")
+                  child_bytes = archive.read(item["file"])
+                  child_meta = inspect_nested(child_bytes, f"{jar_path}!/{item['file']}")
                   mod_id = child_meta.get("id")
                   if not mod_id:
                       raise SystemExit(f"Missing mod id in {item['file']}")
@@ -74,6 +76,32 @@ jobs:
                       raise SystemExit(f"Duplicate top-level mod id: {mod_id}")
                   component_versions[mod_id] = child_meta.get("version")
                   print(f"Top-level component OK: {mod_id} {child_meta.get('version')}")
+
+                  if mod_id == "renderscale":
+                      shader_path = "assets/renderscale/shaders/include/ffx_a.glsl"
+                      with zipfile.ZipFile(io.BytesIO(child_bytes)) as render_scale_archive:
+                          shader = render_scale_archive.read(shader_path).decode("utf-8")
+                      required_shader_markers = (
+                          "AU1_(0xFFFFFFFF)^mask",
+                          "AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31))",
+                          "AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15))",
+                          "AW1_(0xFFFF)^AShrSW1(x,AW1_(15))",
+                          "AW2_(0xFFFF)^AShrSW2(x,AW2_(15))",
+                      )
+                      missing_shader_markers = [
+                          marker for marker in required_shader_markers if marker not in shader
+                      ]
+                      if missing_shader_markers:
+                          raise SystemExit(
+                              f"RenderScale FSR shader compatibility patch is incomplete: {missing_shader_markers}"
+                          )
+                      if "~mask" in shader or "~AShr" in shader:
+                          raise SystemExit("Unsupported bitwise-NOT expressions remain in RenderScale FSR shader.")
+                      patched_render_scale_shader = True
+                      print("RenderScale FSR shader compatibility patch OK.")
+
+              if not patched_render_scale_shader:
+                  raise SystemExit("Could not validate the nested RenderScale FSR shader.")
 
               required_versions = {
                   "betterhurtcam": "1.12.0+mc1.21.11",
