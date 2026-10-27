@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A single-JAR experimental optimization bundle for Minecraft 1.21.11 built around VulkanMod, with a built-in NoHurtCam feature.",
+  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 with a configurable built-in NoHurtCam slider.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
@@ -22,5 +22,10 @@
   },
   "mixins": [
     "vulkanboost.mixins.json"
-  ]
+  ],
+  "entrypoints": {
+    "client": [
+      "dev.vulkanboost.VulkanBoostClient"
+    ]
+  }
 }

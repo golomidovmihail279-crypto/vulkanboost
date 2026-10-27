@@ -1,0 +1,7 @@
+{
+  "key.vulkanboost.open_no_hurt_cam": "Настройки NoHurtCam",
+  "screen.vulkanboost.no_hurt_cam.title": "VulkanBoost — NoHurtCam",
+  "screen.vulkanboost.no_hurt_cam.description": "0% — обычная тряска камеры; 100% — тряска отключена",
+  "option.vulkanboost.hurt_cam_reduction": "Сила NoHurtCam: %s%%",
+  "key.category.vulkanboost": "VulkanBoost"
+}

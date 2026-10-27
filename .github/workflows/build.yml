@@ -81,13 +81,27 @@ jobs:
               mixin_config = json.loads(archive.read("vulkanboost.mixins.json"))
               if "NoHurtCamMixin" not in mixin_config.get("client", []):
                   raise SystemExit("NoHurtCamMixin is missing from the client mixin config")
-              if "dev/vulkanboost/mixin/NoHurtCamMixin.class" not in archive.namelist():
-                  raise SystemExit("NoHurtCamMixin class is missing from the built JAR")
+              required_project_files = [
+                  "dev/vulkanboost/mixin/NoHurtCamMixin.class",
+                  "dev/vulkanboost/NoHurtCamConfig.class",
+                  "dev/vulkanboost/NoHurtCamScreen.class",
+                  "dev/vulkanboost/NoHurtCamScreen$StrengthSlider.class",
+                  "dev/vulkanboost/VulkanBoostClient.class",
+                  "assets/vulkanboost/lang/en_us.json",
+                  "assets/vulkanboost/lang/ru_ru.json",
+              ]
+              for required_file in required_project_files:
+                  if required_file not in archive.namelist():
+                      raise SystemExit(f"Required NoHurtCam/settings file is missing: {required_file}")
+
+              entrypoints = metadata.get("entrypoints", {}).get("client", [])
+              if "dev.vulkanboost.VulkanBoostClient" not in entrypoints:
+                  raise SystemExit("VulkanBoostClient entrypoint is missing")
 
               forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
               present_forbidden = sorted(forbidden_ids.intersection(found_ids))
               if present_forbidden:
-                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.3: {present_forbidden}")
+                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.4: {present_forbidden}")
 
           print(f"Validated 17 nested components and built-in NoHurtCam: {jar_path}")
       - name: Upload installable JAR

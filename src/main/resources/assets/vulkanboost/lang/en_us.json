@@ -1,0 +1,7 @@
+{
+  "key.vulkanboost.open_no_hurt_cam": "Open NoHurtCam settings",
+  "screen.vulkanboost.no_hurt_cam.title": "VulkanBoost — NoHurtCam",
+  "screen.vulkanboost.no_hurt_cam.description": "0% = vanilla camera shake; 100% = no hurt-camera tilt",
+  "option.vulkanboost.hurt_cam_reduction": "NoHurtCam strength: %s%%",
+  "key.category.vulkanboost": "VulkanBoost"
+}
