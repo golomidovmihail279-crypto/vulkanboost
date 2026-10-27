@@ -30,10 +30,41 @@ jobs:
       - name: Build remapped mod JAR
         run: gradle --no-daemon clean build
 
-      - name: Upload build artifact
+      - name: Validate single-JAR bundle
+        shell: python
+        run: |
+          import glob
+          import json
+          import zipfile
+
+          candidates = [
+              path for path in glob.glob("build/libs/vulkanboost-*.jar")
+              if not path.endswith("-dev.jar") and not path.endswith("-sources.jar")
+          ]
+          if len(candidates) != 1:
+              raise SystemExit(f"Expected exactly one installable JAR, found: {candidates}")
+
+          jar_path = candidates[0]
+          with zipfile.ZipFile(jar_path) as archive:
+              metadata = json.loads(archive.read("fabric.mod.json"))
+              nested = metadata.get("jars", [])
+              if len(nested) != 5:
+                  raise SystemExit(f"Expected 5 nested mod JARs, found {len(nested)}")
+
+              for item in nested:
+                  name = item["file"]
+                  child_metadata = json.loads(archive.read(name))
+                  print(f"Nested mod OK: {child_metadata.get('id')} {child_metadata.get('version')}")
+
+          print(f"Validated installable bundle: {jar_path}")
+
+      - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:
           name: vulkanboost-minecraft-1.21.11
-          path: build/libs/vulkanboost-*.jar
+          path: |
+            build/libs/vulkanboost-*.jar
+            !build/libs/*-dev.jar
+            !build/libs/*-sources.jar
           if-no-files-found: error
           retention-days: 14
