@@ -37,8 +37,7 @@ public abstract class VideoSettingsScreenMixin {
         RenderScaleConfig config = RenderScale.getConfig();
         config.scale = enabled ? VULKANBOOST_IMAGE_SCALE : 1.0F;
         config.fsr = enabled;
-        // FSR 1 already includes its own reconstruction/sharpening passes.
-        config.sharpeningMode = RenderScaleConfig.SharpeningMode.OFF;
+        // RenderScale's FSR 1 pipeline performs reconstruction in its own shader passes.
         RenderScale.CONFIG.save();
     }
 }
