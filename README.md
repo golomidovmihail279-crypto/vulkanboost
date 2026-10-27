@@ -64,14 +64,6 @@ The MIT project license applies only to VulkanBoost's own files. Each nested com
 
 Three candidates were deliberately **not** redistributed: StackCluster Optimizer, OptimizeMod and NoRender+ list ARR (All Rights Reserved). OptiLeaves is also held back because its listing/license information appears inconsistent and it modifies render/culling paths. They can be reconsidered after permission/license clarification and separate compatibility testing.
 
-## Optional extras (separate downloads)
-
-These are optional add-ons, **not bundled inside VulkanBoost**:
-
-- **No Hurt Cam 1.21.11 (Fabric):** [official CurseForge file page](https://www.curseforge.com/minecraft/mc-mods/no-hurt-cam/files/7800959). Download the JAR from the upstream page and put it in `mods`. The project is marked All Rights Reserved, so this repository links to the author's page rather than mirroring the file.
-- **Low Fire resource pack:** [official Modrinth page](https://modrinth.com/resourcepack/lower-fire). Put the downloaded ZIP in `resourcepacks`.
-- **Truly Small Items resource pack:** [official Modrinth page](https://modrinth.com/resourcepack/small-items). Put the downloaded ZIP in `resourcepacks`.
-
 ## Build
 
 Requirements: JDK 21 and Gradle 9.5.0.

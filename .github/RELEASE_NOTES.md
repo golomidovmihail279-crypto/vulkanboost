@@ -1,6 +1,6 @@
 # VulkanBoost 0.4.2 for Minecraft 1.21.11
 
-Patch release with a simpler render-distance setup and optional visual extras listed separately.
+Patch release removing automatic render-distance adjustment.
 
 ## Changes
 
@@ -8,15 +8,6 @@ Patch release with a simpler render-distance setup and optional visual extras li
 - Removed Architectury API 19.0.1+fabric, which was included only as a DynamicRenderDistance library.
 - Reduced the bundle from 19 to 17 top-level nested mod/library JARs.
 - Kept the previous 0.4.1 fix that removes Optis/Osmium, which caused a startup crash on Minecraft 1.21.11.
-- Added official download links for optional No Hurt Cam and two resource packs. These remain separate from the optimizer JAR.
-
-## Optional extras — separate downloads
-
-- **No Hurt Cam 1.21.11 V1.0.2 (Fabric):** [official CurseForge file page](https://www.curseforge.com/minecraft/mc-mods/no-hurt-cam/files/7800959). The project is marked All Rights Reserved, so this release links to the upstream download instead of re-uploading the JAR. Install the downloaded JAR in `mods`.
-- **Low Fire resource pack:** [official Modrinth page](https://modrinth.com/resourcepack/lower-fire). Install the downloaded ZIP in `resourcepacks`.
-- **Truly Small Items resource pack:** [official Modrinth page](https://modrinth.com/resourcepack/small-items). Install the downloaded ZIP in `resourcepacks`.
-
-These extras are optional and are not included inside `VulkanBoost-0.4.2-for-1.21.11.jar`.
 
 ## Bundled components
 
@@ -43,7 +34,6 @@ These extras are optional and are not included inside `VulkanBoost-0.4.2-for-1.2
 - Minecraft 1.21.11, Fabric Loader 0.19.3+, Java 21 and a Vulkan 1.2+ compatible GPU/driver are required.
 - Download `VulkanBoost-0.4.2-for-1.21.11.jar` and put it in the `mods` folder; remove separate copies of bundled mods/libraries to avoid duplicate mod IDs.
 - Fabric Loader itself is still required and is not bundled.
-- Optional resource packs go in `resourcepacks`; No Hurt Cam is an independently installed client-side mod.
 
 ## Verification and limitations
 
