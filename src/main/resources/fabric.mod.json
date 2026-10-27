@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "vulkanboost",
+  "version": "${version}",
+  "name": "VulkanBoost",
+  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 built around VulkanMod.",
+  "authors": [
+    "golomidovmihail279-crypto"
+  ],
+  "contact": {
+    "homepage": "https://github.com/golomidovmihail279-crypto/vulkanboost",
+    "sources": "https://github.com/golomidovmihail279-crypto/vulkanboost",
+    "issues": "https://github.com/golomidovmihail279-crypto/vulkanboost/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "depends": {
+    "fabricloader": ">=0.18.4",
+    "minecraft": "1.21.11",
+    "vulkanmod": ">=0.6.8"
+  }
+}
