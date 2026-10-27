@@ -40,7 +40,7 @@ jobs:
 
           EXPECTED_TOP_LEVEL = {
               "fabric-api", "vulkanmod", "lithium", "ferritecore",
-              "alternate_current", "badoptimizations", "modernfix",
+              "alternate-current", "badoptimizations", "modernfix",
               "scalablelux", "zfastnoise", "krypton"
           }
 
