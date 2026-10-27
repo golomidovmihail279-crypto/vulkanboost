@@ -158,6 +158,12 @@ jobs:
                   if marker not in diagnostic_text:
                       raise SystemExit(f"Missing FSR runtime diagnostic: {marker}")
 
+              expected_draw_target = 'target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(II)V"'
+              if diagnostic_text.count(expected_draw_target) != 2:
+                  raise SystemExit("FSR diagnostics must target both Minecraft 1.21.11 RenderPass.draw(II) calls.")
+              if "RenderPass;draw(IIII)V" in diagnostic_text:
+                  raise SystemExit("Invalid RenderPass.draw descriptor found in FSR diagnostics.")
+
               asset_root = Path("src/main/resources/assets")
               if asset_root.exists():
                   root_assets = {
