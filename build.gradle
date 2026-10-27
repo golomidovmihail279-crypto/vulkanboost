@@ -1,3 +1,14 @@
+import groovy.json.JsonSlurper
+import java.io.ByteArrayInputStream
+import java.io.ByteArrayOutputStream
+import java.nio.charset.StandardCharsets
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import java.util.zip.ZipEntry
+import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
+import java.util.zip.ZipOutputStream
+
 plugins {
     id "net.fabricmc.fabric-loom-remap" version "${loom_version}"
 }
@@ -54,7 +65,7 @@ dependencies {
     include(modImplementation("maven.modrinth:9s6osm5g:xuX40TN5")) // Cloth Config API 21.11.153+fabric
 
     // Experimental FSR 1 upscaling for Minecraft 1.21.11.
-    // Keep it as an upstream nested JAR, with no custom VulkanBoost rendering code.
+    // RenderScale's shader resource is patched at packaging time for VulkanMod's GLSL converter.
     include(modImplementation("maven.modrinth:Va8PJBFX:bgpLxfvV")) // RenderScale 1.4.0-alpha.1 for 1.21.11 (MIT)
 
     // Official BetterHurtCam for Minecraft 1.21.11 and its required config/UI library.
@@ -86,4 +97,159 @@ tasks.named("jar") {
     from("LICENSE") {
         rename { "${it}_VulkanBoost" }
     }
+}
+
+/*
+ * The VulkanMod GLSL converter used with Minecraft 1.21.11 rejects the GLSL
+ * unary bitwise-NOT token (~) in RenderScale's bundled FidelityFX helper.
+ * Rewrite those masks as equivalent XOR expressions in the nested shader
+ * resource, leaving RenderScale's classes and metadata untouched.
+ */
+tasks.register("patchBundledRenderScaleShader") {
+    group = "build"
+    description = "Patches RenderScale's FSR shader expressions for VulkanMod's GLSL converter."
+
+    doLast {
+        File bundleJar = file("build/libs/vulkanboost-${project.version}.jar")
+        if (!bundleJar.isFile()) {
+            throw new GradleException("Expected installable bundle JAR at ${bundleJar}")
+        }
+
+        String renderScalePath = null
+        byte[] renderScaleBytes = null
+        ZipFile outerZip = new ZipFile(bundleJar)
+        try {
+            def metadataEntry = outerZip.getEntry("fabric.mod.json")
+            if (metadataEntry == null) {
+                throw new GradleException("Bundle JAR is missing fabric.mod.json")
+            }
+            def rootMetadata = new JsonSlurper().parse(outerZip.getInputStream(metadataEntry))
+            for (def nested in (rootMetadata.jars ?: [])) {
+                String nestedPath = nested.file as String
+                def nestedEntry = outerZip.getEntry(nestedPath)
+                if (nestedEntry == null) {
+                    throw new GradleException("Missing nested JAR: ${nestedPath}")
+                }
+                byte[] nestedBytes = outerZip.getInputStream(nestedEntry).withCloseable { it.readAllBytes() }
+                String nestedMetadataText = null
+                ZipInputStream nestedZip = new ZipInputStream(new ByteArrayInputStream(nestedBytes))
+                try {
+                    ZipEntry item
+                    while ((item = nestedZip.nextEntry) != null) {
+                        if (item.name == "fabric.mod.json") {
+                            nestedMetadataText = new String(nestedZip.readAllBytes(), StandardCharsets.UTF_8)
+                            break
+                        }
+                        nestedZip.closeEntry()
+                    }
+                } finally {
+                    nestedZip.close()
+                }
+                if (nestedMetadataText != null) {
+                    def nestedMetadata = new JsonSlurper().parseText(nestedMetadataText)
+                    if (nestedMetadata.id == "renderscale") {
+                        renderScalePath = nestedPath
+                        renderScaleBytes = nestedBytes
+                        break
+                    }
+                }
+            }
+        } finally {
+            outerZip.close()
+        }
+
+        if (renderScalePath == null || renderScaleBytes == null) {
+            throw new GradleException("Could not locate the nested RenderScale JAR")
+        }
+
+        final String shaderPath = "assets/renderscale/shaders/include/ffx_a.glsl"
+        ByteArrayOutputStream patchedNestedBuffer = new ByteArrayOutputStream()
+        ZipInputStream renderScaleZip = new ZipInputStream(new ByteArrayInputStream(renderScaleBytes))
+        ZipOutputStream patchedNestedZip = new ZipOutputStream(patchedNestedBuffer)
+        boolean shaderFound = false
+        try {
+            ZipEntry item
+            while ((item = renderScaleZip.nextEntry) != null) {
+                byte[] bytes = renderScaleZip.readAllBytes()
+                if (item.name == shaderPath) {
+                    shaderFound = true
+                    String shader = new String(bytes, StandardCharsets.UTF_8)
+                    shader = shader
+                        .replace("~mask", "(AU1_(0xFFFFFFFF)^mask)")
+                        .replace("~AShrSU1(x,AU1_(31))", "(AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31)))")
+                        .replace("~AShrSU1(x,AU1_(15))", "(AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15)))")
+                        .replace("~AShrSW1(x,AW1_(15))", "(AW1_(0xFFFF)^AShrSW1(x,AW1_(15)))")
+                        .replace("~AShrSW2(x,AW2_(15))", "(AW2_(0xFFFF)^AShrSW2(x,AW2_(15)))")
+
+                    if (shader.contains("~mask") || shader.contains("~AShr")) {
+                        throw new GradleException("Unpatched bitwise-NOT token remains in RenderScale FSR shader")
+                    }
+                    if (!shader.contains("AU1_(0xFFFFFFFF)^mask")
+                            || !shader.contains("AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31))")
+                            || !shader.contains("AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15))")) {
+                        throw new GradleException("RenderScale FSR shader did not contain all expected bitwise-NOT expressions")
+                    }
+                    bytes = shader.getBytes(StandardCharsets.UTF_8)
+                }
+
+                ZipEntry outputEntry = new ZipEntry(item.name)
+                if (item.time >= 0) outputEntry.time = item.time
+                if (item.comment != null) outputEntry.comment = item.comment
+                patchedNestedZip.putNextEntry(outputEntry)
+                if (!item.isDirectory()) patchedNestedZip.write(bytes)
+                patchedNestedZip.closeEntry()
+                renderScaleZip.closeEntry()
+            }
+        } finally {
+            renderScaleZip.close()
+            patchedNestedZip.close()
+        }
+
+        if (!shaderFound) {
+            throw new GradleException("Could not find ${shaderPath} inside nested RenderScale JAR")
+        }
+
+        byte[] patchedRenderScaleBytes = patchedNestedBuffer.toByteArray()
+        List<Map> outerEntries = []
+        outerZip = new ZipFile(bundleJar)
+        try {
+            def entries = outerZip.entries()
+            while (entries.hasMoreElements()) {
+                def entry = entries.nextElement()
+                byte[] bytes = outerZip.getInputStream(entry).withCloseable { it.readAllBytes() }
+                if (entry.name == renderScalePath) bytes = patchedRenderScaleBytes
+                outerEntries.add([
+                    name: entry.name,
+                    time: entry.time,
+                    comment: entry.comment,
+                    directory: entry.isDirectory(),
+                    bytes: bytes
+                ])
+            }
+        } finally {
+            outerZip.close()
+        }
+
+        File temporaryJar = new File(bundleJar.parentFile, bundleJar.name + ".patched")
+        ZipOutputStream outputZip = new ZipOutputStream(new FileOutputStream(temporaryJar))
+        try {
+            for (def entry in outerEntries) {
+                ZipEntry outputEntry = new ZipEntry(entry.name as String)
+                if ((entry.time as long) >= 0) outputEntry.time = entry.time as long
+                if (entry.comment != null) outputEntry.comment = entry.comment as String
+                outputZip.putNextEntry(outputEntry)
+                if (!(entry.directory as boolean)) outputZip.write(entry.bytes as byte[])
+                outputZip.closeEntry()
+            }
+        } finally {
+            outputZip.close()
+        }
+
+        Files.move(temporaryJar.toPath(), bundleJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
+        logger.lifecycle("Patched RenderScale FSR shader in ${bundleJar.name} for VulkanMod's GLSL converter.")
+    }
+}
+
+tasks.named("build") {
+    finalizedBy(tasks.named("patchBundledRenderScaleShader"))
 }
