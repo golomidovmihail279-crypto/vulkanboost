@@ -1,0 +1,59 @@
+plugins {
+    id "net.fabricmc.fabric-loom-remap" version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+
+    // These stay as separate upstream mods nested inside the one installable JAR.
+    include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
+    include(modImplementation("maven.modrinth:gvQqBUqZ:Ow7wA0kG")) // Lithium 0.21.4
+    include(modImplementation("maven.modrinth:uXXizFIs:Ii0gP3D8")) // FerriteCore 8.2.0
+    include(modImplementation("maven.modrinth:r0v8vy1s:XdouG8YV")) // Alternate Current 1.9.0
+    include(modImplementation("maven.modrinth:g96Z4WVZ:dOFYYhIv")) // BadOptimizations 2.4.1
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+    withSourcesJar()
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = "UTF-8"
+}
+
+tasks.named("jar") {
+    from("LICENSE") {
+        rename { "${it}_VulkanBoost" }
+    }
+}
