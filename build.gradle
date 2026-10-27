@@ -102,9 +102,10 @@ tasks.named("jar") {
 /*
  * The VulkanMod GLSL converter used with Minecraft 1.21.11 rejects the GLSL
  * unary bitwise-NOT token (~) in RenderScale's bundled FidelityFX helper and
- * does not reliably skip block comments in an imported EASU shader. Rewrite
- * the masks as equivalent XOR expressions and turn that block comment into
- * ordinary line comments, leaving RenderScale's classes and metadata untouched.
+ * reported an unsupported apostrophe while importing FSR shaders. Rewrite
+ * the masks as equivalent XOR expressions, convert the EASU prose block into
+ * line comments, and remove apostrophes from comments only. RenderScale's Java
+ * classes and metadata remain untouched.
  */
 tasks.register("patchBundledRenderScaleShader") {
     group = "build"
@@ -208,8 +209,15 @@ tasks.register("patchBundledRenderScaleShader") {
                     }
 
                     String commentBody = shader.substring(commentStart + 2, commentEnd)
-                    String lineComment = commentBody.replaceAll("(?m)^[ \\t]*\\*", "//")
-                    shader = shader.substring(0, commentStart) + lineComment + shader.substring(commentEnd + 2)
+                    String afterComment = shader.substring(commentEnd + 2)
+                    if (!afterComment.split("\n", 2)[0].trim().isEmpty()) {
+                        throw new GradleException("Code follows the EASU block comment on the same line in " + item.name)
+                    }
+                    String lineComment = commentBody.split("\n", -1).collect { String line ->
+                        String cleanedLine = line.replaceFirst("^[ \\t]*\\*", "")
+                        cleanedLine.trim().isEmpty() ? "" : "//" + cleanedLine
+                    }.join("\n")
+                    shader = shader.substring(0, commentStart) + lineComment + afterComment
 
                     if (shader.contains("/*") || shader.contains("*/")) {
                         throw new GradleException("Unsupported block comment remains in RenderScale EASU shader: " + item.name)
@@ -220,6 +228,56 @@ tasks.register("patchBundledRenderScaleShader") {
                     bytes = shader.getBytes(StandardCharsets.UTF_8)
                     patchedShaderPaths.add(item.name)
                     easuCommentPatched = true
+                }
+
+                // Remove apostrophes from shader comments only. An apostrophe in GLSL code must fail the build.
+                if (item.name.startsWith("assets/renderscale/shaders/") && item.name ==~ /.*\.(glsl|fsh|vsh)$/) {
+                    String source = new String(bytes, StandardCharsets.UTF_8)
+                    StringBuilder cleaned = new StringBuilder(source.length())
+                    int lexicalState = 0 // 0 = code, 1 = // comment, 2 = /* */ comment
+                    for (int i = 0; i < source.length(); i++) {
+                        int current = (int) source.charAt(i)
+                        int next = i + 1 < source.length() ? (int) source.charAt(i + 1) : -1
+                        if (lexicalState == 0) {
+                            if (current == 47 && next == 47) {
+                                cleaned.append("//")
+                                i++
+                                lexicalState = 1
+                                continue
+                            }
+                            if (current == 47 && next == 42) {
+                                cleaned.append("/*")
+                                i++
+                                lexicalState = 2
+                                continue
+                            }
+                            if (current == 39) {
+                                throw new GradleException("Apostrophe outside a comment in RenderScale shader " + item.name)
+                            }
+                            cleaned.append((char) current)
+                        } else if (lexicalState == 1) {
+                            if (current == 39) continue
+                            cleaned.append((char) current)
+                            if (current == 10 || current == 13) lexicalState = 0
+                        } else {
+                            if (current == 42 && next == 47) {
+                                cleaned.append("*/")
+                                i++
+                                lexicalState = 0
+                                continue
+                            }
+                            if (current == 39) continue
+                            cleaned.append((char) current)
+                        }
+                    }
+                    if (lexicalState == 2) {
+                        throw new GradleException("Unterminated block comment in RenderScale shader " + item.name)
+                    }
+                    String sanitizedShader = cleaned.toString()
+                    if (sanitizedShader != source) {
+                        bytes = sanitizedShader.getBytes(StandardCharsets.UTF_8)
+                        patchedShaderPaths.add(item.name)
+                    }
                 }
 
                 ZipEntry outputEntry = new ZipEntry(item.name)
