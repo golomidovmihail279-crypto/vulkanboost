@@ -76,6 +76,19 @@ jobs:
           gh release delete v0.1.0-alpha.1 --yes || true
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.1.0-alpha.1" || true
 
+      - name: Point the existing v0.5 tag at the validated source commit
+        if: steps.guard.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BUILT_SHA: ${{ github.event.workflow_run.head_sha }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha)"
+          if [[ "$existing_sha" != "$BUILT_SHA" ]]; then
+            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" -f "sha=$BUILT_SHA" -F force=true
+          fi
+
       - name: Publish VulkanBoost 0.5 for Minecraft 1.21.11 as Latest
         if: steps.guard.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
@@ -87,6 +100,7 @@ jobs:
           prerelease: false
           draft: false
           make_latest: true
+          overwrite_files: true
           fail_on_unmatched_files: true
           files: |
             dist/VulkanBoost-0.5-for-1.21.11.jar
