@@ -169,6 +169,7 @@ tasks.register("patchBundledRenderScaleShader") {
         ZipInputStream renderScaleZip = new ZipInputStream(new ByteArrayInputStream(renderScaleBytes))
         ZipOutputStream patchedNestedZip = new ZipOutputStream(patchedNestedBuffer)
         Set<String> patchedShaderPaths = [] as Set
+        boolean easuCommentPatched = false
         try {
             ZipEntry item
             while ((item = renderScaleZip.nextEntry) != null) {
@@ -194,7 +195,9 @@ tasks.register("patchBundledRenderScaleShader") {
                     }
                     bytes = shader.getBytes(StandardCharsets.UTF_8)
                     patchedShaderPaths.add(item.name)
-                } else if (item.name == easuShaderPath) {
+                } else if (item.name == easuShaderPath
+                        || (item.name.startsWith("assets/renderscale/shaders/")
+                            && new String(bytes, StandardCharsets.UTF_8).contains("AMD's Vulkan example, which declares separate texture and sampler objects."))) {
                     String shader = new String(bytes, StandardCharsets.UTF_8)
                     String blockComment = """/*
  * These callbacks implement the prototypes declared by ffx_fsr1.glsl.
@@ -217,6 +220,7 @@ tasks.register("patchBundledRenderScaleShader") {
                     }
                     bytes = shader.getBytes(StandardCharsets.UTF_8)
                     patchedShaderPaths.add(item.name)
+                    easuCommentPatched = true
                 }
 
                 ZipEntry outputEntry = new ZipEntry(item.name)
@@ -232,7 +236,7 @@ tasks.register("patchBundledRenderScaleShader") {
             patchedNestedZip.close()
         }
 
-        if (!patchedShaderPaths.contains(shaderPath) || !patchedShaderPaths.contains(easuShaderPath)) {
+        if (!patchedShaderPaths.contains(shaderPath) || !easuCommentPatched) {
             throw new GradleException("Could not patch all required RenderScale FSR shader resources: " + patchedShaderPaths)
         }
 
