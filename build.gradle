@@ -197,26 +197,25 @@ tasks.register("patchBundledRenderScaleShader") {
                     patchedShaderPaths.add(item.name)
                 } else if (item.name == easuShaderPath
                         || (item.name.startsWith("assets/renderscale/shaders/")
-                            && new String(bytes, StandardCharsets.UTF_8).contains("AMD's Vulkan example, which declares separate texture and sampler objects."))) {
+                            && new String(bytes, StandardCharsets.UTF_8).contains("AMD's Vulkan example"))) {
                     String shader = new String(bytes, StandardCharsets.UTF_8)
-                    String blockComment = """/*
- * These callbacks implement the prototypes declared by ffx_fsr1.glsl.
- *
- * Minecraft samplers are normally combined sampler2D objects, unlike
- * AMD's Vulkan example, which declares separate texture and sampler objects.
- */"""
-                    String lineComment = """// These callbacks implement the prototypes declared by ffx_fsr1.glsl.
-// Minecraft samplers are normally combined sampler2D objects, unlike
-// AMD's Vulkan example, which declares separate texture and sampler objects."""
-                    if (!shader.contains(blockComment)) {
-                        throw new GradleException("Expected RenderScale EASU block comment was not found")
+                    String commentMarker = "AMD's Vulkan example"
+                    int markerIndex = shader.indexOf(commentMarker)
+                    int commentStart = markerIndex >= 0 ? shader.lastIndexOf("/*", markerIndex) : -1
+                    int commentEnd = markerIndex >= 0 ? shader.indexOf("*/", markerIndex) : -1
+                    if (commentStart < 0 || commentEnd < markerIndex) {
+                        throw new GradleException("Could not locate the enclosing EASU block comment in " + item.name)
                     }
-                    shader = shader.replace(blockComment, lineComment)
+
+                    String commentBody = shader.substring(commentStart + 2, commentEnd)
+                    String lineComment = commentBody.replaceAll("(?m)^[ \\t]*\\*", "//")
+                    shader = shader.substring(0, commentStart) + lineComment + shader.substring(commentEnd + 2)
+
                     if (shader.contains("/*") || shader.contains("*/")) {
-                        throw new GradleException("Unsupported block comment remains in RenderScale EASU shader")
+                        throw new GradleException("Unsupported block comment remains in RenderScale EASU shader: " + item.name)
                     }
-                    if (!shader.contains("// AMD's Vulkan example, which declares separate texture and sampler objects.")) {
-                        throw new GradleException("RenderScale EASU comment compatibility patch is incomplete")
+                    if (!shader.contains("// AMD's Vulkan example")) {
+                        throw new GradleException("RenderScale EASU comment compatibility patch is incomplete: " + item.name)
                     }
                     bytes = shader.getBytes(StandardCharsets.UTF_8)
                     patchedShaderPaths.add(item.name)
