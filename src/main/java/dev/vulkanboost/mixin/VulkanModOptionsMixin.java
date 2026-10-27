@@ -5,31 +5,44 @@ import dev.zelo.renderscale.config.RenderScaleConfig;
 import net.minecraft.network.chat.Component;
 import net.vulkanmod.config.gui.OptionBlock;
 import net.vulkanmod.config.option.Option;
-import net.vulkanmod.config.option.OptionPage;
 import net.vulkanmod.config.option.SwitchOption;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Adds a VulkanBoost page to VulkanMod's own settings UI using the option-page
- * list already consumed by the bundled VulkanMod version. This avoids relying
- * on a settings-registry API that is absent from the pinned release JAR.
+ * Adds the FSR switch to VulkanMod's own Graphics options, immediately after
+ * the render-distance control. This targets the stable option factory rather
+ * than an API that is absent from the pinned VulkanMod release JAR.
  */
 @Mixin(targets = "net.vulkanmod.config.option.Options")
 public abstract class VulkanModOptionsMixin {
     private static final float VULKANBOOST_IMAGE_SCALE = 0.77F;
 
-    @Inject(method = "getOptionPages", at = @At("RETURN"), cancellable = true)
-    private static void vulkanboost$addImageEnhancementPage(
-            CallbackInfoReturnable<List<OptionPage>> callbackInfo) {
-        List<OptionPage> pages = new ArrayList<>(callbackInfo.getReturnValue());
+    @Inject(method = "getGraphicsOpts", at = @At("RETURN"), cancellable = true)
+    private static void vulkanboost$addImageEnhancementOption(
+            CallbackInfoReturnable<OptionBlock[]> callbackInfo) {
+        OptionBlock[] blocks = callbackInfo.getReturnValue().clone();
+        if (blocks.length == 0) {
+            return;
+        }
 
-        SwitchOption imageEnhancement = new SwitchOption(
+        OptionBlock graphicsBlock = blocks[0];
+        Option<?>[] original = graphicsBlock.options();
+        int insertionIndex = Math.min(1, original.length);
+        Option<?>[] updated = new Option<?>[original.length + 1];
+        System.arraycopy(original, 0, updated, 0, insertionIndex);
+        updated[insertionIndex] = vulkanboost$createImageEnhancementOption();
+        System.arraycopy(original, insertionIndex, updated, insertionIndex + 1,
+                original.length - insertionIndex);
+
+        blocks[0] = new OptionBlock(graphicsBlock.title(), updated);
+        callbackInfo.setReturnValue(blocks);
+    }
+
+    private static Option<Boolean> vulkanboost$createImageEnhancementOption() {
+        return new SwitchOption(
                 Component.translatable("options.vulkanboost.image_enhancement"),
                 enabled -> {
                     RenderScaleConfig config = RenderScale.getConfig();
@@ -43,14 +56,5 @@ public abstract class VulkanModOptionsMixin {
                 }
         ).setTooltip(enabled -> Component.translatable(
                 "options.vulkanboost.image_enhancement.tooltip"));
-
-        pages.add(new OptionPage(
-                "VulkanBoost",
-                new OptionBlock[] {
-                        new OptionBlock("", new Option<?>[] { imageEnhancement })
-                }
-        ));
-
-        callbackInfo.setReturnValue(pages);
     }
 }
