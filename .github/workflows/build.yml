@@ -159,6 +159,7 @@ jobs:
                   locale_data = json.loads(Path(locale_path).read_text(encoding="utf-8"))
                   required_locale_keys = {
                       "key.vulkanboost.open_no_hurt_cam",
+                      "option.vulkanboost.betterhurtcam_effect",
                       "screen.vulkanboost.setup.description",
                       "screen.vulkanboost.setup.bind",
                       "screen.vulkanboost.setup.key_conflict",
@@ -190,25 +191,28 @@ jobs:
               if missing_bhc_ru:
                   raise SystemExit(f"Russian translations for BetterHurtCam are missing: {missing_bhc_ru}")
 
-              # Keep the meaning of the slider's reduction percentage explicit.
-              for locale, phrase in [
-                  ("en_us.json", "hurt-camera tilt"),
-                  ("ru_ru.json", "наклона камеры"),
-              ]:
+              # The slider is a BetterHurtCam effect percentage, not a generic strength label.
+              for locale in ("en_us.json", "ru_ru.json"):
                   locale_path = f"src/main/resources/assets/vulkanboost/lang/{locale}"
                   locale_data = json.loads(Path(locale_path).read_text(encoding="utf-8"))
                   description = locale_data["screen.vulkanboost.no_hurt_cam.description"].lower()
-                  slider_label = locale_data["option.vulkanboost.hurt_cam_reduction"].lower()
+                  slider_label = locale_data["option.vulkanboost.betterhurtcam_effect"].lower()
                   setup_hint = locale_data["screen.vulkanboost.setup.strength_hint"].lower()
-                  if phrase not in slider_label or "50%" not in description or "100%" not in description:
-                      raise SystemExit(f"{locale} must clearly describe the hurt-camera reduction percentage.")
-                  if "50%" not in setup_hint or "100%" not in setup_hint:
-                      raise SystemExit(f"{locale} setup hint must explain what 50% and 100% mean.")
+                  if "betterhurtcam" not in slider_label or "0%" not in description or "50%" not in description or "100%" not in description:
+                      raise SystemExit(f"{locale} must clearly label the BetterHurtCam effect percentage and explain 0%, 50%, and 100%.")
+                  if locale == "en_us.json":
+                      if "vanilla" not in description or "fully removes" not in description:
+                          raise SystemExit("English description must explain that 0% is vanilla and 100% fully removes hurt-camera tilt.")
+                  else:
+                      if "как в обычном minecraft" not in description or "полностью убран" not in description:
+                          raise SystemExit("Russian description must explain that 0% is vanilla and 100% fully removes hurt-camera tilt.")
+                  if "50%" not in setup_hint or "100%" not in setup_hint or "0%" not in setup_hint:
+                      raise SystemExit(f"{locale} setup hint must explain what 0%, 50%, and 100% mean.")
 
               forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
               present_forbidden = sorted(forbidden_ids.intersection(found_ids))
               if present_forbidden:
-                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.9: {present_forbidden}")
+                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.10: {present_forbidden}")
 
           print(f"Validated 19 nested components including official BetterHurtCam and Ukulib: {jar_path}")
       - name: Upload installable JAR

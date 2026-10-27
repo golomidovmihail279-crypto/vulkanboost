@@ -42,7 +42,7 @@ PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but
 
 ## Built-in NoHurtCam
 
-VulkanBoost embeds the unmodified upstream [BetterHurtCam 1.12.0 for Minecraft 1.21.11](https://github.com/uku3lig/betterhurtcam/tree/1.21.11) plus its required Ukulib library. There is no competing VulkanBoost hurt-camera mixin. Our first-multiplayer-join wizard and settings screen are a lightweight frontend to BetterHurtCam's real config: the slider maps 0% reduction to the vanilla multiplier (1.0), 50% to 0.5, and 100% to 0.0 (no hurt-camera rotation). Settings are saved to BetterHurtCam's own `config/betterhurtcam.toml` after a one-time migration from older VulkanBoost versions. **Options → Controls** contains BetterHurtCam's real **Toggle HurtCam**, **Increase HurtCam Strength** and **Decrease HurtCam Strength** actions; VulkanBoost separately exposes **Open NoHurtCam settings** (P by default). Pressing Esc cancels pending settings changes, while **Set up later** postpones the first-time wizard until the next multiplayer connection. The setup/settings screens use a non-blurred background to avoid the `Can only blur once per frame` crash seen in VulkanBoost 0.4.8. Damage, knockback and invulnerability frames are unchanged.
+VulkanBoost embeds the unmodified upstream [BetterHurtCam 1.12.0 for Minecraft 1.21.11](https://github.com/uku3lig/betterhurtcam/tree/1.21.11) plus its required Ukulib library. There is no competing VulkanBoost hurt-camera mixin. Our first-multiplayer-join wizard and settings screen are a lightweight frontend to BetterHurtCam's real config. The slider is labeled **BetterHurtCam effect: X%**: 0% means no visible change from vanilla, 50% removes about half of the hurt-camera tilt, and 100% removes it completely. Internally, those values map to BetterHurtCam multipliers 1.0, 0.5, and 0.0. Settings are saved to BetterHurtCam's own `config/betterhurtcam.toml` after a one-time migration from older VulkanBoost versions. **Options → Controls** contains BetterHurtCam's real **Toggle HurtCam**, **Increase HurtCam Strength** and **Decrease HurtCam Strength** actions; VulkanBoost separately exposes **Open NoHurtCam settings** (P by default). Pressing Esc cancels pending settings changes, while **Set up later** postpones the first-time wizard until the next multiplayer connection. The setup/settings screens use a non-blurred background to avoid the `Can only blur once per frame` crash seen in VulkanBoost 0.4.8. Damage, knockback and invulnerability frames are unchanged.
 
 ### Controls for bundled mods
 
@@ -50,7 +50,7 @@ The normal Minecraft **Options → Controls → Key Binds** screen automatically
 
 ## Installation
 
-1. Download **VulkanBoost-0.4.9-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
+1. Download **VulkanBoost-0.4.10-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
 2. Put that one JAR in your Fabric profile's `mods` folder.
 3. Remove separate copies of Fabric API, VulkanMod, the bundled optimization mods and their bundled libraries to avoid duplicate mod IDs.
 4. Use Fabric Loader **0.19.3 or newer**, Java 21, and Minecraft 1.21.11.

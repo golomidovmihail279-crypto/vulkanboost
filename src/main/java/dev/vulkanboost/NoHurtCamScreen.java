@@ -100,7 +100,7 @@ public final class NoHurtCamScreen extends Screen {
         @Override
         protected void updateMessage() {
             int reduction = (int) Math.round(this.value * 100.0);
-            this.setMessage(Component.translatable("option.vulkanboost.hurt_cam_reduction", reduction));
+            this.setMessage(Component.translatable("option.vulkanboost.betterhurtcam_effect", reduction));
         }
 
         @Override

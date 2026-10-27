@@ -2,15 +2,15 @@
   "key.vulkanboost.open_no_hurt_cam": "Open NoHurtCam settings",
   "key.category.vulkanboost.controls": "VulkanBoost",
   "screen.vulkanboost.no_hurt_cam.title": "VulkanBoost — NoHurtCam",
-  "screen.vulkanboost.no_hurt_cam.description": "0% = vanilla; 50% = about half the hurt-camera tilt; 100% = tilt disabled",
+  "screen.vulkanboost.no_hurt_cam.description": "0% = no visible change from vanilla (BetterHurtCam has no camera effect); 50% = removes about half of the hurt-camera tilt; 100% = fully removes hurt-camera tilt",
   "screen.vulkanboost.no_hurt_cam.enabled_on": "NoHurtCam: Enabled",
   "screen.vulkanboost.no_hurt_cam.enabled_off": "NoHurtCam: Disabled",
-  "option.vulkanboost.hurt_cam_reduction": "Reduce hurt-camera tilt: %s%%",
+  "option.vulkanboost.betterhurtcam_effect": "BetterHurtCam effect: %s%%",
   "screen.vulkanboost.setup.title": "VulkanBoost — NoHurtCam setup",
   "screen.vulkanboost.setup.description": "Choose the key that opens NoHurtCam settings, then customize the effect.",
   "screen.vulkanboost.setup.bind": "Settings key: %s",
   "screen.vulkanboost.setup.press_key": "Press a keyboard or mouse button…",
   "screen.vulkanboost.setup.key_conflict": "That key is already assigned. Choose another key.",
-  "screen.vulkanboost.setup.strength_hint": "0% = vanilla; 50% = about half the tilt; 100% = tilt disabled.",
+  "screen.vulkanboost.setup.strength_hint": "0% = vanilla camera behavior; 50% = removes about half the tilt; 100% = fully removes hurt-camera tilt.",
   "screen.vulkanboost.setup.later": "Set up later"
 }
