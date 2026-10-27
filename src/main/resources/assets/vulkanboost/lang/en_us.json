@@ -1,5 +1,4 @@
 {
-  "options.vulkanboost.category": "VulkanBoost",
   "options.vulkanboost.image_enhancement": "Image enhancement",
   "options.vulkanboost.image_enhancement.tooltip": "Experimental FSR 1: renders the world at 77% scale and reconstructs it to the display size. Compatibility with VulkanMod on Minecraft 1.21.11 is not confirmed."
 }
