@@ -2,7 +2,7 @@
 
 **A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-This release contains 17 top-level mod/library JARs: the core optimizers, chunk-generation experiments, and entity/particle/texture optimizers. Automatic render-distance adjustment has been removed in 0.4.2.
+This release contains 17 nested mod/library JARs plus an original built-in **NoHurtCam** feature. Automatic render-distance adjustment was removed in 0.4.2.
 
 > **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura and Fast Noise touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
@@ -38,9 +38,13 @@ This release contains 17 top-level mod/library JARs: the core optimizers, chunk-
 
 PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but are not inside this JAR: the first artifact version pin and the second artifact coordinate did not resolve in Gradle. I will not ship them until exact, reproducible versions are pinned.
 
+## Built-in NoHurtCam
+
+VulkanBoost now includes its own small client-side mixin that cancels Minecraft's hurt-camera tilt. It does **not** repackage another author's NoHurtCam mod. Damage, knockback, invulnerability frames, and other camera effects remain unchanged. No separate JAR or configuration is needed; the effect is disabled by default.
+
 ## Installation
 
-1. Download **VulkanBoost-0.4.2-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
+1. Download **VulkanBoost-0.4.3-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
 2. Put that one JAR in your Fabric profile's `mods` folder.
 3. Remove separate copies of Fabric API, VulkanMod, the bundled optimization mods and their bundled libraries to avoid duplicate mod IDs.
 4. Use Fabric Loader **0.19.3 or newer**, Java 21, and Minecraft 1.21.11.
@@ -49,7 +53,7 @@ Fabric Loader itself is still required; it is not inside the mod JAR.
 
 ## Test plan and known risks
 
-Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. Version 0.4.2 also removes DynamicRenderDistance and its now-unused Architectury API library. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
+Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. Version 0.4.2 removed DynamicRenderDistance and its now-unused Architectury API library. Version 0.4.3 adds an original NoHurtCam mixin directly to the main JAR. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
 
 - C2ME, Bura and Fast Noise overlap in chunk/render scheduling. If issues occur, the first diagnostic build should remove one at a time.
 - Optis was removed in 0.4.1 after a startup crash in OsmiumClient: it references the missing Minecraft class `net.minecraft.client.texture.AbstractTexture` on Minecraft 1.21.11.

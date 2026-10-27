@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "dev.vulkanboost.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "NoHurtCamMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

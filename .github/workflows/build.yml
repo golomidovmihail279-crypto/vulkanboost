@@ -74,12 +74,22 @@ jobs:
 
               if len(set(found_ids)) != len(found_ids):
                   raise SystemExit(f"Duplicate top-level mod IDs found: {found_ids}")
+              # Validate VulkanBoost's own client mixin, separately from nested third-party mods.
+              root_mixin_configs = metadata.get("mixins", [])
+              if "vulkanboost.mixins.json" not in root_mixin_configs:
+                  raise SystemExit("VulkanBoost's NoHurtCam mixin config is missing from fabric.mod.json")
+              mixin_config = json.loads(archive.read("vulkanboost.mixins.json"))
+              if "NoHurtCamMixin" not in mixin_config.get("client", []):
+                  raise SystemExit("NoHurtCamMixin is missing from the client mixin config")
+              if "dev/vulkanboost/mixin/NoHurtCamMixin.class" not in archive.namelist():
+                  raise SystemExit("NoHurtCamMixin class is missing from the built JAR")
+
               forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
               present_forbidden = sorted(forbidden_ids.intersection(found_ids))
               if present_forbidden:
-                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.2: {present_forbidden}")
+                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.3: {present_forbidden}")
 
-          print(f"Validated 17-component installable bundle: {jar_path}")
+          print(f"Validated 17 nested components and built-in NoHurtCam: {jar_path}")
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:
