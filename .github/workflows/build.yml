@@ -146,10 +146,25 @@ jobs:
               if translation_keys[0] != translation_keys[1]:
                   raise SystemExit("English and Russian translation keys do not match.")
 
+              # Keep slider text explicit: these percentages are reduction, not effect strength.
+              for locale, phrase in [
+                  ("en_us.json", "hurt-camera tilt"),
+                  ("ru_ru.json", "наклона камеры"),
+              ]:
+                  locale_path = f"src/main/resources/assets/vulkanboost/lang/{locale}"
+                  locale_data = json.loads(Path(locale_path).read_text(encoding="utf-8"))
+                  description = locale_data["screen.vulkanboost.no_hurt_cam.description"].lower()
+                  slider_label = locale_data["option.vulkanboost.hurt_cam_reduction"].lower()
+                  setup_hint = locale_data["screen.vulkanboost.setup.strength_hint"].lower()
+                  if phrase not in slider_label or "50%" not in description or "100%" not in description:
+                      raise SystemExit(f"{locale} must clearly describe the hurt-camera reduction percentage.")
+                  if "50%" not in setup_hint or "100%" not in setup_hint:
+                      raise SystemExit(f"{locale} setup hint must explain what 50% and 100% mean.")
+
               forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
               present_forbidden = sorted(forbidden_ids.intersection(found_ids))
               if present_forbidden:
-                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.6: {present_forbidden}")
+                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.7: {present_forbidden}")
 
           print(f"Validated 17 nested components and built-in NoHurtCam: {jar_path}")
       - name: Upload installable JAR

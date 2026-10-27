@@ -9,8 +9,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 /**
- * Scales vanilla hurt-camera rotations using the NoHurtCam slider.
- * 0% preserves vanilla behavior; 100% removes the hurt-camera tilt.
+ * Reduces vanilla hurt-camera rotation by the configured percentage.
+ * 0% reduction preserves vanilla behavior; 100% reduction removes the hurt-camera tilt.
  */
 @Mixin(GameRenderer.class)
 public abstract class NoHurtCamMixin {
