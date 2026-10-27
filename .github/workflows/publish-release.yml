@@ -60,24 +60,33 @@ jobs:
             find dist -maxdepth 3 -type f -print
             exit 1
           fi
-          cp "${jars[0]}" dist/VulkanBoost-0.1.0-alpha.1.jar
+          cp "${jars[0]}" dist/VulkanBoost-0.1.0.jar
           cd dist
-          sha256sum VulkanBoost-0.1.0-alpha.1.jar > VulkanBoost-0.1.0-alpha.1.jar.sha256
+          sha256sum VulkanBoost-0.1.0.jar > VulkanBoost-0.1.0.jar.sha256
 
-      - name: Publish GitHub Release
+      - name: Remove superseded alpha release and tag
+        if: steps.guard.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          gh release delete v0.1.0-alpha.1 --yes || true
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.1.0-alpha.1" || true
+
+      - name: Publish latest GitHub Release
         if: steps.guard.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.1.0-alpha.1
-          name: VulkanBoost 0.1.0-alpha.1
+          tag_name: v0.1.0
+          name: VulkanBoost 0.1.0
           target_commitish: ${{ github.event.workflow_run.head_sha }}
           body_path: .github/RELEASE_NOTES.md
-          prerelease: true
+          prerelease: false
           draft: false
-          make_latest: false
+          make_latest: true
           fail_on_unmatched_files: true
           files: |
-            dist/VulkanBoost-0.1.0-alpha.1.jar
-            dist/VulkanBoost-0.1.0-alpha.1.jar.sha256
+            dist/VulkanBoost-0.1.0.jar
+            dist/VulkanBoost-0.1.0.jar.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
