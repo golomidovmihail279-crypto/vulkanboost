@@ -23,6 +23,10 @@ public abstract class NoHurtCamMixin {
         index = 0
     )
     private Quaternionfc vulkanboost$scaleHurtCamera(Quaternionfc rotation) {
+        if (!NoHurtCamConfig.isEnabled()) {
+            return rotation;
+        }
+
         float rotationScale = 1.0F - (NoHurtCamConfig.getReduction() / 100.0F);
         if (rotationScale <= 0.0001F) {
             return new Quaternionf().identity();

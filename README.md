@@ -2,7 +2,7 @@
 
 **A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-This release contains 17 nested mod/library JARs plus an original built-in **NoHurtCam** feature with an in-game strength slider.
+This release contains 17 nested mod/library JARs plus an original built-in **NoHurtCam** feature, a first-server-join setup prompt, a toggle hotkey and an in-game strength slider.
 
 > **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura and Fast Noise touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
@@ -40,11 +40,15 @@ PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but
 
 ## Built-in NoHurtCam
 
-VulkanBoost includes its own client-side mixin and a visual in-game slider for hurt-camera reduction. Press **P** by default (rebindable under Options → Controls) to open settings. The slider ranges from 0% (vanilla shake) to 100% (no hurt-camera tilt), previews changes immediately, and saves the selected value to `config/vulkanboost-no-hurt-cam.properties` when Done is clicked. Esc cancels changes. This is original project code; it does not repackage another author's mod. Damage, knockback, and invulnerability frames are unchanged.
+VulkanBoost includes its own client-side mixin, a first-multiplayer-join setup prompt, an enable/disable hotkey and a strength slider. The first time you join a multiplayer server, a setup screen asks you to choose the toggle key and lets you tune the effect. **Options → Controls → VulkanBoost** contains both **Toggle NoHurtCam** and **Open NoHurtCam settings** (P by default); both keys can be rebound there. The slider ranges from 0% (vanilla shake) to 100% (no hurt-camera tilt), previews changes immediately and saves its value to `config/vulkanboost-no-hurt-cam.properties`. NoHurtCam can also be enabled/disabled with its chosen hotkey. Pressing Esc during setup cancels it, while **Set up later** postpones the wizard until the next server connection. This is original project code; damage, knockback and invulnerability frames are unchanged.
+
+### Controls for bundled mods
+
+The normal Minecraft **Options → Controls → Key Binds** screen automatically includes keybindings registered by loaded mods, including nested mods in this bundle. Those bindings stay under the category chosen by each mod. A mod cannot be given a meaningful hotkey if it has no key-driven action. In particular, the bundled C2ME 0.3.6.0 version is an automatic chunk performance engine and does not provide user-facing keybindings to expose; its configuration is not a set of safe, instant in-world toggles.
 
 ## Installation
 
-1. Download **VulkanBoost-0.4.4-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
+1. Download **VulkanBoost-0.4.5-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
 2. Put that one JAR in your Fabric profile's `mods` folder.
 3. Remove separate copies of Fabric API, VulkanMod, the bundled optimization mods and their bundled libraries to avoid duplicate mod IDs.
 4. Use Fabric Loader **0.19.3 or newer**, Java 21, and Minecraft 1.21.11.
@@ -53,7 +57,7 @@ Fabric Loader itself is still required; it is not inside the mod JAR.
 
 ## Test plan and known risks
 
-Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. Version 0.4.2 removed DynamicRenderDistance and its now-unused Architectury API library. Version 0.4.4 adds an original NoHurtCam mixin directly to the main JAR. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
+Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. Version 0.4.2 removed DynamicRenderDistance and its now-unused Architectury API library. Version 0.4.5 adds the NoHurtCam first-join setup wizard, toggle key and status control; version 0.4.4 added the original mixin and slider directly to the main JAR. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
 
 - C2ME, Bura and Fast Noise overlap in chunk/render scheduling. If issues occur, the first diagnostic build should remove one at a time.
 - Optis was removed in 0.4.1 after a startup crash in OsmiumClient: it references the missing Minecraft class `net.minecraft.client.texture.AbstractTexture` on Minecraft 1.21.11.

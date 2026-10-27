@@ -1,7 +1,19 @@
 {
   "key.vulkanboost.open_no_hurt_cam": "Настройки NoHurtCam",
+  "key.vulkanboost.toggle_no_hurt_cam": "Включить/выключить NoHurtCam",
+  "key.category.vulkanboost.controls": "VulkanBoost",
   "screen.vulkanboost.no_hurt_cam.title": "VulkanBoost — NoHurtCam",
-  "screen.vulkanboost.no_hurt_cam.description": "0% — обычная тряска камеры; 100% — тряска отключена",
+  "screen.vulkanboost.no_hurt_cam.description": "0% — обычная тряска камеры; 100% — наклон от урона отключён",
+  "screen.vulkanboost.no_hurt_cam.enabled_on": "NoHurtCam: включён",
+  "screen.vulkanboost.no_hurt_cam.enabled_off": "NoHurtCam: выключен",
   "option.vulkanboost.hurt_cam_reduction": "Сила NoHurtCam: %s%%",
-  "key.category.vulkanboost": "VulkanBoost"
+  "screen.vulkanboost.setup.title": "VulkanBoost — настройка NoHurtCam",
+  "screen.vulkanboost.setup.description": "Выбери клавишу переключения и настрой эффект.",
+  "screen.vulkanboost.setup.bind": "Клавиша включения/выключения: %s",
+  "screen.vulkanboost.setup.press_key": "Нажми клавишу или кнопку мыши…",
+  "screen.vulkanboost.setup.key_conflict": "Эта клавиша открывает настройки NoHurtCam. Выбери другую.",
+  "screen.vulkanboost.setup.strength_hint": "Ползунок сразу показывает выбранную силу эффекта.",
+  "screen.vulkanboost.setup.later": "Настроить позже",
+  "message.vulkanboost.no_hurt_cam.enabled": "NoHurtCam включён",
+  "message.vulkanboost.no_hurt_cam.disabled": "NoHurtCam выключен"
 }
