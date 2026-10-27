@@ -9,6 +9,10 @@ VulkanBoost is a bundle, not a merged or forked copy of its included mods. Fabri
 | FerriteCore | 8.2.0-fabric | MIT | https://modrinth.com/mod/ferrite-core |
 | Alternate Current | 1.9.0 for Minecraft 1.21.11 | MIT | https://modrinth.com/mod/alternate-current |
 | BadOptimizations | 2.4.1 for Minecraft 1.21.11 | MIT | https://modrinth.com/mod/badoptimizations |
+| ModernFix-mVUS | 5.26.3-build.2 for Minecraft 1.21.11 | LGPL-3.0-only | https://modrinth.com/mod/modernfix-mvus |
+| ScalableLux | 0.1.6+fabric.c25518a | LGPL-3.0-only | https://modrinth.com/mod/scalablelux |
+| Fast Noise | 1.0.36+1.21.11 | MPL-2.0 | https://modrinth.com/mod/zfastnoise |
+| Krypton | 0.2.10 | LGPL-3.0-only | https://modrinth.com/mod/krypton |
 
 Consult each project's official page for the corresponding source repository and full license text. Keep these notices and comply with each upstream project's redistribution terms when publishing a bundle.
 
