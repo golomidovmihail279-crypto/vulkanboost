@@ -34,6 +34,7 @@ jobs:
         shell: python
         run: |
           import glob
+          import io
           import json
           import zipfile
 
@@ -53,7 +54,8 @@ jobs:
 
               for item in nested:
                   name = item["file"]
-                  child_metadata = json.loads(archive.read(name))
+                  with zipfile.ZipFile(io.BytesIO(archive.read(name))) as nested_archive:
+                      child_metadata = json.loads(nested_archive.read("fabric.mod.json"))
                   print(f"Nested mod OK: {child_metadata.get('id')} {child_metadata.get('version')}")
 
           print(f"Validated installable bundle: {jar_path}")
