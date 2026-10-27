@@ -96,23 +96,21 @@ jobs:
               for required_dependency in ("betterhurtcam", "ukulib", "renderscale"):
                   if required_dependency not in root_depends:
                       raise SystemExit(f"Root metadata must declare {required_dependency}.")
-              if metadata.get("entrypoints"):
-                  raise SystemExit("The root bundle must not register custom runtime entrypoints.")
-              if metadata.get("mixins") != ["vulkanboost.mixins.json"]:
-                  raise SystemExit("Root metadata must register exactly the intended VulkanBoost mixin config.")
-              if "vulkanboost.mixins.json" not in archive.namelist():
-                  raise SystemExit("Root mixin config is missing.")
-              mixin_config = json.loads(archive.read("vulkanboost.mixins.json"))
-              expected_mixins = {"VideoSettingsScreenMixin", "OptionsSubScreenAccessor"}
-              if mixin_config.get("package") != "dev.vulkanboost.mixin":
-                  raise SystemExit("Unexpected VulkanBoost mixin package.")
-              if set(mixin_config.get("client", [])) != expected_mixins:
-                  raise SystemExit(f"Unexpected client mixins: {mixin_config.get('client')}")
-              if mixin_config.get("mixins"):
-                  raise SystemExit("VulkanBoost mixins must remain client-only.")
+              expected_entrypoints = {
+                  "vulkanmod:mod_settings_registry": [
+                      "dev.vulkanboost.VulkanBoostSettingsFactory"
+                  ]
+              }
+              if metadata.get("entrypoints") != expected_entrypoints:
+                  raise SystemExit(
+                      f"Expected only the VulkanMod settings registry entrypoint, found {metadata.get('entrypoints')}"
+                  )
+              if metadata.get("mixins"):
+                  raise SystemExit("VulkanBoost should use VulkanMod's settings API, not vanilla-screen mixins.")
+              if "vulkanboost.mixins.json" in archive.namelist():
+                  raise SystemExit("Obsolete vanilla-screen mixin config must not be packaged.")
               allowed_classes = {
-                  "dev/vulkanboost/mixin/VideoSettingsScreenMixin.class",
-                  "dev/vulkanboost/mixin/OptionsSubScreenAccessor.class",
+                  "dev/vulkanboost/VulkanBoostSettingsFactory.class",
               }
               root_classes = {
                   path for path in archive.namelist()
@@ -142,8 +140,7 @@ jobs:
                       for p in source_root.rglob("*.java")
                   }
                   allowed_sources = {
-                      "src/main/java/dev/vulkanboost/mixin/VideoSettingsScreenMixin.java",
-                      "src/main/java/dev/vulkanboost/mixin/OptionsSubScreenAccessor.java",
+                      "src/main/java/dev/vulkanboost/VulkanBoostSettingsFactory.java",
                   }
                   if java_sources != allowed_sources:
                       raise SystemExit(f"Unexpected custom Java runtime sources: {sorted(java_sources)}")
@@ -168,7 +165,7 @@ jobs:
 
           print(
               "Validated 20 nested components; BetterHurtCam and Ukulib match their pinned upstream versions; "
-              "the only root runtime code is the client-side video-settings toggle, with its own language strings."
+              "the only root runtime code is the VulkanMod settings-API factory, with its own language strings."
           )
 
       - name: Upload installable JAR
