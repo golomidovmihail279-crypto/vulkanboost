@@ -126,7 +126,8 @@ jobs:
               }
               root_assets = {
                   path for path in archive.namelist()
-                  if path.startswith("assets/vulkanboost/") or path.startswith("assets/betterhurtcam/")
+                  if not path.endswith("/")
+                  and (path.startswith("assets/vulkanboost/") or path.startswith("assets/betterhurtcam/"))
               }
               if root_assets != allowed_assets:
                   raise SystemExit(f"Unexpected root language/override assets: {sorted(root_assets)}")
