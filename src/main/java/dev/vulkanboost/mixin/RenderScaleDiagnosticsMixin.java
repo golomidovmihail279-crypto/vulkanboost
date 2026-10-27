@@ -49,7 +49,7 @@ public abstract class RenderScaleDiagnosticsMixin {
             method = "blitAndBlendToTexture",
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(IIII)V",
+                    target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(II)V",
                     ordinal = 0,
                     shift = At.Shift.AFTER),
             require = 1)
@@ -66,7 +66,7 @@ public abstract class RenderScaleDiagnosticsMixin {
             method = "blitAndBlendToTexture",
             at = @At(
                     value = "INVOKE",
-                    target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(IIII)V",
+                    target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(II)V",
                     ordinal = 1,
                     shift = At.Shift.AFTER),
             require = 1)
