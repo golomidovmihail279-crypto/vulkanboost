@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "dev.vulkanboost.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "VulkanModOptionsMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
