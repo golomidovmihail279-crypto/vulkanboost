@@ -38,7 +38,7 @@ jobs:
           import json
           import zipfile
 
-          EXPECTED_TOP_LEVEL_COUNT = 19
+          EXPECTED_TOP_LEVEL_COUNT = 17
           candidates = [
               path for path in glob.glob("build/libs/vulkanboost-*.jar")
               if not path.endswith("-dev.jar") and not path.endswith("-sources.jar")
@@ -74,10 +74,12 @@ jobs:
 
               if len(set(found_ids)) != len(found_ids):
                   raise SystemExit(f"Duplicate top-level mod IDs found: {found_ids}")
-              if "osmium" in found_ids:
-                  raise SystemExit("Optis/Osmium is intentionally excluded: it crashes on Minecraft 1.21.11")
+              forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
+              present_forbidden = sorted(forbidden_ids.intersection(found_ids))
+              if present_forbidden:
+                  raise SystemExit(f"These components must stay out of VulkanBoost 0.4.2: {present_forbidden}")
 
-          print(f"Validated installable bundle: {jar_path}")
+          print(f"Validated 17-component installable bundle: {jar_path}")
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:

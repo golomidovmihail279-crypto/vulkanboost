@@ -2,7 +2,7 @@
 
 **A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-This release broadens the bundle to 19 top-level mod/library JARs: the core optimizers, chunk-generation experiments, dynamic view distance, entity/particle/texture optimizers, and their libraries.
+This release contains 17 top-level mod/library JARs: the core optimizers, chunk-generation experiments, and entity/particle/texture optimizers. Automatic render-distance adjustment has been removed in 0.4.2.
 
 > **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura and Fast Noise touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
@@ -29,20 +29,18 @@ This release broadens the bundle to 19 top-level mod/library JARs: the core opti
 | [Fast Noise](https://modrinth.com/mod/zfastnoise) | 1.0.36+1.21.11 | World generation | MPL-2.0 |
 | [Krypton](https://modrinth.com/mod/krypton) | 0.2.10 | Network stack | LGPL-3.0-only |
 | [C2ME](https://modrinth.com/mod/c2me-fabric) | 0.3.6.0.0 | Concurrent chunk management | MIT |
-| [DynamicRenderDistance](https://modrinth.com/mod/dynamicrenderdistance) | 1.2.0 | Adapts view distance to FPS | MIT |
 | [Bura](https://modrinth.com/mod/bura) | 0.1.0 alpha | Chunk compilation/upload scheduling | MIT |
 | [Epitaph Optimizer](https://modrinth.com/mod/epitaph-optimizer) | 1.0.0* | Applies performance-friendly video settings | CC0-1.0 |
 | [Dynamic FPS](https://modrinth.com/mod/dynamic-fps) | 3.11.4 | Reduces background resource use | MIT |
 | [FastQuit](https://modrinth.com/mod/fastquit) | 3.1.3+mc1.21.11 | Returns to menu while save finishes | MIT |
 | [Smart Particles](https://modrinth.com/mod/smart-particles) | 1.11.10 | Particle rendering/limits | MIT |
-| [Architectury API](https://modrinth.com/mod/architectury-api) | 19.0.1+fabric | Required library for DynamicRenderDistance | LGPL-3.0-only |
 | [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153+fabric | Required library for FastQuit | LGPL-3.0-only |
 
 PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but are not inside this JAR: the first artifact version pin and the second artifact coordinate did not resolve in Gradle. I will not ship them until exact, reproducible versions are pinned.
 
 ## Installation
 
-1. Download **VulkanBoost-0.4.1-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
+1. Download **VulkanBoost-0.4.2-for-1.21.11.jar** from [GitHub Releases](https://github.com/golomidovmihail279-crypto/vulkanboost/releases).
 2. Put that one JAR in your Fabric profile's `mods` folder.
 3. Remove separate copies of Fabric API, VulkanMod, the bundled optimization mods and their bundled libraries to avoid duplicate mod IDs.
 4. Use Fabric Loader **0.19.3 or newer**, Java 21, and Minecraft 1.21.11.
@@ -51,11 +49,11 @@ Fabric Loader itself is still required; it is not inside the mod JAR.
 
 ## Test plan and known risks
 
-Version 0.4.1 removes Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
+Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecraft 1.21.11. Version 0.4.2 also removes DynamicRenderDistance and its now-unused Architectury API library. The remaining broad experimental bundle is not a promise of more FPS. Benchmark the same world, position, render distance and video settings against 0.3.0. Check startup, world creation, chunk generation, chunk uploads, visibility/flicker, save/quit, entity shadows, particles, texture-heavy resource packs, multiplayer and background behavior.
 
 - C2ME, Bura and Fast Noise overlap in chunk/render scheduling. If issues occur, the first diagnostic build should remove one at a time.
 - Optis was removed in 0.4.1 after a startup crash in OsmiumClient: it references the missing Minecraft class `net.minecraft.client.texture.AbstractTexture` on Minecraft 1.21.11.
-- DynamicRenderDistance changes view distance on the fly; set reasonable minimum and maximum limits.
+- Automatic render-distance adjustment is intentionally excluded; VulkanBoost leaves the configured view distance alone.
 - Dynamic FPS and FastQuit are convenience/background/save optimizers, not guaranteed active-game FPS boosters.
 - PerceptiFrame is a rendering-detail candidate and Afterburner: Optimized modifies chunk drawing/culling. Both need exact build coordinates and separate VulkanMod runtime testing before bundling.
 - Native anti-aliasing, FSR upscaling and DLSS/DLAA are **not** implemented yet.
@@ -65,6 +63,14 @@ Version 0.4.1 removes Optis/Osmium after a reproducible startup crash on Minecra
 The MIT project license applies only to VulkanBoost's own files. Each nested component retains its own license; see [LICENSES/THIRD_PARTY_NOTICES.md](LICENSES/THIRD_PARTY_NOTICES.md).
 
 Three candidates were deliberately **not** redistributed: StackCluster Optimizer, OptimizeMod and NoRender+ list ARR (All Rights Reserved). OptiLeaves is also held back because its listing/license information appears inconsistent and it modifies render/culling paths. They can be reconsidered after permission/license clarification and separate compatibility testing.
+
+## Optional extras (separate downloads)
+
+These are optional add-ons, **not bundled inside VulkanBoost**:
+
+- **No Hurt Cam 1.21.11 (Fabric):** [official CurseForge file page](https://www.curseforge.com/minecraft/mc-mods/no-hurt-cam/files/7800959). Download the JAR from the upstream page and put it in `mods`. The project is marked All Rights Reserved, so this repository links to the author's page rather than mirroring the file.
+- **Low Fire resource pack:** [official Modrinth page](https://modrinth.com/resourcepack/lower-fire). Put the downloaded ZIP in `resourcepacks`.
+- **Truly Small Items resource pack:** [official Modrinth page](https://modrinth.com/resourcepack/small-items). Put the downloaded ZIP in `resourcepacks`.
 
 ## Build
 
