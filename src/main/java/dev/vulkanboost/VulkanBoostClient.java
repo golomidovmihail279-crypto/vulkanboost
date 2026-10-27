@@ -93,6 +93,33 @@ public final class VulkanBoostClient implements ClientModInitializer {
         return TOGGLE_NO_HURT_CAM.getTranslatedKeyMessage();
     }
 
+    public static Component getOpenSettingsKeyName() {
+        return OPEN_NO_HURT_CAM_SETTINGS.getTranslatedKeyMessage();
+    }
+
+    public static boolean isOpenSettingsKeyAssigned() {
+        return !OPEN_NO_HURT_CAM_SETTINGS.isUnbound();
+    }
+
+    public static void setOpenSettingsKeyInMemory(InputConstants.Key key) {
+        OPEN_NO_HURT_CAM_SETTINGS.setKey(key);
+        KeyMapping.resetMapping();
+    }
+
+    /**
+     * Checks the selected settings key against every other vanilla or mod key mapping.
+     * The mapping being edited is ignored so its current key remains selectable.
+     */
+    public static boolean hasKeyConflict(InputConstants.Key candidate) {
+        for (KeyMapping mapping : Minecraft.getInstance().options.keyMappings) {
+            if (mapping != OPEN_NO_HURT_CAM_SETTINGS
+                && InputConstants.getKey(mapping.saveString()).equals(candidate)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public static boolean isToggleKeyAssigned() {
         return !TOGGLE_NO_HURT_CAM.isUnbound();
     }

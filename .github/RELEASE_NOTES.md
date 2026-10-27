@@ -1,16 +1,17 @@
-# VulkanBoost 0.4.5 for Minecraft 1.21.11
+# VulkanBoost 0.4.6 for Minecraft 1.21.11
 
-Feature update: NoHurtCam first-join setup, enable/disable hotkey and native Minecraft keybind integration.
+Feature update: align the first-server-join NoHurtCam wizard with the settings-opening key and improve conflict handling.
 
 ## Changes
 
-- On the first multiplayer-server join, a setup screen asks which keyboard or mouse button should toggle NoHurtCam.
-- The setup screen lets the player choose the NoHurtCam strength (0–100%) and whether the effect starts enabled.
-- Added **Toggle NoHurtCam** and **Open NoHurtCam settings** to the normal **Options → Controls → VulkanBoost** category. Both are rebindable there; the settings screen remains bound to **P** by default.
-- The toggle state, strength and setup-completed flag are saved in the NoHurtCam config file under the Minecraft config directory. The key mapping is saved by Minecraft in options.txt.
-- The NoHurtCam slider now has an explicit enabled/disabled control. Pressing Esc cancels pending setup/settings changes; **Set up later** postpones first-time setup until the next multiplayer connection.
-- All bundled mods' own key mappings remain available in Minecraft's normal Controls screen when those mods register them. C2ME 0.3.6.0 itself does not expose a user-facing keybinding for its automatic chunk tasks, so no nonfunctional placeholder hotkey was added.
-- Keeps 17 nested mod/library JARs and retains the earlier removals of DynamicRenderDistance/Architectury and Optis/Osmium.
+- On the first multiplayer-server connection before setup is completed, the wizard asks which keyboard or mouse button should open NoHurtCam settings.
+- The wizard still lets the player set NoHurtCam strength (0–100%) and choose whether the effect starts enabled.
+- The **Open NoHurtCam settings** binding can be reassigned in the setup wizard and later in the normal **Options → Controls → VulkanBoost** category. It defaults to **P** when no other key is configured.
+- The wizard checks the chosen key against existing vanilla and mod key mappings and asks for another key on a conflict.
+- **Toggle NoHurtCam** remains a separate, real action available in the standard Controls screen. No toggle shortcut is fabricated for optimizers that have no key-driven action.
+- The setup-completed flag and NoHurtCam strength/enabled state remain persisted in the config. Minecraft continues to store key mappings in `options.txt`.
+- The wizard can be postponed until the next multiplayer connection and is not reopened on every screen transition during the current connection.
+- Retains all 17 bundled mod/library JARs and the existing NoHurtCam implementation and settings.
 
 ## Bundled components
 
@@ -35,13 +36,14 @@ Feature update: NoHurtCam first-join setup, enable/disable hotkey and native Min
 ## Installation
 
 - Minecraft 1.21.11, Fabric Loader 0.19.3+, Java 21 and a Vulkan 1.2+ compatible GPU/driver are required.
-- Download VulkanBoost-0.4.5-for-1.21.11.jar and put it in mods; remove separate copies of bundled mods/libraries to avoid duplicate mod IDs.
+- Download `VulkanBoost-0.4.6-for-1.21.11.jar` and put it in `mods`; remove separate copies of bundled mods/libraries to avoid duplicate mod IDs.
 - Fabric Loader itself is still required and is not bundled.
-- On your first multiplayer-server join, use the setup screen to choose a NoHurtCam toggle key. Later, edit either VulkanBoost key in Options → Controls.
+- The first multiplayer setup asks for the key that opens NoHurtCam settings; both VulkanBoost keybindings remain rebindable later via **Options → Controls**.
 
 ## Verification and limitations
 
-- CI builds the JAR and validates the 17 nested mod/library IDs, forbidden component IDs, nested metadata, custom mixin config/classes, setup and settings screens, client initializer, and English/Russian translations.
-- Build validation is not a substitute for an in-game test; camera behavior, the setup prompt and full VulkanMod compatibility should still be tested in a real client.
-- Native anti-aliasing, FSR and DLSS/DLAA are not implemented yet.
-- ARR projects are not mirrored or redistributed; this NoHurtCam implementation is independent original project code.
+- CI builds the remapped JAR and validates the 17 nested mod/library IDs, nested metadata, custom mixin config/classes, settings/setup classes, source-level keybinding intent, and matching English/Russian translation keys.
+- Build validation is not a substitute for an in-game test. The setup prompt, key conflicts, camera behavior and complete VulkanMod bundle still require testing in a real client.
+- C2ME 0.3.6.0 is an automatic chunk-performance engine; it does not warrant a fabricated hotkey in VulkanBoost. Bundled mods' own keybindings, when registered, remain in their normal Minecraft Controls category.
+- Native anti-aliasing, FSR upscaling and DLSS/DLAA are not implemented yet.
+- ARR projects are not mirrored or redistributed; NoHurtCam remains original project code.

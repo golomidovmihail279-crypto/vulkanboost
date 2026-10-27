@@ -14,7 +14,7 @@ import org.lwjgl.glfw.GLFW;
 public final class NoHurtCamSetupScreen extends Screen {
     private final int originalReduction = NoHurtCamConfig.getReduction();
     private final boolean originalEnabled = NoHurtCamConfig.isEnabled();
-    private final InputConstants.Key originalToggleKey = VulkanBoostClient.getToggleKey();
+    private final InputConstants.Key originalOpenSettingsKey = VulkanBoostClient.getOpenSettingsKey();
 
     private int pendingReduction = this.originalReduction;
     private boolean pendingEnabled = this.originalEnabled;
@@ -54,7 +54,7 @@ public final class NoHurtCamSetupScreen extends Screen {
             Component.translatable("gui.done"),
             button -> this.finishSetup()
         ).bounds(this.width / 2 - 100, centerY + 37, 200, 20).build());
-        this.doneButton.active = VulkanBoostClient.isToggleKeyAssigned();
+        this.doneButton.active = VulkanBoostClient.isOpenSettingsKeyAssigned();
 
         this.addRenderableWidget(Button.builder(
             Component.translatable("screen.vulkanboost.setup.later"),
@@ -63,7 +63,7 @@ public final class NoHurtCamSetupScreen extends Screen {
     }
 
     private Component bindLabel() {
-        return Component.translatable("screen.vulkanboost.setup.bind", VulkanBoostClient.getToggleKeyName());
+        return Component.translatable("screen.vulkanboost.setup.bind", VulkanBoostClient.getOpenSettingsKeyName());
     }
 
     private static Component enabledLabel(boolean enabled) {
@@ -77,23 +77,24 @@ public final class NoHurtCamSetupScreen extends Screen {
             this.bindButton.setMessage(bindLabel());
         }
         if (this.doneButton != null) {
-            this.doneButton.active = VulkanBoostClient.isToggleKeyAssigned();
+            this.doneButton.active = VulkanBoostClient.isOpenSettingsKeyAssigned();
         }
     }
 
-    private void assignToggleKey(InputConstants.Key key) {
-        if (key.equals(VulkanBoostClient.getOpenSettingsKey())) {
+    private void assignSettingsKey(InputConstants.Key key) {
+        if (VulkanBoostClient.hasKeyConflict(key)) {
+            this.listeningForKey = false;
             this.bindButton.setMessage(Component.translatable("screen.vulkanboost.setup.key_conflict"));
             return;
         }
 
-        VulkanBoostClient.setToggleKeyInMemory(key);
+        VulkanBoostClient.setOpenSettingsKeyInMemory(key);
         this.listeningForKey = false;
         this.updateBindLabel();
     }
 
     private void finishSetup() {
-        if (!VulkanBoostClient.isToggleKeyAssigned()) {
+        if (!VulkanBoostClient.isOpenSettingsKeyAssigned()) {
             return;
         }
 
@@ -120,7 +121,7 @@ public final class NoHurtCamSetupScreen extends Screen {
                 return true;
             }
             if (event.key() == GLFW.GLFW_KEY_BACKSPACE) {
-                VulkanBoostClient.setToggleKeyInMemory(
+                VulkanBoostClient.setOpenSettingsKeyInMemory(
                     InputConstants.Type.KEYSYM.getOrCreate(GLFW.GLFW_KEY_UNKNOWN)
                 );
                 this.listeningForKey = false;
@@ -128,7 +129,7 @@ public final class NoHurtCamSetupScreen extends Screen {
                 return true;
             }
 
-            this.assignToggleKey(InputConstants.getKey(event));
+            this.assignSettingsKey(InputConstants.getKey(event));
             return true;
         }
         return super.keyPressed(event);
@@ -137,7 +138,7 @@ public final class NoHurtCamSetupScreen extends Screen {
     @Override
     public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
         if (this.listeningForKey) {
-            this.assignToggleKey(InputConstants.Type.MOUSE.getOrCreate(event.button()));
+            this.assignSettingsKey(InputConstants.Type.MOUSE.getOrCreate(event.button()));
             return true;
         }
         return super.mouseClicked(event, doubleClick);
@@ -165,7 +166,7 @@ public final class NoHurtCamSetupScreen extends Screen {
         if (!this.committed) {
             NoHurtCamConfig.setReductionInMemory(this.originalReduction);
             NoHurtCamConfig.setEnabledInMemory(this.originalEnabled);
-            VulkanBoostClient.setToggleKeyInMemory(this.originalToggleKey);
+            VulkanBoostClient.setOpenSettingsKeyInMemory(this.originalOpenSettingsKey);
             VulkanBoostClient.saveKeyMappings();
         }
         Minecraft.getInstance().setScreen(null);
