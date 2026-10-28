@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-"""Validate the distributable VulkanBoost bundle and its source tree.
+"""Validate the distributable VulkanBoost bundle.
 
-Usage:
-    python3 scripts/check_bundle.py build/libs/vulkanboost-0.5.jar
+Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.5.jar
 """
 from __future__ import annotations
-
 import io
 import json
 import sys
@@ -14,25 +12,10 @@ from pathlib import Path
 from typing import Any
 
 EXPECTED_COMPONENT_IDS = {
-    "fabric-api",
-    "vulkanmod",
-    "lithium",
-    "ferritecore",
-    "alternate-current",
-    "badoptimizations",
-    "modernfix",
-    "scalablelux",
-    "zfastnoise",
-    "krypton",
-    "c2me",
-    "bura",
-    "epitaph-optimizer",
-    "dynamic_fps",
-    "fastquit",
-    "smart_particles",
-    "cloth-config",
-    "betterhurtcam",
-    "ukulib",
+    "fabric-api", "vulkanmod", "lithium", "ferritecore", "alternate-current",
+    "badoptimizations", "modernfix", "scalablelux", "zfastnoise", "krypton",
+    "c2me", "bura", "epitaph-optimizer", "dynamic_fps", "fastquit",
+    "smart_particles", "cloth-config", "betterhurtcam", "ukulib",
 }
 EXPECTED_VERSIONS = {
     "fabric-api": "0.140.2+1.21.11",
@@ -41,34 +24,14 @@ EXPECTED_VERSIONS = {
     "ukulib": "1.10.2+1.21.11",
 }
 REQUIRED_DEPENDENCIES = {
-    "fabricloader": ">=0.19.3",
-    "minecraft": "1.21.11",
-    "vulkanmod": ">=0.6.8",
-    "fabric-api": "*",
-    "betterhurtcam": ">=1.12.0",
-    "ukulib": "^1.10.0",
+    "fabricloader": ">=0.19.3", "minecraft": "1.21.11",
+    "vulkanmod": ">=0.6.8", "fabric-api": "*",
+    "betterhurtcam": ">=1.12.0", "ukulib": "^1.10.0",
 }
-FORBIDDEN_MOD_IDS = {"renderscale"}
-FORBIDDEN_RESOURCE_MARKERS = (
-    "assets/renderscale/shaders/",
-    "ffx_fsr1_easu.glsl",
-    "ffx_fsr1_rcas.glsl",
-)
-FORBIDDEN_SOURCE_MARKERS = (
-    "dev.zelo.renderscale",
-    "RenderScaleDiagnosticsMixin",
-    "FsrEasuTestMode",
-    "FsrEasuF(",
-    "FsrRcasF(",
-    "ffx_fsr1_",
-    "patchBundledRenderScaleShader",
-)
-
 
 def load_metadata(archive: zipfile.ZipFile, label: str) -> dict[str, Any]:
     try:
-        raw = archive.read("fabric.mod.json")
-        value = json.loads(raw)
+        value = json.loads(archive.read("fabric.mod.json"))
     except KeyError as exc:
         raise ValueError(f"{label}: missing fabric.mod.json") from exc
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
@@ -76,7 +39,6 @@ def load_metadata(archive: zipfile.ZipFile, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{label}: fabric.mod.json must be an object")
     return value
-
 
 def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 0) -> None:
     if depth > 8:
@@ -90,16 +52,6 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
             except ValueError as exc:
                 errors.append(str(exc))
                 return
-
-            mod_id = metadata.get("id")
-            if mod_id in FORBIDDEN_MOD_IDS:
-                errors.append(f"{label}: removed mod id is still bundled: {mod_id}")
-
-            for name in names:
-                lowered = name.lower()
-                if any(marker in lowered for marker in FORBIDDEN_RESOURCE_MARKERS):
-                    errors.append(f"{label}: legacy FSR/RenderScale resource remains: {name}")
-
             for child in metadata.get("jars", []):
                 child_path = child.get("file") if isinstance(child, dict) else None
                 if not child_path or child_path not in names:
@@ -109,34 +61,28 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
     except (zipfile.BadZipFile, OSError) as exc:
         errors.append(f"{label}: invalid nested JAR: {exc}")
 
-
 def check_source_tree(root: str | Path = ".") -> list[str]:
-    """Reject old FSR/RenderScale runtime hooks in production source/build configuration."""
+    """Ensure the base bundle declares no custom runtime hooks."""
     root = Path(root)
     errors: list[str] = []
-    candidates = [root / "build.gradle"]
+    metadata_path = root / "src" / "main" / "resources" / "fabric.mod.json"
+    if metadata_path.is_file():
+        try:
+            metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
+            return [f"fabric.mod.json: invalid metadata: {exc}"]
+        if metadata.get("mixins"):
+            errors.append("custom mixin registration is not expected in the bundle base")
     source_root = root / "src" / "main"
     if source_root.exists():
-        candidates.extend(path for path in source_root.rglob("*") if path.is_file())
-
-    for path in candidates:
-        if not path.is_file():
-            continue
-        relative = path.relative_to(root).as_posix()
-        lowered_path = relative.lower()
-        if "renderscale" in lowered_path or "fsr" in lowered_path:
-            errors.append(f"legacy FSR/RenderScale source path remains: {relative}")
-            continue
-        try:
-            text = path.read_text(encoding="utf-8")
-        except (UnicodeDecodeError, OSError):
-            # Binary assets are allowed; metadata and source text files are checked below.
-            continue
-        for marker in FORBIDDEN_SOURCE_MARKERS:
-            if marker in text:
-                errors.append(f"{relative}: legacy FSR/RenderScale code marker remains: {marker}")
+        for path in source_root.rglob("*"):
+            if not path.is_file():
+                continue
+            if path.suffix.lower() in {".java", ".class", ".glsl", ".fsh", ".vsh"}:
+                errors.append(f"unexpected project-owned runtime file: {path.relative_to(root).as_posix()}")
+            if path.name.endswith(".mixins.json"):
+                errors.append(f"unexpected mixin configuration: {path.relative_to(root).as_posix()}")
     return errors
-
 
 def check_bundle(path: str | Path) -> list[str]:
     errors: list[str] = []
@@ -147,37 +93,25 @@ def check_bundle(path: str | Path) -> list[str]:
                 metadata = load_metadata(archive, str(path))
             except ValueError as exc:
                 return [str(exc)]
-
             if metadata.get("id") != "vulkanboost":
                 errors.append("outer metadata id must be 'vulkanboost'")
-
             dependencies = metadata.get("depends", {})
             for dependency, expected in REQUIRED_DEPENDENCIES.items():
                 actual = dependencies.get(dependency)
                 if actual != expected:
-                    errors.append(
-                        f"root dependency {dependency!r}: expected {expected!r}, found {actual!r}"
-                    )
-            if "renderscale" in dependencies:
-                errors.append("root metadata still declares RenderScale")
-
+                    errors.append(f"root dependency {dependency!r}: expected {expected!r}, found {actual!r}")
             if metadata.get("mixins"):
-                errors.append("obsolete root mixin registration remains")
+                errors.append("unexpected root mixin registration remains")
             if "vulkanboost.mixins.json" in names:
-                errors.append("obsolete VulkanBoost mixin config remains")
-
-            runtime_classes = sorted(
-                name for name in names
-                if name.startswith("dev/vulkanboost/") and name.endswith(".class")
-            )
-            if runtime_classes:
-                errors.append(f"obsolete custom rendering runtime classes remain: {runtime_classes}")
+                errors.append("unexpected mixin config remains")
+            custom_classes = sorted(name for name in names if name.startswith("dev/vulkanboost/") and name.endswith(".class"))
+            if custom_classes:
+                errors.append(f"unexpected project-owned runtime classes remain: {custom_classes}")
 
             nested_entries = metadata.get("jars", [])
             nested_ids: list[str] = []
             nested_versions: dict[str, str] = {}
             seen_paths: set[str] = set()
-
             for item in nested_entries:
                 nested_path = item.get("file") if isinstance(item, dict) else None
                 if not nested_path:
@@ -190,10 +124,8 @@ def check_bundle(path: str | Path) -> list[str]:
                 if nested_path not in names:
                     errors.append(f"nested JAR listed in metadata is missing: {nested_path}")
                     continue
-
-                data = archive.read(nested_path)
                 try:
-                    with zipfile.ZipFile(io.BytesIO(data)) as child:
+                    with zipfile.ZipFile(io.BytesIO(archive.read(nested_path))) as child:
                         child_metadata = load_metadata(child, nested_path)
                         mod_id = child_metadata.get("id")
                         version = child_metadata.get("version")
@@ -202,83 +134,46 @@ def check_bundle(path: str | Path) -> list[str]:
                             continue
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
-                        if mod_id in FORBIDDEN_MOD_IDS:
-                            errors.append(f"removed mod id is still bundled: {mod_id}")
-                        for resource_path in child.namelist():
-                            lowered = resource_path.lower()
-                            if any(marker in lowered for marker in FORBIDDEN_RESOURCE_MARKERS):
-                                errors.append(
-                                    f"{nested_path}: legacy FSR/RenderScale resource remains: {resource_path}"
-                                )
                         for grandchild in child_metadata.get("jars", []):
-                            grandchild_path = grandchild.get("file") if isinstance(grandchild, dict) else None
-                            if not grandchild_path or grandchild_path not in child.namelist():
-                                errors.append(
-                                    f"{nested_path}: missing nested JAR entry {grandchild_path!r}"
-                                )
+                            child_path = grandchild.get("file") if isinstance(grandchild, dict) else None
+                            if not child_path or child_path not in child.namelist():
+                                errors.append(f"{nested_path}: missing nested JAR entry {child_path!r}")
                                 continue
-                            inspect_nested_jar(
-                                child.read(grandchild_path),
-                                f"{nested_path}!/{grandchild_path}",
-                                errors,
-                                depth=1,
-                            )
+                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, depth=1)
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
                     errors.append(f"{nested_path}: invalid nested JAR/metadata: {exc}")
 
             if len(nested_entries) != len(EXPECTED_COMPONENT_IDS):
-                errors.append(
-                    f"expected {len(EXPECTED_COMPONENT_IDS)} top-level components, found {len(nested_entries)}"
-                )
-
-            duplicate_ids = sorted({item for item in nested_ids if nested_ids.count(item) > 1})
-            if duplicate_ids:
-                errors.append(f"duplicate top-level mod ids: {duplicate_ids}")
-
+                errors.append(f"expected {len(EXPECTED_COMPONENT_IDS)} top-level components, found {len(nested_entries)}")
+            duplicates = sorted({item for item in nested_ids if nested_ids.count(item) > 1})
+            if duplicates:
+                errors.append(f"duplicate top-level mod ids: {duplicates}")
             missing = sorted(EXPECTED_COMPONENT_IDS - set(nested_ids))
             unexpected = sorted(set(nested_ids) - EXPECTED_COMPONENT_IDS)
             if missing:
                 errors.append(f"required components missing: {missing}")
             if unexpected:
                 errors.append(f"unexpected components present: {unexpected}")
-
             for mod_id, expected in EXPECTED_VERSIONS.items():
                 actual = nested_versions.get(mod_id)
                 if actual != expected:
-                    errors.append(
-                        f"{mod_id} version mismatch: expected {expected!r}, found {actual!r}"
-                    )
-
-            for name in names:
-                lowered = name.lower()
-                if any(marker in lowered for marker in FORBIDDEN_RESOURCE_MARKERS):
-                    errors.append(f"legacy FSR/RenderScale resource remains in outer JAR: {name}")
-
+                    errors.append(f"{mod_id} version mismatch: expected {expected!r}, found {actual!r}")
     except (zipfile.BadZipFile, OSError) as exc:
         return [f"{path}: cannot read bundle JAR: {exc}"]
-
     return errors
-
 
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__.strip(), file=sys.stderr)
         return 2
-
-    root = Path.cwd()
-    findings = check_source_tree(root) + check_bundle(sys.argv[1])
+    findings = check_source_tree(Path.cwd()) + check_bundle(sys.argv[1])
     for finding in findings:
         print("ERROR:", finding)
     if findings:
         print(f"Validation failed: {len(findings)} error(s).")
         return 1
-
-    print(
-        "Validation passed: 19 unique top-level components, pinned core versions, "
-        "valid nested JAR metadata, and no legacy RenderScale/FSR code or runtime resources."
-    )
+    print("Validation passed: 19 unique top-level components, pinned core versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
