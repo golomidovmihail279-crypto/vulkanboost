@@ -1,4 +1,4 @@
 {
-  "options.vulkanboost.image_enhancement": "Experimental FSR EASU test (no RCAS)",
-  "options.vulkanboost.image_enhancement.tooltip": "Development test only: runs EASU at 77% render scale and copies its output without RCAS sharpening. If the image turns black or corrupt, switch this off; the test setting resets to safe mode after restart."
+  "options.vulkanboost.image_enhancement": "RenderScale copy-baseline test — experimental",
+  "options.vulkanboost.image_enhancement.tooltip": "Diagnostic only: bypasses both EASU and RCAS and copies the input through RenderScale's two-pass chain at 77% render scale. If this still produces a black screen, the issue is likely in the render-pass/target chain rather than the EASU algorithm. The test resets to safe mode after restart."
 }
