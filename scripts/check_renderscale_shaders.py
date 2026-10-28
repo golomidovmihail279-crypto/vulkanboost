@@ -16,6 +16,10 @@ import zipfile
 SHADER_RE = re.compile(r"^assets/renderscale/shaders/.*\.(glsl|fsh|vsh)$")
 REQUIRED_SHADERS = {
     "assets/renderscale/shaders/include/ffx_a.glsl",
+    "assets/renderscale/shaders/core/easu.fsh",
+    "assets/renderscale/shaders/core/rcas.fsh",
+    "assets/renderscale/shaders/include/ffx_fsr1_easu.glsl",
+    "assets/renderscale/shaders/include/ffx_fsr1_rcas.glsl",
 }
 
 
@@ -193,6 +197,39 @@ def check_jar(path):
             for required in sorted(REQUIRED_SHADERS):
                 if required not in shader_names:
                     findings.append(("ERROR", required, 0, "required shader missing from nested RenderScale JAR", ""))
+
+            # Each pipeline gets a trimmed 32-bit-only FSR header. The shared upstream
+            # header includes unused precision variants that this VulkanMod parser may
+            # mistake for top-level attributes.
+            pipeline_specs = (
+                (
+                    "assets/renderscale/shaders/core/easu.fsh",
+                    "assets/renderscale/shaders/include/ffx_fsr1_easu.glsl",
+                    "#moj_import <renderscale:ffx_fsr1_easu.glsl>",
+                    "FsrEasuF(",
+                    "FsrRcasF(",
+                ),
+                (
+                    "assets/renderscale/shaders/core/rcas.fsh",
+                    "assets/renderscale/shaders/include/ffx_fsr1_rcas.glsl",
+                    "#moj_import <renderscale:ffx_fsr1_rcas.glsl>",
+                    "FsrRcasF(",
+                    "FsrEasuF(",
+                ),
+            )
+            for pipeline_path, header_path, expected_import, required_function, forbidden_function in pipeline_specs:
+                pipeline_text = render_scale.read(pipeline_path).decode("utf-8")
+                if expected_import not in pipeline_text:
+                    findings.append(("ERROR", pipeline_path, 0, "pipeline does not import its mode-specific FSR header", ""))
+                if "#moj_import <renderscale:ffx_fsr1.glsl>" in pipeline_text:
+                    findings.append(("ERROR", pipeline_path, 0, "pipeline still imports the shared FSR header", ""))
+                if header_path in shader_names:
+                    header_text = render_scale.read(header_path).decode("utf-8")
+                    header_code = code_only(header_text)
+                    if required_function not in header_code:
+                        findings.append(("ERROR", header_path, 0, "mode-specific FSR function is missing", ""))
+                    if forbidden_function in header_code:
+                        findings.append(("ERROR", header_path, 0, "mode-specific FSR header contains the other pass implementation", ""))
 
             easu_marker = "// AMDs Vulkan example, which declares separate texture and sampler objects."
             easu_candidates = []
