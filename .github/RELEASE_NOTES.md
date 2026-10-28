@@ -1,21 +1,26 @@
-# VulkanBoost 0.5.1-dev for Minecraft 1.21.11
+# VulkanBoost 0.5 for Minecraft 1.21.11
 
-This development version establishes a clean base for future native-resolution temporal anti-aliasing work. It does not yet implement a temporal reconstruction algorithm and does not advertise unimplemented rendering features.
+This refreshed package preserves VulkanBoost's single-JAR optimization bundle and removes the experimental custom rendering integration that caused visual artifacts. The package does not include a custom upscaling or temporal anti-aliasing implementation.
 
 ## Changes
 
-- Removes custom rendering hooks and the previous resolution-scaling integration from the development source tree.
-- Retains the single-JAR installation model and 19 pinned nested mod/library components.
-- Validates nested-JAR metadata, component IDs and versions, archive integrity, and the absence of project-owned rendering hooks.
-- Documents the renderer investigation plan and future acceptance criteria.
+- Retains the pinned set of 19 bundled mod and library components.
+- Removes custom rendering hooks and the prior resolution-scaling integration.
+- Keeps the development focus on a stable baseline before adding any new image-quality pipeline.
+- Validates nested-JAR integrity, component IDs and versions, and the expected project-owned runtime structure.
 
-## Validation
+## Compatibility
 
-- GitHub Actions builds the remapped Java 21 JAR.
-- The bundle validator and its unit tests must pass before an artifact is accepted.
-- The development artifact is not a claim of visual correctness or completed temporal anti-aliasing.
-- Full in-game validation on Minecraft 1.21.11 with VulkanMod is still required before any new rendering behavior is enabled.
+- Minecraft Java Edition 1.21.11
+- Java 21
+- Fabric Loader 0.20.1 or compatible release meeting the declared minimum
+- VulkanMod 0.6.8+1.21.11 and a GPU/driver supporting Vulkan 1.2+
 
 ## Installation
 
-Use a disposable Minecraft 1.21.11 profile with Java 21 and a compatible Fabric Loader. Install only one copy of each bundled component to avoid duplicate mod IDs.
+1. Download `VulkanBoost-0.5-for-1.21.11.jar`.
+2. Place it in the Minecraft profile's `mods` folder.
+3. Remove separate copies of any components already bundled inside VulkanBoost to avoid duplicate mod IDs.
+4. Use a test profile and back up worlds before testing.
+
+Fabric Loader and Java are installed separately. The bundle remains experimental; a successful build is not a substitute for in-game compatibility testing. Native-resolution anti-aliasing and temporal reconstruction are not implemented in this package.
