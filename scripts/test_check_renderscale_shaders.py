@@ -48,7 +48,7 @@ def proposed_patch(shader):
     return chk.sanitize_comment_apostrophes(converted)
 
 
-def build_jar(ffx_a, easu, extra_outer=None, extra_nested=None):
+def build_jar(ffx_a, easu, extra_outer=None, extra_nested=None, rcas_shader=None):
     nested = io.BytesIO()
     with zipfile.ZipFile(nested, "w") as archive:
         archive.writestr("fabric.mod.json", json.dumps({"id": "renderscale"}))
@@ -60,7 +60,7 @@ def build_jar(ffx_a, easu, extra_outer=None, extra_nested=None):
         )
         archive.writestr(
             "assets/renderscale/shaders/core/rcas.fsh",
-            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\n"
+            rcas_shader or "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\n"
         )
         archive.writestr(
             "assets/renderscale/shaders/include/ffx_fsr1_easu.glsl",
@@ -155,6 +155,37 @@ class CheckerTests(unittest.TestCase):
                 self.assertIn("ffx_fsr1_rcas.glsl", rcas)
                 self.assertNotIn("ffx_fsr1.glsl>", easu)
                 self.assertNotIn("ffx_fsr1.glsl>", rcas)
+
+    def test_easu_only_probe_copies_easu_output_without_calling_rcas(self):
+        probe = (
+            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\\n"
+            "uniform sampler2D InSampler;\\n"
+            "in vec2 texCoord;\\n"
+            "out vec4 fragColor;\\n"
+            "// VULKANBOOST_EASU_ONLY_TEST: RCAS bypassed; copy EASU output unchanged.\\n"
+            "void main() { fragColor = texture(InSampler, texCoord); }\\n"
+        )
+        path = build_jar(
+            "// ok\\nuint a = mask;\\n",
+            "// AMDs Vulkan example, which declares separate texture and sampler objects.\\n"
+            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\\n",
+            rcas_shader=probe,
+        )
+        self.assertEqual(errors(path), [])
+
+    def test_easu_only_probe_rejects_an_rcas_function_call(self):
+        probe = (
+            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\\n"
+            "// VULKANBOOST_EASU_ONLY_TEST\\n"
+            "void main() { fragColor = FsrRcasF(); }\\n"
+        )
+        path = build_jar(
+            "// ok\\nuint a = mask;\\n",
+            "// AMDs Vulkan example, which declares separate texture and sampler objects.\\n"
+            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\\n",
+            rcas_shader=probe,
+        )
+        self.assertTrue(any("must not execute RCAS" in item[3] for item in errors(path)))
 
     def test_apostrophe_in_code_is_not_silently_removed(self):
         with self.assertRaises(ValueError):
