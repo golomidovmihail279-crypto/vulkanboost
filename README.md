@@ -9,7 +9,7 @@ This branch establishes a clean foundation for research into native-resolution t
 - The one-JAR bundle retains 19 pinned top-level mod/library components.
 - Custom rendering hooks and resolution-scaling integration are not part of this branch.
 - No rendering option is advertised as working when no implementation exists.
-- Historical published releases remain separately versioned; this source branch is the clean development base.
+- The refreshed v0.5 package is the clean optimization baseline; image reconstruction is not implemented yet.
 - Temporal reconstruction is a research target, not yet an implemented or validated feature.
 
 ## Platform
@@ -48,7 +48,7 @@ The aggregate remains experimental. C2ME, Bura and Fast Noise affect overlapping
 
 ## Temporal reconstruction research
 
-The target is **stable, clean image quality at native output resolution first**, not an automatic reduction to 70–77% render scale. A temporal approach may use sub-pixel camera jitter and information from previous frames to reduce edge stair-stepping and shimmer. It must also reject stale history when camera motion, animated entities, particles, transparency, or newly visible pixels make historical samples invalid.
+The target is **stable, clean image quality at native output resolution first**. A temporal approach may use sub-pixel camera jitter and information from previous frames to reduce edge stair-stepping and shimmer. It must also reject stale history when camera motion, animated entities, particles, transparency, or newly visible pixels make historical samples invalid.
 
 The plan, related projects, open technical questions, and validation matrix are documented in [Temporal Reconstruction Research](docs/TEMPORAL_RECONSTRUCTION_RESEARCH.md).
 
