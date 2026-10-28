@@ -211,6 +211,7 @@ out vec4 fragColor;
 void main() {
     fragColor = texture(InSampler, texCoord);
 }
+"""
                     bytes = easuCopyShader.getBytes(StandardCharsets.UTF_8)
                     easuPipelinePatched = true
                     patchedShaderPaths.add(item.name)
