@@ -158,31 +158,31 @@ class CheckerTests(unittest.TestCase):
 
     def test_easu_only_probe_copies_easu_output_without_calling_rcas(self):
         probe = (
-            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\\n"
-            "uniform sampler2D InSampler;\\n"
-            "in vec2 texCoord;\\n"
-            "out vec4 fragColor;\\n"
-            "// VULKANBOOST_EASU_ONLY_TEST: RCAS bypassed; copy EASU output unchanged.\\n"
-            "void main() { fragColor = texture(InSampler, texCoord); }\\n"
+            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\n"
+            "uniform sampler2D InSampler;\n"
+            "in vec2 texCoord;\n"
+            "out vec4 fragColor;\n"
+            "// VULKANBOOST_EASU_ONLY_TEST: RCAS bypassed; copy EASU output unchanged.\n"
+            "void main() { fragColor = texture(InSampler, texCoord); }\n"
         )
         path = build_jar(
-            "// ok\\nuint a = mask;\\n",
-            "// AMDs Vulkan example, which declares separate texture and sampler objects.\\n"
-            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\\n",
+            "// ok\nuint a = mask;\n",
+            "// AMDs Vulkan example, which declares separate texture and sampler objects.\n"
+            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\n",
             rcas_shader=probe,
         )
         self.assertEqual(errors(path), [])
 
     def test_easu_only_probe_rejects_an_rcas_function_call(self):
         probe = (
-            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\\n"
-            "// VULKANBOOST_EASU_ONLY_TEST\\n"
-            "void main() { fragColor = FsrRcasF(); }\\n"
+            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\n"
+            "// VULKANBOOST_EASU_ONLY_TEST\n"
+            "void main() { fragColor = FsrRcasF(); }\n"
         )
         path = build_jar(
-            "// ok\\nuint a = mask;\\n",
-            "// AMDs Vulkan example, which declares separate texture and sampler objects.\\n"
-            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\\n",
+            "// ok\nuint a = mask;\n",
+            "// AMDs Vulkan example, which declares separate texture and sampler objects.\n"
+            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\n",
             rcas_shader=probe,
         )
         self.assertTrue(any("must not execute RCAS" in item[3] for item in errors(path)))
