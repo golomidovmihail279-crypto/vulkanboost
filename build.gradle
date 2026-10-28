@@ -1,14 +1,3 @@
-import groovy.json.JsonSlurper
-import java.io.ByteArrayInputStream
-import java.io.ByteArrayOutputStream
-import java.nio.charset.StandardCharsets
-import java.nio.file.Files
-import java.nio.file.StandardCopyOption
-import java.util.zip.ZipEntry
-import java.util.zip.ZipFile
-import java.util.zip.ZipInputStream
-import java.util.zip.ZipOutputStream
-
 plugins {
     id "net.fabricmc.fabric-loom-remap" version "${loom_version}"
 }
@@ -39,12 +28,14 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
 
-    // Expose Fabric API's nested modules to the compiler without embedding a second copy.
+    // Compile against Fabric API without embedding a second top-level copy.
     modCompileOnly("net.fabricmc.fabric-api:fabric-api:0.140.2+1.21.11")
 
-    // Base bundle: Fabric API, Vulkan renderer, and established optimizers.
+    // Core rendering and compatibility dependencies.
     include(modImplementation("maven.modrinth:P7dR8mSH:gB6TkYEJ")) // Fabric API 0.140.2+1.21.11
     include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
+
+    // Established optimization components pinned to reproducible artifacts.
     include(modImplementation("maven.modrinth:gvQqBUqZ:Ow7wA0kG")) // Lithium 0.21.4
     include(modImplementation("maven.modrinth:uXXizFIs:Ii0gP3D8")) // FerriteCore 8.2.0
     include(modImplementation("maven.modrinth:r0v8vy1s:XdouG8YV")) // Alternate Current 1.9.0
@@ -54,23 +45,18 @@ dependencies {
     include(modImplementation("maven.modrinth:OnlVIpq5:WBTi826Z")) // Fast Noise 1.0.36+1.21.11
     include(modImplementation("maven.modrinth:fQEb0iXm:O9LmWYR7")) // Krypton 0.2.10
 
-    // Additional 1.21.11 optimization candidates, included together for a broad experimental profile.
+    // Additional optimization candidates; retain independent compatibility testing.
     include(modImplementation("maven.modrinth:VSNURh3q:olrVZpJd")) // C2ME 0.3.6.0.0
     include(modImplementation("maven.modrinth:XxO7e7xt:Upo8PRjv")) // Bura 0.1.0 alpha
     include(modImplementation("maven.modrinth:epitaph-optimizer:1.0.0")) // Epitaph Optimizer
-    include(modImplementation("maven.modrinth:LQ3K71Q1:PUe5Asxs")) // Dynamic FPS 3.11.4 (Fabric)
+    include(modImplementation("maven.modrinth:LQ3K71Q1:PUe5Asxs")) // Dynamic FPS 3.11.4
     include(modImplementation("maven.modrinth:x1hIzbuY:ip2tVKLp")) // FastQuit 3.1.3+mc1.21.11
     include(modImplementation("maven.modrinth:l8rWP4Tc:dN2uh6Yw")) // Smart Particles 1.11.10
-    // Shared configuration library for FastQuit and RenderScale.
     include(modImplementation("maven.modrinth:9s6osm5g:xuX40TN5")) // Cloth Config API 21.11.153+fabric
 
-    // Experimental FSR 1 upscaling for Minecraft 1.21.11.
-    // RenderScale's shader resource is patched at packaging time for VulkanMod's GLSL converter.
-    include(modImplementation("maven.modrinth:Va8PJBFX:bgpLxfvV")) // RenderScale 1.4.0-alpha.1 for 1.21.11 (MIT)
-
-    // Official BetterHurtCam for Minecraft 1.21.11 and its required config/UI library.
-    include(modImplementation("maven.modrinth:o4y0N2hu:bacofMP2")) // BetterHurtCam 1.12.0+mc1.21.11 (MIT)
-    include(modImplementation("maven.modrinth:Y8uFrUil:t9ZJ7RPT")) // Ukulib 1.10.2+1.21.11 (MPL-2.0)
+    // Unmodified upstream quality-of-life mods and their required library.
+    include(modImplementation("maven.modrinth:o4y0N2hu:bacofMP2")) // BetterHurtCam 1.12.0+mc1.21.11
+    include(modImplementation("maven.modrinth:Y8uFrUil:t9ZJ7RPT")) // Ukulib 1.10.2+1.21.11
 }
 
 processResources {
@@ -97,351 +83,4 @@ tasks.named("jar") {
     from("LICENSE") {
         rename { "${it}_VulkanBoost" }
     }
-}
-
-/*
- * The VulkanMod GLSL converter used with Minecraft 1.21.11 rejects the GLSL
- * unary bitwise-NOT token (~) in RenderScale's bundled FidelityFX helper and
- * reported an unsupported apostrophe while importing FSR shaders. Rewrite
- * the masks as equivalent XOR expressions, convert the EASU prose block into
- * line comments, and remove apostrophes from comments only. RenderScale's Java
- * classes and metadata remain untouched.
- */
-tasks.register("patchBundledRenderScaleShader") {
-    group = "build"
-    description = "Patches RenderScale's FSR shader expressions for VulkanMod's GLSL converter."
-
-    doLast {
-        File bundleJar = file("build/libs/vulkanboost-${project.version}.jar")
-        if (!bundleJar.isFile()) {
-            throw new GradleException("Expected installable bundle JAR at ${bundleJar}")
-        }
-
-        String renderScalePath = null
-        byte[] renderScaleBytes = null
-        ZipFile outerZip = new ZipFile(bundleJar)
-        try {
-            def metadataEntry = outerZip.getEntry("fabric.mod.json")
-            if (metadataEntry == null) {
-                throw new GradleException("Bundle JAR is missing fabric.mod.json")
-            }
-            def rootMetadata = new JsonSlurper().parse(outerZip.getInputStream(metadataEntry))
-            for (def nested in (rootMetadata.jars ?: [])) {
-                String nestedPath = nested.file as String
-                def nestedEntry = outerZip.getEntry(nestedPath)
-                if (nestedEntry == null) {
-                    throw new GradleException("Missing nested JAR: ${nestedPath}")
-                }
-                byte[] nestedBytes = outerZip.getInputStream(nestedEntry).withCloseable { it.readAllBytes() }
-                String nestedMetadataText = null
-                ZipInputStream nestedZip = new ZipInputStream(new ByteArrayInputStream(nestedBytes))
-                try {
-                    ZipEntry item
-                    while ((item = nestedZip.nextEntry) != null) {
-                        if (item.name == "fabric.mod.json") {
-                            nestedMetadataText = new String(nestedZip.readAllBytes(), StandardCharsets.UTF_8)
-                            break
-                        }
-                        nestedZip.closeEntry()
-                    }
-                } finally {
-                    nestedZip.close()
-                }
-                if (nestedMetadataText != null) {
-                    def nestedMetadata = new JsonSlurper().parseText(nestedMetadataText)
-                    if (nestedMetadata.id == "renderscale") {
-                        renderScalePath = nestedPath
-                        renderScaleBytes = nestedBytes
-                        break
-                    }
-                }
-            }
-        } finally {
-            outerZip.close()
-        }
-
-        if (renderScalePath == null || renderScaleBytes == null) {
-            throw new GradleException("Could not locate the nested RenderScale JAR")
-        }
-
-        final String shaderPath = "assets/renderscale/shaders/include/ffx_a.glsl"
-        final String easuShaderPath = "assets/renderscale/shaders/core/easu.fsh"
-        final String rcasShaderPath = "assets/renderscale/shaders/core/rcas.fsh"
-        final String fsrHeaderPath = "assets/renderscale/shaders/include/ffx_fsr1.glsl"
-        final String easuOnlyHeaderPath = "assets/renderscale/shaders/include/ffx_fsr1_easu.glsl"
-        final String rcasOnlyHeaderPath = "assets/renderscale/shaders/include/ffx_fsr1_rcas.glsl"
-        ByteArrayOutputStream patchedNestedBuffer = new ByteArrayOutputStream()
-        ZipInputStream renderScaleZip = new ZipInputStream(new ByteArrayInputStream(renderScaleBytes))
-        ZipOutputStream patchedNestedZip = new ZipOutputStream(patchedNestedBuffer)
-        Set<String> patchedShaderPaths = [] as Set
-        boolean easuCommentPatched = false
-        boolean easuPipelinePatched = false
-        boolean rcasPipelinePatched = false
-        byte[] easuOnlyHeaderBytes = null
-        byte[] rcasOnlyHeaderBytes = null
-        try {
-            ZipEntry item
-            while ((item = renderScaleZip.nextEntry) != null) {
-                byte[] bytes = renderScaleZip.readAllBytes()
-
-                // Give each pass a 32-bit-only include. VulkanMod's parser visits
-                // unused precision variants in the shared upstream header and can
-                // misread their extra "out" parameters as top-level attributes.
-                if (item.name == easuShaderPath) {
-                    String shader = new String(bytes, StandardCharsets.UTF_8)
-                    String oldImport = "#moj_import <renderscale:ffx_fsr1.glsl>"
-                    String newImport = "#moj_import <renderscale:ffx_fsr1_easu.glsl>"
-                    int importIndex = shader.indexOf(oldImport)
-                    if (importIndex < 0 || shader.indexOf(oldImport, importIndex + oldImport.length()) >= 0) {
-                        throw new GradleException("Expected exactly one shared FSR import in " + item.name)
-                    }
-                    bytes = (shader.substring(0, importIndex) + newImport
-                        + shader.substring(importIndex + oldImport.length())).getBytes(StandardCharsets.UTF_8)
-                    easuPipelinePatched = true
-                    patchedShaderPaths.add(item.name)
-                } else if (item.name == rcasShaderPath) {
-                    String shader = new String(bytes, StandardCharsets.UTF_8)
-                    String oldImport = "#moj_import <renderscale:ffx_fsr1.glsl>"
-                    String newImport = "#moj_import <renderscale:ffx_fsr1_rcas.glsl>"
-                    int importIndex = shader.indexOf(oldImport)
-                    if (importIndex < 0 || shader.indexOf(oldImport, importIndex + oldImport.length()) >= 0) {
-                        throw new GradleException("Expected exactly one shared FSR import in " + item.name)
-                    }
-                    bytes = (shader.substring(0, importIndex) + newImport
-                        + shader.substring(importIndex + oldImport.length())).getBytes(StandardCharsets.UTF_8)
-                    rcasPipelinePatched = true
-                    patchedShaderPaths.add(item.name)
-                }
-
-                if (item.name == shaderPath) {
-                    String shader = new String(bytes, StandardCharsets.UTF_8)
-                    shader = shader
-                        .replace("~mask", "(AU1_(0xFFFFFFFF)^mask)")
-                        .replace("~AShrSU1(x,AU1_(31))", "(AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31)))")
-                        .replace("~AShrSU1(x,AU1_(15))", "(AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15)))")
-                        .replace("~AShrSW1(x,AW1_(15))", "(AW1_(0xFFFF)^AShrSW1(x,AW1_(15)))")
-                        .replace("~AShrSW2(x,AW2_(15))", "(AW2_(0xFFFF)^AShrSW2(x,AW2_(15)))")
-
-                    if (shader.contains("~mask") || shader.contains("~AShr")) {
-                        throw new GradleException("Unpatched bitwise-NOT token remains in RenderScale FSR shader")
-                    }
-                    if (!shader.contains("AU1_(0xFFFFFFFF)^mask")
-                            || !shader.contains("AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31))")
-                            || !shader.contains("AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15))")
-                            || !shader.contains("AW1_(0xFFFF)^AShrSW1(x,AW1_(15))")
-                            || !shader.contains("AW2_(0xFFFF)^AShrSW2(x,AW2_(15))")) {
-                        throw new GradleException("RenderScale FSR shader did not contain all expected bitwise-NOT expressions")
-                    }
-                    bytes = shader.getBytes(StandardCharsets.UTF_8)
-                    patchedShaderPaths.add(item.name)
-                } else if (item.name == easuShaderPath
-                        || (item.name.startsWith("assets/renderscale/shaders/")
-                            && new String(bytes, StandardCharsets.UTF_8).contains("AMD's Vulkan example"))) {
-                    String shader = new String(bytes, StandardCharsets.UTF_8)
-                    String commentMarker = "AMD's Vulkan example"
-                    int markerIndex = shader.indexOf(commentMarker)
-                    if (markerIndex < 0) {
-                        throw new GradleException("Could not locate the EASU comment marker in " + item.name)
-                    }
-
-                    int lineStart = shader.lastIndexOf("\n", markerIndex) + 1
-                    int lineCommentStart = shader.lastIndexOf("//", markerIndex)
-                    boolean markerIsLineComment = lineCommentStart >= lineStart
-                    int commentStart = shader.lastIndexOf("/*", markerIndex)
-                    int commentEnd = shader.indexOf("*/", markerIndex)
-                    if (!markerIsLineComment) {
-                        if (commentStart < 0 || commentEnd < markerIndex) {
-                            throw new GradleException("EASU marker is neither in a line comment nor a complete block comment in " + item.name)
-                        }
-
-                        String commentBody = shader.substring(commentStart + 2, commentEnd)
-                        String afterComment = shader.substring(commentEnd + 2)
-                        if (!afterComment.split("\n", 2)[0].trim().isEmpty()) {
-                            throw new GradleException("Code follows the EASU block comment on the same line in " + item.name)
-                        }
-                        String lineComment = commentBody.split("\n", -1).collect { String line ->
-                            String cleanedLine = line.replaceFirst("^[ \t]*\\*", "")
-                            cleanedLine.trim().isEmpty() ? "" : "//" + cleanedLine
-                        }.join("\n")
-                        shader = shader.substring(0, commentStart) + lineComment + afterComment
-                    }
-
-                    if (!shader.contains("// AMD's Vulkan example")) {
-                        throw new GradleException("RenderScale EASU comment compatibility patch is incomplete: " + item.name)
-                    }
-                    bytes = shader.getBytes(StandardCharsets.UTF_8)
-                    patchedShaderPaths.add(item.name)
-                    easuCommentPatched = true
-                }
-
-                // Remove apostrophes from shader comments only. An apostrophe in GLSL code must fail the build.
-                if (item.name.startsWith("assets/renderscale/shaders/") && item.name ==~ /.*\.(glsl|fsh|vsh)$/) {
-                    String source = new String(bytes, StandardCharsets.UTF_8)
-                    StringBuilder cleaned = new StringBuilder(source.length())
-                    int lexicalState = 0 // 0 = code, 1 = // comment, 2 = /* */ comment
-                    for (int i = 0; i < source.length(); i++) {
-                        int current = (int) source.charAt(i)
-                        int next = i + 1 < source.length() ? (int) source.charAt(i + 1) : -1
-                        if (lexicalState == 0) {
-                            if (current == 47 && next == 47) {
-                                cleaned.append("//")
-                                i++
-                                lexicalState = 1
-                                continue
-                            }
-                            if (current == 47 && next == 42) {
-                                cleaned.append("/*")
-                                i++
-                                lexicalState = 2
-                                continue
-                            }
-                            if (current == 39) {
-                                throw new GradleException("Apostrophe outside a comment in RenderScale shader " + item.name)
-                            }
-                            cleaned.append((char) current)
-                        } else if (lexicalState == 1) {
-                            if (current == 39) continue
-                            cleaned.append((char) current)
-                            if (current == 10 || current == 13) lexicalState = 0
-                        } else {
-                            if (current == 42 && next == 47) {
-                                cleaned.append("*/")
-                                i++
-                                lexicalState = 0
-                                continue
-                            }
-                            if (current == 39) continue
-                            cleaned.append((char) current)
-                        }
-                    }
-                    if (lexicalState == 2) {
-                        throw new GradleException("Unterminated block comment in RenderScale shader " + item.name)
-                    }
-                    String sanitizedShader = cleaned.toString()
-                    if (sanitizedShader != source) {
-                        bytes = sanitizedShader.getBytes(StandardCharsets.UTF_8)
-                        patchedShaderPaths.add(item.name)
-                    }
-                }
-
-                if (item.name == fsrHeaderPath) {
-                    String source = new String(bytes, StandardCharsets.UTF_8)
-                    String easuTitle = "FSR - [EASU] EDGE ADAPTIVE SPATIAL UPSAMPLING"
-                    String packed16Title = "PACKED 16-BIT VERSION"
-                    String rcasTitle = "FSR - [RCAS] ROBUST CONTRAST ADAPTIVE SHARPENING"
-                    String rcas16Title = "NON-PACKED 16-BIT VERSION"
-
-                    int easuTitleIndex = source.indexOf(easuTitle)
-                    int packed16Index = source.indexOf(packed16Title)
-                    int rcasTitleIndex = source.indexOf(rcasTitle)
-                    int rcas16Index = rcasTitleIndex < 0 ? -1 : source.indexOf(rcas16Title, rcasTitleIndex)
-                    if (easuTitleIndex < 0 || packed16Index < 0 || packed16Index < easuTitleIndex
-                            || rcasTitleIndex < 0 || rcas16Index < 0) {
-                        throw new GradleException("Could not locate 32-bit FSR section boundaries in " + item.name)
-                    }
-
-                    int easuCut = source.lastIndexOf("\n", packed16Index)
-                    if (easuCut < 0) throw new GradleException("Invalid EASU section boundary in " + item.name)
-                    String easuOnlyHeader = source.substring(0, easuCut + 1)
-                    if (!easuOnlyHeader.contains("FsrEasuF(") || easuOnlyHeader.contains("FsrRcasF(")) {
-                        throw new GradleException("EASU-only FSR include contains unexpected code")
-                    }
-                    easuOnlyHeaderBytes = easuOnlyHeader.getBytes(StandardCharsets.UTF_8)
-
-                    int commonPrefixEnd = source.lastIndexOf("\n", easuTitleIndex) + 1
-                    int rcasStart = source.lastIndexOf("\n", rcasTitleIndex) + 1
-                    int rcasCut = source.lastIndexOf("\n", rcas16Index)
-                    if (commonPrefixEnd <= 0 || rcasStart <= 0 || rcasCut < rcasStart) {
-                        throw new GradleException("Invalid RCAS section boundary in " + item.name)
-                    }
-                    String rcasOnlyHeader = source.substring(0, commonPrefixEnd) + "\n" +
-                        source.substring(rcasStart, rcasCut + 1)
-                    if (!rcasOnlyHeader.contains("FsrRcasCon(") || !rcasOnlyHeader.contains("FsrRcasF(")) {
-                        throw new GradleException("RCAS-only FSR include is incomplete")
-                    }
-                    rcasOnlyHeaderBytes = rcasOnlyHeader.getBytes(StandardCharsets.UTF_8)
-                }
-
-                ZipEntry outputEntry = new ZipEntry(item.name)
-                if (item.time >= 0) outputEntry.time = item.time
-                if (item.comment != null) outputEntry.comment = item.comment
-                patchedNestedZip.putNextEntry(outputEntry)
-                if (!item.isDirectory()) patchedNestedZip.write(bytes)
-                patchedNestedZip.closeEntry()
-                renderScaleZip.closeEntry()
-            }
-
-            if (!easuPipelinePatched || !rcasPipelinePatched
-                    || easuOnlyHeaderBytes == null || rcasOnlyHeaderBytes == null) {
-                throw new GradleException("Could not create both pass-specific RenderScale FSR shader includes")
-            }
-            ZipEntry easuHeaderEntry = new ZipEntry(easuOnlyHeaderPath)
-            easuHeaderEntry.time = System.currentTimeMillis()
-            patchedNestedZip.putNextEntry(easuHeaderEntry)
-            patchedNestedZip.write(easuOnlyHeaderBytes)
-            patchedNestedZip.closeEntry()
-            patchedShaderPaths.add(easuOnlyHeaderPath)
-
-            ZipEntry rcasHeaderEntry = new ZipEntry(rcasOnlyHeaderPath)
-            rcasHeaderEntry.time = System.currentTimeMillis()
-            patchedNestedZip.putNextEntry(rcasHeaderEntry)
-            patchedNestedZip.write(rcasOnlyHeaderBytes)
-            patchedNestedZip.closeEntry()
-            patchedShaderPaths.add(rcasOnlyHeaderPath)
-        } finally {
-            renderScaleZip.close()
-            patchedNestedZip.close()
-        }
-
-        if (!patchedShaderPaths.contains(shaderPath) || !easuCommentPatched
-                || !patchedShaderPaths.contains(easuShaderPath)
-                || !patchedShaderPaths.contains(rcasShaderPath)
-                || !patchedShaderPaths.contains(easuOnlyHeaderPath)
-                || !patchedShaderPaths.contains(rcasOnlyHeaderPath)) {
-            throw new GradleException("Could not patch all required RenderScale FSR shader resources: " + patchedShaderPaths)
-        }
-
-        byte[] patchedRenderScaleBytes = patchedNestedBuffer.toByteArray()
-        List<Map> outerEntries = []
-        outerZip = new ZipFile(bundleJar)
-        try {
-            def entries = outerZip.entries()
-            while (entries.hasMoreElements()) {
-                def entry = entries.nextElement()
-                byte[] bytes = outerZip.getInputStream(entry).withCloseable { it.readAllBytes() }
-                if (entry.name == renderScalePath) bytes = patchedRenderScaleBytes
-                outerEntries.add([
-                    name: entry.name,
-                    time: entry.time,
-                    comment: entry.comment,
-                    directory: entry.isDirectory(),
-                    bytes: bytes
-                ])
-            }
-        } finally {
-            outerZip.close()
-        }
-
-        File temporaryJar = new File(bundleJar.parentFile, bundleJar.name + ".patched")
-        ZipOutputStream outputZip = new ZipOutputStream(new FileOutputStream(temporaryJar))
-        try {
-            for (def entry in outerEntries) {
-                ZipEntry outputEntry = new ZipEntry(entry.name as String)
-                if ((entry.time as long) >= 0) outputEntry.time = entry.time as long
-                if (entry.comment != null) outputEntry.comment = entry.comment as String
-                outputZip.putNextEntry(outputEntry)
-                if (!(entry.directory as boolean)) outputZip.write(entry.bytes as byte[])
-                outputZip.closeEntry()
-            }
-        } finally {
-            outputZip.close()
-        }
-
-        Files.move(temporaryJar.toPath(), bundleJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        logger.lifecycle("Patched RenderScale FSR shader sources in ${bundleJar.name} for VulkanMod's GLSL converter.")
-    }
-}
-
-tasks.named("build") {
-    finalizedBy(tasks.named("patchBundledRenderScaleShader"))
 }
