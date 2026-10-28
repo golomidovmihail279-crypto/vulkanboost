@@ -223,6 +223,12 @@ def check_jar(path):
                     findings.append(("ERROR", pipeline_path, 0, "pipeline does not import its mode-specific FSR header", ""))
                 if "#moj_import <renderscale:ffx_fsr1.glsl>" in pipeline_text:
                     findings.append(("ERROR", pipeline_path, 0, "pipeline still imports the shared FSR header", ""))
+                if pipeline_path.endswith("/rcas.fsh") and "VULKANBOOST_EASU_ONLY_TEST" in pipeline_text:
+                    rcas_code = code_only(pipeline_text)
+                    if "texture(InSampler, texCoord)" not in rcas_code:
+                        findings.append(("ERROR", pipeline_path, 0, "EASU-only probe must copy the EASU result through", ""))
+                    if "FsrRcasF(" in rcas_code:
+                        findings.append(("ERROR", pipeline_path, 0, "EASU-only probe must not execute RCAS", ""))
                 if header_path in shader_names:
                     header_text = render_scale.read(header_path).decode("utf-8")
                     header_code = code_only(header_text)
