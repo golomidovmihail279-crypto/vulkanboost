@@ -13,13 +13,23 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Protects the 1.21.11 + VulkanMod combination from the experimental RenderScale
- * FSR path, which reached its draw calls but produced a black world in runtime tests.
+ * Disables the experimental FSR branch before RenderScale runs because this
+ * Minecraft 1.21.11 + VulkanMod combination reached its draw calls but output
+ * a black world. The original diagnostics remain available for future testing.
  */
 @Mixin(targets = "dev.zelo.renderscale.RenderScale")
 public abstract class RenderScaleDiagnosticsMixin {
     @Unique
     private static final Logger VULKANBOOST$LOGGER = LogUtils.getLogger();
+
+    @Unique
+    private static boolean vulkanboost$loggedFsrEntry;
+
+    @Unique
+    private static boolean vulkanboost$loggedEasuDraw;
+
+    @Unique
+    private static boolean vulkanboost$loggedRcasDraw;
 
     @Unique
     private static boolean vulkanboost$loggedSafeFallback;
@@ -39,6 +49,54 @@ public abstract class RenderScaleDiagnosticsMixin {
             VULKANBOOST$LOGGER.warn(
                     "[VulkanBoost] Disabled RenderScale FSR: its draw calls produced a black world on Minecraft 1.21.11 + VulkanMod. Falling back to RenderScale's normal blit at scale {}.",
                     config.getScale());
+        }
+    }
+
+    @Inject(method = "blitAndBlendToTexture", at = @At("HEAD"), require = 1)
+    private void vulkanboost$logFsrEntry(
+            RenderTarget input, RenderTarget output, FilterMode filter, CallbackInfo ci) {
+        if (!RenderScale.getConfig().fsr || vulkanboost$loggedFsrEntry) {
+            return;
+        }
+
+        vulkanboost$loggedFsrEntry = true;
+        VULKANBOOST$LOGGER.info(
+                "[VulkanBoost FSR diagnostic] Entered FSR branch: input={}x{}, output={}x{}, scale={}, filter={}",
+                input.width, input.height, output.width, output.height,
+                RenderScale.getConfig().getScale(), filter);
+    }
+
+    @Inject(
+            method = "blitAndBlendToTexture",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(II)V",
+                    ordinal = 0,
+                    shift = At.Shift.AFTER),
+            require = 1)
+    private void vulkanboost$logEasuDraw(
+            RenderTarget input, RenderTarget output, FilterMode filter, CallbackInfo ci) {
+        if (RenderScale.getConfig().fsr && !vulkanboost$loggedEasuDraw) {
+            vulkanboost$loggedEasuDraw = true;
+            VULKANBOOST$LOGGER.info(
+                    "[VulkanBoost FSR diagnostic] EASU draw command issued.");
+        }
+    }
+
+    @Inject(
+            method = "blitAndBlendToTexture",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(II)V",
+                    ordinal = 1,
+                    shift = At.Shift.AFTER),
+            require = 1)
+    private void vulkanboost$logRcasDraw(
+            RenderTarget input, RenderTarget output, FilterMode filter, CallbackInfo ci) {
+        if (RenderScale.getConfig().fsr && !vulkanboost$loggedRcasDraw) {
+            vulkanboost$loggedRcasDraw = true;
+            VULKANBOOST$LOGGER.info(
+                    "[VulkanBoost FSR diagnostic] RCAS draw command issued.");
         }
     }
 }
