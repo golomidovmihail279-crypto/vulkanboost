@@ -12,8 +12,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Adds a safe render-scale switch to VulkanMod's Graphics options.
- * FSR stays disabled until the 1.21.11 + VulkanMod output path is verified.
+ * Adds an explicitly experimental EASU-only test switch to VulkanMod's Graphics options.
+ * This development build bypasses RCAS so the first FSR pass can be inspected alone.
  */
 @Mixin(targets = "net.vulkanmod.config.option.Options")
 public abstract class VulkanModOptionsMixin {
@@ -46,15 +46,11 @@ public abstract class VulkanModOptionsMixin {
                 enabled -> {
                     RenderScaleConfig config = RenderScale.getConfig();
                     config.scale = enabled ? VULKANBOOST_IMAGE_SCALE : 1.0F;
-                    // FSR currently produces a black world on this renderer combination.
-                    // Keep the 77% performance scale but use RenderScale's normal linear blit.
-                    config.fsr = false;
+                    FsrEasuTestMode.enabled = enabled;
+                    config.fsr = enabled;
                     RenderScale.CONFIG.save();
                 },
-                () -> {
-                    RenderScaleConfig config = RenderScale.getConfig();
-                    return config.getScale() < 0.999F;
-                }
+                () -> FsrEasuTestMode.enabled
         ).setTooltip(enabled -> Component.translatable(
                 "options.vulkanboost.image_enhancement.tooltip"));
     }
