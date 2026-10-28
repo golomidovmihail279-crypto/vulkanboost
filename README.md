@@ -26,7 +26,7 @@ This branch establishes a clean foundation for research into native-resolution t
 |---|---|---|
 | [Fabric API](https://modrinth.com/mod/fabric-api) | 0.140.2+1.21.11 | Fabric compatibility APIs |
 | [VulkanMod](https://modrinth.com/mod/vulkanmod) | 0.6.8+1.21.11 | Vulkan rendering backend |
-| [Lithium](https://modrinth.com/mod/lithium) | 0.21.4 | Game logic and tick optimization |
+| [Lithium](https://modrinth.com/mod/lithium) | 0.21.4+mc1.21.11 | Game logic and tick optimization |
 | [FerriteCore](https://modrinth.com/mod/ferrite-core) | 8.2.0-fabric | Memory optimization |
 | [Alternate Current](https://modrinth.com/mod/alternate-current) | 1.9.0 | Redstone calculations |
 | [BadOptimizations](https://modrinth.com/mod/badoptimizations) | 2.4.1 | General micro-optimizations |
@@ -40,7 +40,7 @@ This branch establishes a clean foundation for research into native-resolution t
 | [Dynamic FPS](https://modrinth.com/mod/dynamic-fps) | 3.11.4 | Reduces background resource use |
 | [FastQuit](https://modrinth.com/mod/fastquit) | 3.1.3+mc1.21.11 | Lets saves finish after returning to menu |
 | [Smart Particles](https://modrinth.com/mod/smart-particles) | 1.11.10 | Particle rendering/limits |
-| [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153+fabric | Shared configuration library |
+| [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153 | Shared configuration library |
 | [BetterHurtCam](https://github.com/uku3lig/betterhurtcam/tree/1.21.11) | 1.12.0+mc1.21.11 | Damage-camera effects |
 | [Ukulib](https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11) | 1.10.2+1.21.11 | BetterHurtCam dependency |
 
