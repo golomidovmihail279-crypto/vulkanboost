@@ -7,9 +7,9 @@ This branch establishes a clean foundation for research into native-resolution t
 ## Current state
 
 - The one-JAR bundle retains 19 pinned top-level mod/library components.
-- RenderScale, its FSR shader-patching task, experimental FSR settings, diagnostic mixins, and FSR-specific checks have been removed from this branch.
+- Custom rendering hooks and resolution-scaling integration are not part of this branch.
 - No rendering option is advertised as working when no implementation exists.
-- The published `v0.5` release and `main` branch are unchanged by this development branch.
+- Historical published releases remain separately versioned; this source branch is the clean development base.
 - Temporal reconstruction is a research target, not yet an implemented or validated feature.
 
 ## Platform
@@ -77,4 +77,4 @@ python3 scripts/check_bundle.py build/libs/vulkanboost-0.5.jar
 python3 -m unittest discover -s scripts -p "test_*.py"
 ```
 
-CI verifies the bundle metadata, nested JAR integrity, pinned core components, and absence of the removed RenderScale/FSR resources and runtime hooks. It does not claim that a temporal reconstruction implementation exists or that graphics quality has passed an in-game test.
+CI verifies bundle metadata, nested JAR integrity, pinned core components, and the absence of unexpected project-owned rendering hooks. It does not claim that temporal reconstruction is implemented or that graphics quality has passed an in-game test.
