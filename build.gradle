@@ -28,9 +28,6 @@ dependencies {
     mappings loom.officialMojangMappings()
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
 
-    // Compile against Fabric API without embedding a second top-level copy.
-    modCompileOnly("net.fabricmc.fabric-api:fabric-api:0.140.2+1.21.11")
-
     // Core rendering and compatibility dependencies.
     include(modImplementation("maven.modrinth:P7dR8mSH:gB6TkYEJ")) // Fabric API 0.140.2+1.21.11
     include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
@@ -71,7 +68,6 @@ java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(21)
     }
-    withSourcesJar()
 }
 
 tasks.withType(JavaCompile).configureEach {
