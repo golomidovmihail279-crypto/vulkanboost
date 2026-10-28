@@ -160,6 +160,7 @@ jobs:
               allowed_classes = {
                   "dev/vulkanboost/mixin/VulkanModOptionsMixin.class",
                   "dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.class",
+                  "dev/vulkanboost/mixin/FsrEasuTestMode.class",
               }
               root_classes = {
                   path for path in archive.namelist()
@@ -191,6 +192,7 @@ jobs:
                   allowed_sources = {
                       "src/main/java/dev/vulkanboost/mixin/VulkanModOptionsMixin.java",
                       "src/main/java/dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.java",
+                      "src/main/java/dev/vulkanboost/mixin/FsrEasuTestMode.java",
                   }
                   if java_sources != allowed_sources:
                       raise SystemExit(f"Unexpected custom Java runtime sources: {sorted(java_sources)}")
@@ -231,7 +233,7 @@ jobs:
 
           print(
               "Validated 20 nested components; BetterHurtCam and Ukulib match their pinned upstream versions; "
-              "the root runtime code includes the VulkanMod option-page mixin and one-shot FSR render-pass diagnostics."
+              "the root runtime code includes the VulkanMod option-page mixin, the temporary EASU test state, and one-shot FSR render-pass diagnostics."
           )
 
       - name: Check RenderScale shaders in final JAR
@@ -249,7 +251,7 @@ jobs:
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:
-          name: vulkanboost-minecraft-1.21.11
+          name: ${{ github.event_name == 'pull_request' && github.head_ref == 'feature/fsr-easu-only-test-051' && 'vulkanboost-easu-only-test-0.5.1-dev' || 'vulkanboost-minecraft-1.21.11' }}
           path: |
             build/libs/vulkanboost-*.jar
             !build/libs/*-dev.jar
