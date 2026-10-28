@@ -4,6 +4,7 @@ import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.logging.LogUtils;
 import dev.zelo.renderscale.RenderScale;
+import dev.zelo.renderscale.config.RenderScaleConfig;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
@@ -12,10 +13,9 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Emits one diagnostic per client session to show whether RenderScale enters
- * its FSR branch and reaches the EASU and RCAS draw calls.
- *
- * This observes the upstream RenderScale implementation without modifying its JAR.
+ * Disables the experimental FSR branch before RenderScale runs because this
+ * Minecraft 1.21.11 + VulkanMod combination reached its draw calls but output
+ * a black world. The original diagnostics remain available for future testing.
  */
 @Mixin(targets = "dev.zelo.renderscale.RenderScale")
 public abstract class RenderScaleDiagnosticsMixin {
@@ -30,6 +30,27 @@ public abstract class RenderScaleDiagnosticsMixin {
 
     @Unique
     private static boolean vulkanboost$loggedRcasDraw;
+
+    @Unique
+    private static boolean vulkanboost$loggedSafeFallback;
+
+    @Inject(method = "blitAndBlendToTexture", at = @At("HEAD"), require = 1)
+    private void vulkanboost$disableBlackFsrPath(
+            RenderTarget input, RenderTarget output, FilterMode filter, CallbackInfo ci) {
+        RenderScaleConfig config = RenderScale.getConfig();
+        if (!config.fsr) {
+            return;
+        }
+
+        config.fsr = false;
+        RenderScale.CONFIG.save();
+        if (!vulkanboost$loggedSafeFallback) {
+            vulkanboost$loggedSafeFallback = true;
+            VULKANBOOST$LOGGER.warn(
+                    "[VulkanBoost] Disabled RenderScale FSR: its draw calls produced a black world on Minecraft 1.21.11 + VulkanMod. Falling back to RenderScale's normal blit at scale {}.",
+                    config.getScale());
+        }
+    }
 
     @Inject(method = "blitAndBlendToTexture", at = @At("HEAD"), require = 1)
     private void vulkanboost$logFsrEntry(

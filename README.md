@@ -2,7 +2,7 @@
 
 **A single-JAR experimental performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
 
-This release contains 20 nested mod/library JARs, including the upstream **BetterHurtCam 1.12.0**, its required **Ukulib 1.10.2** dependency, and **RenderScale 1.4.0-alpha.1**. It adds a **VulkanBoost** page to VulkanMod's settings interface with one **Image Enhancement** toggle. BetterHurtCam and Ukulib remain unchanged upstream nested JARs. At packaging time, VulkanBoost applies a narrow compatibility patch to RenderScale's FSR shader source: unsupported bitwise-NOT expressions are rewritten as equivalent XOR expressions for VulkanMod's GLSL converter; RenderScale's Java classes and metadata remain upstream.
+This experimental build contains 20 nested mod/library JARs, including BetterHurtCam 1.12.0, Ukulib 1.10.2, and RenderScale 1.4.0-alpha.1. It adds a VulkanBoost Graphics option that renders the world at 77% internal resolution, then uses RenderScale's normal linear blit. FSR is temporarily disabled because runtime testing on Minecraft 1.21.11 + VulkanMod 0.6.8 showed a black world after the EASU and RCAS draw calls.
 
 > **Important:** CI validates packaging and Fabric metadata only. This deliberately aggressive combination has not been tested in-game as a whole. C2ME, Bura and Fast Noise touch overlapping chunk/rendering paths; be ready to disable the experimental additions if you see crashes, missing chunks, flicker, or worse frame pacing.
 
@@ -43,7 +43,7 @@ PerceptiFrame and Afterburner: Optimized remain tracked as candidates below, but
 
 ## Upscaling (experimental)
 
-VulkanBoost 0.5 bundles the upstream [RenderScale 1.4.0-alpha.1 build for Minecraft 1.21.11](https://modrinth.com/mod/renderscale/version/1.4.0-alpha.1-fabric%2B1.21.11) and adds a **VulkanBoost** page with an **Image Enhancement** switch to VulkanMod's settings interface. The switch is added to the option-page list consumed by the pinned VulkanMod build; it does not try to insert an option into vanilla `VideoSettingsScreen`, which VulkanMod replaces in its normal settings flow. ON sets the world render scale to **77%** and enables **FSR 1 spatial reconstruction**; OFF restores 100% scale and turns FSR 1 off. The HUD and menus remain at native resolution. FSR 1 is GPU-agnostic, so it is not limited to Radeon GPUs; RTX cards are eligible in principle. However, RenderScale's support on Minecraft 1.21.11 is experimental and compatibility with this exact VulkanMod bundle is **not confirmed in-game**. This is not DLSS, temporal FSR 2/3, or frame generation.
+VulkanBoost includes upstream [RenderScale 1.4.0-alpha.1 for Minecraft 1.21.11](https://modrinth.com/mod/renderscale/version/1.4.0-alpha.1-fabric%2B1.21.11) and adds a **Reduced render scale (77%)** switch to VulkanMod's Graphics settings. ON renders the world internally at 77% and uses RenderScale's normal linear blit; OFF restores 100% scale. The HUD and menus remain at native resolution. FSR is temporarily disabled because the tested Minecraft 1.21.11 + VulkanMod 0.6.8 combination produced a black world even though both FSR draw commands were issued. The toggle is not advertised as FSR until a later build has passed actual in-game output validation.
 
 For troubleshooting, VulkanBoost writes a one-time diagnostic to `latest.log` when FSR is entered, then after the EASU and RCAS draw commands are issued. Search for `[VulkanBoost FSR diagnostic]`. Seeing all three messages confirms that execution reached both FSR pass draw calls; it does not by itself prove the GPU produced visually correct output. At packaging time, VulkanBoost applies a narrow resource-only patch to the nested RenderScale JAR: the unary bitwise-NOT operator (`~`) in `assets/renderscale/shaders/include/ffx_a.glsl` is rewritten to equivalent XOR expressions because this VulkanMod GLSL converter rejects `~`. RenderScale's Java classes and Fabric metadata are unchanged.
 
@@ -73,7 +73,7 @@ Version 0.4.1 removed Optis/Osmium after a reproducible startup crash on Minecra
 - Automatic render-distance adjustment is intentionally excluded; VulkanBoost leaves the configured view distance alone.
 - Dynamic FPS and FastQuit are convenience/background/save optimizers, not guaranteed active-game FPS boosters.
 - PerceptiFrame is a rendering-detail candidate and Afterburner: Optimized modifies chunk drawing/culling. Both need exact build coordinates and separate VulkanMod runtime testing before bundling.
-- The VulkanBoost settings page uses RenderScale 1.4.0-alpha.1 for FSR 1 spatial upscaling at 77% internal scale. Compatibility with VulkanMod on Minecraft 1.21.11 needs in-game confirmation. DLSS/DLAA, temporal FSR 2+, and frame generation are **not** included in 0.5.
+- The VulkanBoost settings page currently uses RenderScale 1.4.0-alpha.1 for linear scaling at 77% internal resolution. The FSR path is disabled until its black-output issue is solved and validated in-game. DLSS/DLAA, temporal FSR 2+, and frame generation are **not** included.
 
 ## License notes
 

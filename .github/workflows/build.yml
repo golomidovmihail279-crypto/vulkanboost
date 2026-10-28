@@ -80,7 +80,7 @@ jobs:
                   if mod_id == "renderscale":
                       shader_path = "assets/renderscale/shaders/include/ffx_a.glsl"
                       # Find the EASU helper by content; its packaged path can differ by artifact.
-                      easu_comment_marker = "// AMD's Vulkan example, which declares separate texture and sampler objects."
+                      easu_comment_marker = "// AMDs Vulkan example, which declares separate texture and sampler objects."
                       with zipfile.ZipFile(io.BytesIO(child_bytes)) as render_scale_archive:
                           shader = render_scale_archive.read(shader_path).decode("utf-8")
                           easu_shader = None
@@ -233,6 +233,18 @@ jobs:
               "Validated 20 nested components; BetterHurtCam and Ukulib match their pinned upstream versions; "
               "the root runtime code includes the VulkanMod option-page mixin and one-shot FSR render-pass diagnostics."
           )
+
+      - name: Check RenderScale shaders in final JAR
+        shell: bash
+        run: |
+          set -euo pipefail
+          mapfile -t candidates < <(find build/libs -maxdepth 1 -type f -name 'vulkanboost-*.jar' ! -name '*-dev.jar' ! -name '*-sources.jar' | sort)
+          if [[ "${#candidates[@]}" -ne 1 ]]; then
+            echo "Expected exactly one installable JAR, found: ${candidates[*]:-none}"
+            exit 1
+          fi
+          python3 scripts/check_renderscale_shaders.py "${candidates[0]}"
+          python3 -m unittest discover -s scripts -p "test_*.py"
 
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
