@@ -62,13 +62,13 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_legacy_renderscale_component_is_rejected(self):
+    def test_unexpected_component_is_rejected(self):
         ids = sorted(check_bundle.EXPECTED_COMPONENT_IDS)
-        ids[-1] = "renderscale"
+        ids[-1] = "unexpected-mod"
         path = make_bundle(ids)
         try:
             errors = check_bundle.check_bundle(path)
-            self.assertTrue(any("renderscale" in error.lower() for error in errors))
+            self.assertTrue(any("unexpected components present" in error for error in errors))
         finally:
             Path(path).unlink(missing_ok=True)
 
@@ -82,33 +82,22 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_fsr_shader_resource_is_rejected(self):
-        child = io.BytesIO()
-        with zipfile.ZipFile(child, "w") as archive:
-            archive.writestr(
-                "fabric.mod.json",
-                json.dumps({"schemaVersion": 1, "id": "custom-test", "version": "1", "jars": []}),
-            )
-            archive.writestr("assets/renderscale/shaders/core/easu.fsh", "void main() {}")
-        path = make_bundle(extra_path=("META-INF/jars/extra.jar", child.getvalue()))
+    def test_invalid_nested_archive_is_rejected(self):
+        path = make_bundle(extra_path=("META-INF/jars/extra.jar", b"not-a-zip"))
         try:
             errors = check_bundle.check_bundle(path)
-            self.assertTrue(any("legacy FSR/RenderScale resource" in error for error in errors))
+            self.assertTrue(any("invalid nested JAR/metadata" in error for error in errors))
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_legacy_shader_patch_code_is_rejected_from_source_tree(self):
-        import tempfile
-        from pathlib import Path
-
+    def test_source_tree_rejects_custom_runtime_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            (root / "build.gradle").write_text(
-                'tasks.register("patchBundledRenderScaleShader") {}\\n',
-                encoding="utf-8",
-            )
+            source = root / "src" / "main" / "java" / "example" / "CustomRenderer.java"
+            source.parent.mkdir(parents=True)
+            source.write_text("class CustomRenderer {}", encoding="utf-8")
             errors = check_bundle.check_source_tree(root)
-            self.assertTrue(any("patchBundledRenderScaleShader" in error for error in errors))
+            self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
 
 
 if __name__ == "__main__":
