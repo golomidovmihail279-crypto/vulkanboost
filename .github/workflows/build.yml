@@ -33,7 +33,7 @@ jobs:
       - name: Validate bundle and absence of legacy rendering code
         run: |
           set -euo pipefail
-          mapfile -t candidates < <(find build/libs -maxdepth 1 -type f -name 'vulkanboost-*.jar' ! -name '*-dev.jar' ! -name '*-sources.jar' | sort)
+          mapfile -t candidates < <(find build/libs -maxdepth 1 -type f -name 'vulkanboost-*.jar' ! -name '*-sources.jar' | sort)
           if [[ "${#candidates[@]}" -ne 1 ]]; then
             echo "Expected exactly one installable JAR, found: ${candidates[*]:-none}"
             exit 1
@@ -49,7 +49,6 @@ jobs:
           name: vulkanboost-minecraft-1.21.11
           path: |
             build/libs/vulkanboost-*.jar
-            !build/libs/*-dev.jar
             !build/libs/*-sources.jar
           if-no-files-found: error
           retention-days: 14
