@@ -354,8 +354,8 @@ tasks.register("patchBundledRenderScaleShader") {
                     if (commonPrefixEnd <= 0 || rcasStart <= 0 || rcasCut < rcasStart) {
                         throw new GradleException("Invalid RCAS section boundary in " + item.name)
                     }
-                    String rcasOnlyHeader = source.substring(0, commonPrefixEnd) + "\n"
-                        + source.substring(rcasStart, rcasCut + 1)
+                    String rcasOnlyHeader = source.substring(0, commonPrefixEnd) + "\n" +
+                        source.substring(rcasStart, rcasCut + 1)
                     if (!rcasOnlyHeader.contains("FsrRcasCon(") || !rcasOnlyHeader.contains("FsrRcasF(")) {
                         throw new GradleException("RCAS-only FSR include is incomplete")
                     }
