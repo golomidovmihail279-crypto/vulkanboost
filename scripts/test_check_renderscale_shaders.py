@@ -186,7 +186,7 @@ class CheckerTests(unittest.TestCase):
         )
         path = build_jar(
             "// ok\\nuint a = mask;\\n",
-            "// AMDs Vulkan example, which declares separate texture and sampler objects.\\n"
+            "// This header contains the EASU function without the shader marker.\\n"
             "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\\n",
             rcas_shader=(
                 "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\\n"
