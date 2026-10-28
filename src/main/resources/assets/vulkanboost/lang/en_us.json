@@ -1,4 +1,4 @@
 {
-  "options.vulkanboost.image_enhancement": "Image enhancement",
-  "options.vulkanboost.image_enhancement.tooltip": "Experimental FSR 1: renders the world at 77% scale and reconstructs it to the display size. Compatibility with VulkanMod on Minecraft 1.21.11 is not confirmed."
+  "options.vulkanboost.image_enhancement": "Reduced render scale (77%)",
+  "options.vulkanboost.image_enhancement.tooltip": "Safe fallback: renders the world at 77% resolution and uses RenderScale's normal linear upscale. FSR is temporarily disabled because it produced a black screen with Minecraft 1.21.11 + VulkanMod."
 }
