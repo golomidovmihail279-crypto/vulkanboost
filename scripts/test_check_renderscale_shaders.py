@@ -48,7 +48,7 @@ def proposed_patch(shader):
     return chk.sanitize_comment_apostrophes(converted)
 
 
-def build_jar(ffx_a, easu, extra_outer=None, extra_nested=None, rcas_shader=None):
+def build_jar(ffx_a, easu, extra_outer=None, extra_nested=None, rcas_shader=None, easu_shader=None):
     nested = io.BytesIO()
     with zipfile.ZipFile(nested, "w") as archive:
         archive.writestr("fabric.mod.json", json.dumps({"id": "renderscale"}))
@@ -56,7 +56,7 @@ def build_jar(ffx_a, easu, extra_outer=None, extra_nested=None, rcas_shader=None
         archive.writestr("assets/renderscale/shaders/include/fsr_easu.glsl", easu)
         archive.writestr(
             "assets/renderscale/shaders/core/easu.fsh",
-            "#moj_import <renderscale:ffx_fsr1_easu.glsl>\n"
+            easu_shader or "#moj_import <renderscale:ffx_fsr1_easu.glsl>\n"
         )
         archive.writestr(
             "assets/renderscale/shaders/core/rcas.fsh",
@@ -170,6 +170,31 @@ class CheckerTests(unittest.TestCase):
             "// AMDs Vulkan example, which declares separate texture and sampler objects.\n"
             "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\n",
             rcas_shader=probe,
+        )
+        self.assertEqual(errors(path), [])
+
+    def test_copy_baseline_bypasses_easu_algorithm_and_samples_input(self):
+        baseline = (
+            "#version 420\\n"
+            "#moj_import <renderscale:ffx_fsr1_easu.glsl>\\n"
+            "uniform sampler2D InSampler;\\n"
+            "in vec2 texCoord;\\n"
+            "out vec4 fragColor;\\n"
+            "// AMDs Vulkan example, which declares separate texture and sampler objects.\\n"
+            "// VULKANBOOST_COPY_BASELINE_TEST: EASU bypassed.\\n"
+            "void main() { fragColor = texture(InSampler, texCoord); }\\n"
+        )
+        path = build_jar(
+            "// ok\\nuint a = mask;\\n",
+            "// AMDs Vulkan example, which declares separate texture and sampler objects.\\n"
+            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\\n",
+            rcas_shader=(
+                "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\\n"
+                "// VULKANBOOST_EASU_ONLY_TEST\\n"
+                "uniform sampler2D InSampler; in vec2 texCoord; out vec4 fragColor;\\n"
+                "void main() { fragColor = texture(InSampler, texCoord); }\\n"
+            ),
+            easu_shader=baseline,
         )
         self.assertEqual(errors(path), [])
 
