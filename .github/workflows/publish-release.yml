@@ -83,7 +83,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release delete v0.5 --yes --cleanup-tag --repo "$GITHUB_REPOSITORY"
+          gh release delete v0.5 --yes --repo "$GITHUB_REPOSITORY" || true
+          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" || true
 
       - name: Create or point the v0.5 tag at the validated source commit
         if: steps.guard.outputs.publish == 'true'
@@ -94,12 +95,21 @@ jobs:
         run: |
           set -euo pipefail
           existing_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha 2>/dev/null || true)"
-          if [[ "$existing_sha" != "$BUILT_SHA" ]]; then
-            if [[ -n "$existing_sha" ]]; then
-              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" -f "sha=$BUILT_SHA" -F force=true
-            else
-              gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/v0.5" -f "sha=$BUILT_SHA"
+          if [[ "$existing_sha" == "$BUILT_SHA" ]]; then
+            echo "v0.5 already points to the validated build."
+          elif [[ -n "$existing_sha" ]]; then
+            if ! gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" -f "sha=$BUILT_SHA" -F force=true; then
+              echo "Tag disappeared during update; attempting to create it."
+              gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/v0.5" -f "sha=$BUILT_SHA" || {
+                actual_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha 2>/dev/null || true)"
+                [[ "$actual_sha" == "$BUILT_SHA" ]]
+              }
             fi
+          else
+            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/v0.5" -f "sha=$BUILT_SHA" || {
+              actual_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha 2>/dev/null || true)"
+              [[ "$actual_sha" == "$BUILT_SHA" ]]
+            }
           fi
 
       - name: Publish VulkanBoost 0.5 for Minecraft 1.21.11 as Latest
