@@ -30,212 +30,7 @@ jobs:
       - name: Build remapped mod JAR
         run: gradle --no-daemon clean build
 
-      - name: Validate one-JAR bundle, upstream BetterHurtCam, and image-enhancement option
-        shell: python
-        run: |
-          import glob
-          import io
-          import json
-          import zipfile
-          from pathlib import Path
-
-          EXPECTED_TOP_LEVEL_COUNT = 20
-          candidates = [
-              path for path in glob.glob("build/libs/vulkanboost-*.jar")
-              if not path.endswith("-dev.jar") and not path.endswith("-sources.jar")
-          ]
-          if len(candidates) != 1:
-              raise SystemExit(f"Expected exactly one installable JAR, found: {candidates}")
-
-          def inspect_nested(jar_bytes, label):
-              with zipfile.ZipFile(io.BytesIO(jar_bytes)) as archive:
-                  metadata = json.loads(archive.read("fabric.mod.json"))
-                  for item in metadata.get("jars", []):
-                      child_name = item["file"]
-                      inspect_nested(archive.read(child_name), f"{label}!/{child_name}")
-                  return metadata
-
-          jar_path = candidates[0]
-          with zipfile.ZipFile(jar_path) as archive:
-              metadata = json.loads(archive.read("fabric.mod.json"))
-              nested = metadata.get("jars", [])
-              if len(nested) != EXPECTED_TOP_LEVEL_COUNT:
-                  raise SystemExit(
-                      f"Expected {EXPECTED_TOP_LEVEL_COUNT} top-level mod/library JARs, found {len(nested)}"
-                  )
-
-              component_versions = {}
-              patched_render_scale_shader = False
-              for item in nested:
-                  child_bytes = archive.read(item["file"])
-                  child_meta = inspect_nested(child_bytes, f"{jar_path}!/{item['file']}")
-                  mod_id = child_meta.get("id")
-                  if not mod_id:
-                      raise SystemExit(f"Missing mod id in {item['file']}")
-                  if mod_id in component_versions:
-                      raise SystemExit(f"Duplicate top-level mod id: {mod_id}")
-                  component_versions[mod_id] = child_meta.get("version")
-                  print(f"Top-level component OK: {mod_id} {child_meta.get('version')}")
-
-                  if mod_id == "renderscale":
-                      shader_path = "assets/renderscale/shaders/include/ffx_a.glsl"
-                      # Find the EASU helper by content; its packaged path can differ by artifact.
-                      easu_comment_marker = "// AMDs Vulkan example, which declares separate texture and sampler objects."
-                      with zipfile.ZipFile(io.BytesIO(child_bytes)) as render_scale_archive:
-                          shader = render_scale_archive.read(shader_path).decode("utf-8")
-                          easu_shader = None
-                          for resource_path in render_scale_archive.namelist():
-                              if not resource_path.startswith("assets/renderscale/shaders/"):
-                                  continue
-                              if not resource_path.endswith((".glsl", ".fsh")):
-                                  continue
-                              candidate = render_scale_archive.read(resource_path).decode("utf-8")
-                              if easu_comment_marker in candidate:
-                                  easu_shader = candidate
-                                  break
-                      if easu_shader is None:
-                          raise SystemExit("Could not find the patched EASU shader comment in nested RenderScale resources.")
-                      required_shader_markers = (
-                          "AU1_(0xFFFFFFFF)^mask",
-                          "AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(31))",
-                          "AU1_(0xFFFFFFFF)^AShrSU1(x,AU1_(15))",
-                          "AW1_(0xFFFF)^AShrSW1(x,AW1_(15))",
-                          "AW2_(0xFFFF)^AShrSW2(x,AW2_(15))",
-                      )
-                      missing_shader_markers = [
-                          marker for marker in required_shader_markers if marker not in shader
-                      ]
-                      if missing_shader_markers:
-                          raise SystemExit(
-                              f"RenderScale FSR shader compatibility patch is incomplete: {missing_shader_markers}"
-                          )
-                      if "~mask" in shader or "~AShr" in shader:
-                          raise SystemExit("Unsupported bitwise-NOT expressions remain in RenderScale FSR shader.")
-                      if "/*" in easu_shader or "*/" in easu_shader:
-                          raise SystemExit("Unsupported block comment remains in RenderScale EASU shader.")
-                      if easu_comment_marker not in easu_shader:
-                          raise SystemExit("RenderScale EASU block-comment compatibility patch is incomplete.")
-                      patched_render_scale_shader = True
-                      print("RenderScale FSR shader compatibility patch OK.")
-                      print("RenderScale EASU block-comment compatibility patch OK.")
-
-              if not patched_render_scale_shader:
-                  raise SystemExit("Could not validate the nested RenderScale FSR shader.")
-
-              required_versions = {
-                  "betterhurtcam": "1.12.0+mc1.21.11",
-                  "ukulib": "1.10.2+1.21.11",
-              }
-              for mod_id, expected_version in required_versions.items():
-                  actual_version = component_versions.get(mod_id)
-                  if actual_version != expected_version:
-                      raise SystemExit(
-                          f"Expected upstream {mod_id} {expected_version}, found {actual_version}"
-                      )
-
-              render_scale_version = component_versions.get("renderscale")
-              if not render_scale_version or not str(render_scale_version).startswith("1.4.0-alpha.1"):
-                  raise SystemExit(
-                      f"Expected RenderScale 1.4.0-alpha.1 for Minecraft 1.21.11, found {render_scale_version}"
-                  )
-
-              root_depends = metadata.get("depends", {})
-              for required_dependency in ("betterhurtcam", "ukulib", "renderscale"):
-                  if required_dependency not in root_depends:
-                      raise SystemExit(f"Root metadata must declare {required_dependency}.")
-              if metadata.get("entrypoints"):
-                  raise SystemExit("VulkanBoost must not register a settings API unavailable in the pinned VulkanMod JAR.")
-              if metadata.get("mixins") != ["vulkanboost.mixins.json"]:
-                  raise SystemExit("Root metadata must register exactly the VulkanMod option-page mixin config.")
-              if "vulkanboost.mixins.json" not in archive.namelist():
-                  raise SystemExit("VulkanBoost mixin config is missing.")
-              mixin_config = json.loads(archive.read("vulkanboost.mixins.json"))
-              expected_mixins = {"VulkanModOptionsMixin", "RenderScaleDiagnosticsMixin"}
-              if mixin_config.get("package") != "dev.vulkanboost.mixin":
-                  raise SystemExit("Unexpected VulkanBoost mixin package.")
-              if set(mixin_config.get("client", [])) != expected_mixins:
-                  raise SystemExit(f"Unexpected client mixins: {mixin_config.get('client')}")
-              if mixin_config.get("mixins"):
-                  raise SystemExit("VulkanBoost option-page mixin must remain client-only.")
-              allowed_classes = {
-                  "dev/vulkanboost/mixin/VulkanModOptionsMixin.class",
-                  "dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.class",
-              }
-              root_classes = {
-                  path for path in archive.namelist()
-                  if path.startswith("dev/vulkanboost/") and path.endswith(".class")
-              }
-              if root_classes != allowed_classes:
-                  raise SystemExit(f"Unexpected root runtime classes: {sorted(root_classes)}")
-              allowed_assets = {
-                  "assets/vulkanboost/lang/en_us.json",
-                  "assets/vulkanboost/lang/ru_ru.json",
-              }
-              root_assets = {
-                  path for path in archive.namelist()
-                  if not path.endswith("/")
-                  and (path.startswith("assets/vulkanboost/") or path.startswith("assets/betterhurtcam/"))
-              }
-              if root_assets != allowed_assets:
-                  raise SystemExit(f"Unexpected root language/override assets: {sorted(root_assets)}")
-
-              if "fabric.mod.json" not in archive.namelist():
-                  raise SystemExit("Root Fabric metadata is missing.")
-
-              source_root = Path("src/main/java")
-              if source_root.exists():
-                  java_sources = {
-                      str(p.relative_to(Path("."))).replace("\\", "/")
-                      for p in source_root.rglob("*.java")
-                  }
-                  allowed_sources = {
-                      "src/main/java/dev/vulkanboost/mixin/VulkanModOptionsMixin.java",
-                      "src/main/java/dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.java",
-                  }
-                  if java_sources != allowed_sources:
-                      raise SystemExit(f"Unexpected custom Java runtime sources: {sorted(java_sources)}")
-
-              diagnostic_source = source_root / "dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.java"
-              diagnostic_text = diagnostic_source.read_text(encoding="utf-8")
-              for marker in (
-                  "Entered FSR branch:",
-                  "EASU draw command issued.",
-                  "RCAS draw command issued.",
-              ):
-                  if marker not in diagnostic_text:
-                      raise SystemExit(f"Missing FSR runtime diagnostic: {marker}")
-
-              expected_draw_target = 'target = "Lcom/mojang/blaze3d/systems/RenderPass;draw(II)V"'
-              if diagnostic_text.count(expected_draw_target) != 2:
-                  raise SystemExit("FSR diagnostics must target both Minecraft 1.21.11 RenderPass.draw(II) calls.")
-              if "RenderPass;draw(IIII)V" in diagnostic_text:
-                  raise SystemExit("Invalid RenderPass.draw descriptor found in FSR diagnostics.")
-
-              asset_root = Path("src/main/resources/assets")
-              if asset_root.exists():
-                  root_assets = {
-                      str(p.relative_to(Path("src/main/resources"))).replace("\\", "/")
-                      for p in asset_root.rglob("*") if p.is_file()
-                  }
-                  expected_assets = {
-                      "assets/vulkanboost/lang/en_us.json",
-                      "assets/vulkanboost/lang/ru_ru.json",
-                  }
-                  if root_assets != expected_assets:
-                      raise SystemExit(f"Unexpected root resource assets: {sorted(root_assets)}")
-
-              forbidden_ids = {"osmium", "dynamicrenderdistance", "architectury"}
-              present_forbidden = sorted(forbidden_ids.intersection(component_versions))
-              if present_forbidden:
-                  raise SystemExit(f"These components must stay out of VulkanBoost 0.5: {present_forbidden}")
-
-          print(
-              "Validated 20 nested components; BetterHurtCam and Ukulib match their pinned upstream versions; "
-              "the root runtime code includes the VulkanMod option-page mixin and one-shot FSR render-pass diagnostics."
-          )
-
-      - name: Check RenderScale shaders in final JAR
-        shell: bash
+      - name: Validate bundle and absence of legacy rendering code
         run: |
           set -euo pipefail
           mapfile -t candidates < <(find build/libs -maxdepth 1 -type f -name 'vulkanboost-*.jar' ! -name '*-dev.jar' ! -name '*-sources.jar' | sort)
@@ -243,8 +38,10 @@ jobs:
             echo "Expected exactly one installable JAR, found: ${candidates[*]:-none}"
             exit 1
           fi
-          python3 scripts/check_renderscale_shaders.py "${candidates[0]}"
-          python3 -m unittest discover -s scripts -p "test_*.py"
+          python3 scripts/check_bundle.py "${candidates[0]}"
+
+      - name: Run checker unit tests
+        run: python3 -m unittest discover -s scripts -p "test_*.py"
 
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
@@ -256,7 +53,6 @@ jobs:
             !build/libs/*-sources.jar
           if-no-files-found: error
           retention-days: 14
-
 
   publish-v0-5:
     if: github.event_name == 'push' && contains(github.event.head_commit.message, '[update-v0.5]')
