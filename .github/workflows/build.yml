@@ -60,6 +60,9 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Check out source for release notes
+        uses: actions/checkout@v4
+
       - name: Download validated installable JAR
         uses: actions/download-artifact@v4
         with:
@@ -73,3 +76,4 @@ jobs:
           cp artifact/vulkanboost-0.5.jar VulkanBoost-0.5-for-1.21.11.jar
           sha256sum VulkanBoost-0.5-for-1.21.11.jar > VulkanBoost-0.5-for-1.21.11.jar.sha256
           gh release upload v0.5 VulkanBoost-0.5-for-1.21.11.jar VulkanBoost-0.5-for-1.21.11.jar.sha256 --clobber --repo "$GITHUB_REPOSITORY"
+          gh release edit v0.5 --title "VulkanBoost 0.5 for Minecraft 1.21.11" --notes-file .github/RELEASE_NOTES.md --repo "$GITHUB_REPOSITORY"
