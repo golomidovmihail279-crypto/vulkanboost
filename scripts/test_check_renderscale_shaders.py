@@ -54,6 +54,22 @@ def build_jar(ffx_a, easu, extra_outer=None, extra_nested=None):
         archive.writestr("fabric.mod.json", json.dumps({"id": "renderscale"}))
         archive.writestr("assets/renderscale/shaders/include/ffx_a.glsl", ffx_a)
         archive.writestr("assets/renderscale/shaders/include/fsr_easu.glsl", easu)
+        archive.writestr(
+            "assets/renderscale/shaders/core/easu.fsh",
+            "#moj_import <renderscale:ffx_fsr1_easu.glsl>\n"
+        )
+        archive.writestr(
+            "assets/renderscale/shaders/core/rcas.fsh",
+            "#moj_import <renderscale:ffx_fsr1_rcas.glsl>\n"
+        )
+        archive.writestr(
+            "assets/renderscale/shaders/include/ffx_fsr1_easu.glsl",
+            "void FsrEasuF() {}\n"
+        )
+        archive.writestr(
+            "assets/renderscale/shaders/include/ffx_fsr1_rcas.glsl",
+            "void FsrRcasCon() {}\nvoid FsrRcasF() {}\n"
+        )
         for path, content in (extra_nested or {}).items():
             archive.writestr(path, content)
     fd, path = tempfile.mkstemp(suffix=".jar")
@@ -123,6 +139,22 @@ class CheckerTests(unittest.TestCase):
         self.assertIn("// AMDs Vulkan example, which declares separate texture and sampler objects.", patched)
         self.assertNotIn("'", patched)
         self.assertFalse(any("apostrophe" in item[2] for item in chk.scan_glsl(patched)))
+
+    def test_mode_specific_headers_are_required_by_each_pipeline(self):
+        path = build_jar("// ok\nuint a = mask;\n", (
+            "// AMDs Vulkan example, which declares separate texture and sampler objects.\n"
+            "vec4 FsrEasuF(vec4 c) { return c * 0.5; }\n"
+        ))
+        self.assertEqual(errors(path), [])
+        with zipfile.ZipFile(path) as outer:
+            nested = io.BytesIO(outer.read("META-INF/jars/renderscale.jar"))
+            with zipfile.ZipFile(nested) as archive:
+                easu = archive.read("assets/renderscale/shaders/core/easu.fsh").decode()
+                rcas = archive.read("assets/renderscale/shaders/core/rcas.fsh").decode()
+                self.assertIn("ffx_fsr1_easu.glsl", easu)
+                self.assertIn("ffx_fsr1_rcas.glsl", rcas)
+                self.assertNotIn("ffx_fsr1.glsl>", easu)
+                self.assertNotIn("ffx_fsr1.glsl>", rcas)
 
     def test_apostrophe_in_code_is_not_silently_removed(self):
         with self.assertRaises(ValueError):
