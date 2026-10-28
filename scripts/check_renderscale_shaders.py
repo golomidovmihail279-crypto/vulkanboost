@@ -219,8 +219,18 @@ def check_jar(path):
             )
             for pipeline_path, header_path, expected_import, required_function, forbidden_function in pipeline_specs:
                 pipeline_text = render_scale.read(pipeline_path).decode("utf-8")
-                if expected_import not in pipeline_text:
+                copy_baseline_easu = (
+                    pipeline_path.endswith("/easu.fsh")
+                    and "VULKANBOOST_COPY_BASELINE_TEST" in pipeline_text
+                )
+                if expected_import not in pipeline_text and not copy_baseline_easu:
                     findings.append(("ERROR", pipeline_path, 0, "pipeline does not import its mode-specific FSR header", ""))
+                if copy_baseline_easu:
+                    baseline_code = code_only(pipeline_text)
+                    if "texture(InSampler, texCoord)" not in baseline_code:
+                        findings.append(("ERROR", pipeline_path, 0, "copy-baseline EASU pass must sample InSampler", ""))
+                    if "FsrEasuF(" in baseline_code:
+                        findings.append(("ERROR", pipeline_path, 0, "copy-baseline EASU pass must not execute EASU", ""))
                 if "#moj_import <renderscale:ffx_fsr1.glsl>" in pipeline_text:
                     findings.append(("ERROR", pipeline_path, 0, "pipeline still imports the shared FSR header", ""))
                 if pipeline_path.endswith("/rcas.fsh") and "VULKANBOOST_EASU_ONLY_TEST" in pipeline_text:
