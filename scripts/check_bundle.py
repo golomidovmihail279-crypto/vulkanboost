@@ -78,7 +78,7 @@ def check_source_tree(root: str | Path = ".") -> list[str]:
                 source_text = ""
             for marker in FORBIDDEN_SOURCE_MARKERS:
                 if marker in source_text:
-                    errors.append(f"{candidate.relative_to(root).as_posix()}: obsolete shader patch code remains")
+                    errors.append(f"{candidate.relative_to(root).as_posix()}: obsolete shader patch code marker remains: {marker}")
     metadata_path = root / "src" / "main" / "resources" / "fabric.mod.json"
     if metadata_path.is_file():
         try:
