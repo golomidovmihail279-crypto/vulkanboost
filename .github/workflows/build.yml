@@ -160,7 +160,7 @@ jobs:
               allowed_classes = {
                   "dev/vulkanboost/mixin/VulkanModOptionsMixin.class",
                   "dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.class",
-                  "dev/vulkanboost/mixin/FsrEasuTestMode.class",
+                  "dev/vulkanboost/config/FsrEasuTestMode.class",
               }
               root_classes = {
                   path for path in archive.namelist()
@@ -192,7 +192,7 @@ jobs:
                   allowed_sources = {
                       "src/main/java/dev/vulkanboost/mixin/VulkanModOptionsMixin.java",
                       "src/main/java/dev/vulkanboost/mixin/RenderScaleDiagnosticsMixin.java",
-                      "src/main/java/dev/vulkanboost/mixin/FsrEasuTestMode.java",
+                      "src/main/java/dev/vulkanboost/config/FsrEasuTestMode.java",
                   }
                   if java_sources != allowed_sources:
                       raise SystemExit(f"Unexpected custom Java runtime sources: {sorted(java_sources)}")
