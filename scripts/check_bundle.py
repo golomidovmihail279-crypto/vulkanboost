@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate the distributable VulkanBoost nested-JAR bundle without renderer-specific assumptions.
+"""Validate the distributable VulkanBoost bundle and its source tree.
 
 Usage:
     python3 scripts/check_bundle.py build/libs/vulkanboost-0.5.jar
@@ -54,6 +54,15 @@ FORBIDDEN_RESOURCE_MARKERS = (
     "ffx_fsr1_easu.glsl",
     "ffx_fsr1_rcas.glsl",
 )
+FORBIDDEN_SOURCE_MARKERS = (
+    "dev.zelo.renderscale",
+    "RenderScaleDiagnosticsMixin",
+    "FsrEasuTestMode",
+    "FsrEasuF(",
+    "FsrRcasF(",
+    "ffx_fsr1_",
+    "patchBundledRenderScaleShader",
+)
 
 
 def load_metadata(archive: zipfile.ZipFile, label: str) -> dict[str, Any]:
@@ -99,6 +108,34 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
                 inspect_nested_jar(nested.read(child_path), f"{label}!/{child_path}", errors, depth + 1)
     except (zipfile.BadZipFile, OSError) as exc:
         errors.append(f"{label}: invalid nested JAR: {exc}")
+
+
+def check_source_tree(root: str | Path = ".") -> list[str]:
+    """Reject old FSR/RenderScale runtime hooks in production source/build configuration."""
+    root = Path(root)
+    errors: list[str] = []
+    candidates = [root / "build.gradle"]
+    source_root = root / "src" / "main"
+    if source_root.exists():
+        candidates.extend(path for path in source_root.rglob("*") if path.is_file())
+
+    for path in candidates:
+        if not path.is_file():
+            continue
+        relative = path.relative_to(root).as_posix()
+        lowered_path = relative.lower()
+        if "renderscale" in lowered_path or "fsr" in lowered_path:
+            errors.append(f"legacy FSR/RenderScale source path remains: {relative}")
+            continue
+        try:
+            text = path.read_text(encoding="utf-8")
+        except (UnicodeDecodeError, OSError):
+            # Binary assets are allowed; metadata and source text files are checked below.
+            continue
+        for marker in FORBIDDEN_SOURCE_MARKERS:
+            if marker in text:
+                errors.append(f"{relative}: legacy FSR/RenderScale code marker remains: {marker}")
+    return errors
 
 
 def check_bundle(path: str | Path) -> list[str]:
@@ -228,16 +265,17 @@ def main() -> int:
         print(__doc__.strip(), file=sys.stderr)
         return 2
 
-    findings = check_bundle(sys.argv[1])
+    root = Path.cwd()
+    findings = check_source_tree(root) + check_bundle(sys.argv[1])
     for finding in findings:
         print("ERROR:", finding)
     if findings:
-        print(f"Bundle validation failed: {len(findings)} error(s).")
+        print(f"Validation failed: {len(findings)} error(s).")
         return 1
 
     print(
-        "Bundle validation passed: 19 unique top-level components, pinned core versions, "
-        "valid nested JAR metadata, and no legacy RenderScale/FSR runtime resources."
+        "Validation passed: 19 unique top-level components, pinned core versions, "
+        "valid nested JAR metadata, and no legacy RenderScale/FSR code or runtime resources."
     )
     return 0
 
