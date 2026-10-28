@@ -22,9 +22,8 @@ VulkanBoost bundles upstream mod JARs using Fabric Loader's nested-JAR mechanism
 | Smart Particles | 1.11.10 | MIT | https://modrinth.com/mod/smart-particles |
 | BetterHurtCam | 1.12.0+mc1.21.11 (unmodified upstream JAR) | MIT | https://github.com/uku3lig/betterhurtcam/tree/1.21.11 |
 | Ukulib | 1.10.2+1.21.11 (unmodified upstream JAR) | MPL-2.0 | https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11 |
-| Cloth Config API | 21.11.153+fabric | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
-| RenderScale | 1.4.0-alpha.1 for Minecraft 1.21.11 | MIT | https://modrinth.com/mod/renderscale |
+| Cloth Config API | 21.11.153 | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
 
-PerceptiFrame and Afterburner: Optimized are listed as future candidates but are not bundled in 0.4.2 because the guessed Maven coordinates did not resolve; pin their exact upstream releases before redistribution. RenderScale is included as the upstream MIT-licensed mod. Keep these notices and comply with each upstream project's license conditions.
+Temporal reconstruction research documents may link to external projects for study. Those projects are not dependencies included in this bundle, and their source code is not copied into this branch. Review each upstream license before adopting code or assets.
 
-VulkanBoost does not redistribute StackCluster Optimizer, OptimizeMod, or NoRender+ because their listings state ARR (All Rights Reserved). OptiLeaves has been held back because public license listings conflict; do not embed or redistribute it until the license and permission are clarified. Beryl remains excluded: it is ARR, and should not be repackaged without explicit permission.
+PerceptiFrame and Afterburner: Optimized are future candidates but are not bundled because exact reproducible artifact coordinates are not pinned. VulkanBoost does not redistribute StackCluster Optimizer, OptimizeMod, or NoRender+ because their listings state ARR (All Rights Reserved). OptiLeaves is held back because public license listings conflict; do not embed or redistribute it until license and permission are clarified. Beryl remains excluded: it is ARR, and should not be repackaged without explicit permission.

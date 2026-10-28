@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A single-JAR optimization bundle for Minecraft 1.21.11 with VulkanMod, unmodified BetterHurtCam, and an experimental one-switch FSR 1 image-enhancement option.",
+  "description": "A single-JAR Minecraft 1.21.11 optimization bundle built around VulkanMod. Temporal reconstruction research is in progress and is not enabled in this build.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
@@ -14,16 +14,12 @@
   },
   "license": "MIT",
   "environment": "client",
-  "mixins": [
-    "vulkanboost.mixins.json"
-  ],
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "1.21.11",
     "vulkanmod": ">=0.6.8",
     "fabric-api": "*",
     "betterhurtcam": ">=1.12.0",
-    "ukulib": "^1.10.0",
-    "renderscale": "*"
+    "ukulib": "^1.10.0"
   }
 }

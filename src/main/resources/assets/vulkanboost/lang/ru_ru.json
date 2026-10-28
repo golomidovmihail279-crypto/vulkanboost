@@ -1,4 +1,0 @@
-{
-  "options.vulkanboost.image_enhancement": "Масштаб рендеринга 77%",
-  "options.vulkanboost.image_enhancement.tooltip": "Безопасный режим: мир рендерится в разрешении 77%, затем используется обычное линейное масштабирование RenderScale. FSR временно отключён, поскольку вызывал чёрный экран в Minecraft 1.21.11 + VulkanMod."
-}
