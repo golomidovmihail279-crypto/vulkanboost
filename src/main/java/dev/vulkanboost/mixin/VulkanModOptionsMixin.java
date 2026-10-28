@@ -12,9 +12,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 /**
- * Adds the FSR switch to VulkanMod's own Graphics options, immediately after
- * the render-distance control. This targets the stable option factory rather
- * than an API that is absent from the pinned VulkanMod release JAR.
+ * Adds a safe render-scale switch to VulkanMod's Graphics options.
+ * FSR stays disabled until the 1.21.11 + VulkanMod output path is verified.
  */
 @Mixin(targets = "net.vulkanmod.config.option.Options")
 public abstract class VulkanModOptionsMixin {
@@ -47,12 +46,14 @@ public abstract class VulkanModOptionsMixin {
                 enabled -> {
                     RenderScaleConfig config = RenderScale.getConfig();
                     config.scale = enabled ? VULKANBOOST_IMAGE_SCALE : 1.0F;
-                    config.fsr = enabled;
+                    // FSR currently produces a black world on this renderer combination.
+                    // Keep the 77% performance scale but use RenderScale's normal linear blit.
+                    config.fsr = false;
                     RenderScale.CONFIG.save();
                 },
                 () -> {
                     RenderScaleConfig config = RenderScale.getConfig();
-                    return config.fsr && config.getScale() < 0.999F;
+                    return config.getScale() < 0.999F;
                 }
         ).setTooltip(enabled -> Component.translatable(
                 "options.vulkanboost.image_enhancement.tooltip"));
