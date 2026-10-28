@@ -22,7 +22,7 @@ VulkanBoost bundles upstream mod JARs using Fabric Loader's nested-JAR mechanism
 | Smart Particles | 1.11.10 | MIT | https://modrinth.com/mod/smart-particles |
 | BetterHurtCam | 1.12.0+mc1.21.11 (unmodified upstream JAR) | MIT | https://github.com/uku3lig/betterhurtcam/tree/1.21.11 |
 | Ukulib | 1.10.2+1.21.11 (unmodified upstream JAR) | MPL-2.0 | https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11 |
-| Cloth Config API | 21.11.153+fabric | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
+| Cloth Config API | 21.11.153 | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
 
 Temporal reconstruction research documents may link to external projects for study. Those projects are not dependencies included in this bundle, and their source code is not copied into this branch. Review each upstream license before adopting code or assets.
 
