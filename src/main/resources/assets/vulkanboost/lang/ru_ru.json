@@ -1,4 +1,4 @@
 {
-  "options.vulkanboost.image_enhancement": "Масштаб рендеринга 77%",
-  "options.vulkanboost.image_enhancement.tooltip": "Безопасный режим: мир рендерится в разрешении 77%, затем используется обычное линейное масштабирование RenderScale. FSR временно отключён, поскольку вызывал чёрный экран в Minecraft 1.21.11 + VulkanMod."
+  "options.vulkanboost.image_enhancement": "Тест FSR EASU (без RCAS) — экспериментально",
+  "options.vulkanboost.image_enhancement.tooltip": "Только для разработки: запускает EASU при масштабе 77%, а затем копирует результат без повышения резкости RCAS. Если изображение станет чёрным или исказится, выключи тест. После перезапуска режим автоматически вернётся к безопасному."
 }
