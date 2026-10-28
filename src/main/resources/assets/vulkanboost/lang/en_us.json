@@ -1,4 +1,4 @@
 {
-  "options.vulkanboost.image_enhancement": "Reduced render scale (77%)",
-  "options.vulkanboost.image_enhancement.tooltip": "Safe fallback: renders the world at 77% resolution and uses RenderScale's normal linear upscale. FSR is temporarily disabled because it produced a black screen with Minecraft 1.21.11 + VulkanMod."
+  "options.vulkanboost.image_enhancement": "Experimental FSR EASU test (no RCAS)",
+  "options.vulkanboost.image_enhancement.tooltip": "Development test only: runs EASU at 77% render scale and copies its output without RCAS sharpening. If the image turns black or corrupt, switch this off; the test setting resets to safe mode after restart."
 }
