@@ -1,5 +1,6 @@
 package dev.vulkanboost.mixin;
 
+import dev.vulkanboost.config.FsrEasuTestMode;
 import dev.zelo.renderscale.RenderScale;
 import dev.zelo.renderscale.config.RenderScaleConfig;
 import net.minecraft.network.chat.Component;
