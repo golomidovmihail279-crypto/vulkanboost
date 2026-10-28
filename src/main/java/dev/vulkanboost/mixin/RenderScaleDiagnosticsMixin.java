@@ -3,6 +3,7 @@ package dev.vulkanboost.mixin;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.logging.LogUtils;
+import dev.vulkanboost.config.FsrEasuTestMode;
 import dev.zelo.renderscale.RenderScale;
 import dev.zelo.renderscale.config.RenderScaleConfig;
 import org.slf4j.Logger;
