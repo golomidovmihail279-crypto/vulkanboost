@@ -165,16 +165,54 @@ tasks.register("patchBundledRenderScaleShader") {
         }
 
         final String shaderPath = "assets/renderscale/shaders/include/ffx_a.glsl"
-        final String easuShaderPath = "assets/renderscale/shaders/include/fsr_easu.glsl"
+        final String easuShaderPath = "assets/renderscale/shaders/core/easu.fsh"
+        final String rcasShaderPath = "assets/renderscale/shaders/core/rcas.fsh"
+        final String fsrHeaderPath = "assets/renderscale/shaders/include/ffx_fsr1.glsl"
+        final String easuOnlyHeaderPath = "assets/renderscale/shaders/include/ffx_fsr1_easu.glsl"
+        final String rcasOnlyHeaderPath = "assets/renderscale/shaders/include/ffx_fsr1_rcas.glsl"
         ByteArrayOutputStream patchedNestedBuffer = new ByteArrayOutputStream()
         ZipInputStream renderScaleZip = new ZipInputStream(new ByteArrayInputStream(renderScaleBytes))
         ZipOutputStream patchedNestedZip = new ZipOutputStream(patchedNestedBuffer)
         Set<String> patchedShaderPaths = [] as Set
         boolean easuCommentPatched = false
+        boolean easuPipelinePatched = false
+        boolean rcasPipelinePatched = false
+        byte[] easuOnlyHeaderBytes = null
+        byte[] rcasOnlyHeaderBytes = null
         try {
             ZipEntry item
             while ((item = renderScaleZip.nextEntry) != null) {
                 byte[] bytes = renderScaleZip.readAllBytes()
+
+                // Give each pass a 32-bit-only include. VulkanMod's parser visits
+                // unused precision variants in the shared upstream header and can
+                // misread their extra "out" parameters as top-level attributes.
+                if (item.name == easuShaderPath) {
+                    String shader = new String(bytes, StandardCharsets.UTF_8)
+                    String oldImport = "#moj_import <renderscale:ffx_fsr1.glsl>"
+                    String newImport = "#moj_import <renderscale:ffx_fsr1_easu.glsl>"
+                    int importIndex = shader.indexOf(oldImport)
+                    if (importIndex < 0 || shader.indexOf(oldImport, importIndex + oldImport.length()) >= 0) {
+                        throw new GradleException("Expected exactly one shared FSR import in " + item.name)
+                    }
+                    bytes = (shader.substring(0, importIndex) + newImport
+                        + shader.substring(importIndex + oldImport.length())).getBytes(StandardCharsets.UTF_8)
+                    easuPipelinePatched = true
+                    patchedShaderPaths.add(item.name)
+                } else if (item.name == rcasShaderPath) {
+                    String shader = new String(bytes, StandardCharsets.UTF_8)
+                    String oldImport = "#moj_import <renderscale:ffx_fsr1.glsl>"
+                    String newImport = "#moj_import <renderscale:ffx_fsr1_rcas.glsl>"
+                    int importIndex = shader.indexOf(oldImport)
+                    if (importIndex < 0 || shader.indexOf(oldImport, importIndex + oldImport.length()) >= 0) {
+                        throw new GradleException("Expected exactly one shared FSR import in " + item.name)
+                    }
+                    bytes = (shader.substring(0, importIndex) + newImport
+                        + shader.substring(importIndex + oldImport.length())).getBytes(StandardCharsets.UTF_8)
+                    rcasPipelinePatched = true
+                    patchedShaderPaths.add(item.name)
+                }
+
                 if (item.name == shaderPath) {
                     String shader = new String(bytes, StandardCharsets.UTF_8)
                     shader = shader
@@ -286,6 +324,44 @@ tasks.register("patchBundledRenderScaleShader") {
                     }
                 }
 
+                if (item.name == fsrHeaderPath) {
+                    String source = new String(bytes, StandardCharsets.UTF_8)
+                    String easuTitle = "FSR - [EASU] EDGE ADAPTIVE SPATIAL UPSAMPLING"
+                    String packed16Title = "PACKED 16-BIT VERSION"
+                    String rcasTitle = "FSR - [RCAS] ROBUST CONTRAST ADAPTIVE SHARPENING"
+                    String rcas16Title = "NON-PACKED 16-BIT VERSION"
+
+                    int easuTitleIndex = source.indexOf(easuTitle)
+                    int packed16Index = source.indexOf(packed16Title)
+                    int rcasTitleIndex = source.indexOf(rcasTitle)
+                    int rcas16Index = rcasTitleIndex < 0 ? -1 : source.indexOf(rcas16Title, rcasTitleIndex)
+                    if (easuTitleIndex < 0 || packed16Index < 0 || packed16Index < easuTitleIndex
+                            || rcasTitleIndex < 0 || rcas16Index < 0) {
+                        throw new GradleException("Could not locate 32-bit FSR section boundaries in " + item.name)
+                    }
+
+                    int easuCut = source.lastIndexOf("\n", packed16Index)
+                    if (easuCut < 0) throw new GradleException("Invalid EASU section boundary in " + item.name)
+                    String easuOnlyHeader = source.substring(0, easuCut + 1)
+                    if (!easuOnlyHeader.contains("FsrEasuF(") || easuOnlyHeader.contains("FsrRcasF(")) {
+                        throw new GradleException("EASU-only FSR include contains unexpected code")
+                    }
+                    easuOnlyHeaderBytes = easuOnlyHeader.getBytes(StandardCharsets.UTF_8)
+
+                    int commonPrefixEnd = source.lastIndexOf("\n", easuTitleIndex) + 1
+                    int rcasStart = source.lastIndexOf("\n", rcasTitleIndex) + 1
+                    int rcasCut = source.lastIndexOf("\n", rcas16Index)
+                    if (commonPrefixEnd <= 0 || rcasStart <= 0 || rcasCut < rcasStart) {
+                        throw new GradleException("Invalid RCAS section boundary in " + item.name)
+                    }
+                    String rcasOnlyHeader = source.substring(0, commonPrefixEnd) + "\n"
+                        + source.substring(rcasStart, rcasCut + 1)
+                    if (!rcasOnlyHeader.contains("FsrRcasCon(") || !rcasOnlyHeader.contains("FsrRcasF(")) {
+                        throw new GradleException("RCAS-only FSR include is incomplete")
+                    }
+                    rcasOnlyHeaderBytes = rcasOnlyHeader.getBytes(StandardCharsets.UTF_8)
+                }
+
                 ZipEntry outputEntry = new ZipEntry(item.name)
                 if (item.time >= 0) outputEntry.time = item.time
                 if (item.comment != null) outputEntry.comment = item.comment
@@ -294,12 +370,34 @@ tasks.register("patchBundledRenderScaleShader") {
                 patchedNestedZip.closeEntry()
                 renderScaleZip.closeEntry()
             }
+
+            if (!easuPipelinePatched || !rcasPipelinePatched
+                    || easuOnlyHeaderBytes == null || rcasOnlyHeaderBytes == null) {
+                throw new GradleException("Could not create both pass-specific RenderScale FSR shader includes")
+            }
+            ZipEntry easuHeaderEntry = new ZipEntry(easuOnlyHeaderPath)
+            easuHeaderEntry.time = System.currentTimeMillis()
+            patchedNestedZip.putNextEntry(easuHeaderEntry)
+            patchedNestedZip.write(easuOnlyHeaderBytes)
+            patchedNestedZip.closeEntry()
+            patchedShaderPaths.add(easuOnlyHeaderPath)
+
+            ZipEntry rcasHeaderEntry = new ZipEntry(rcasOnlyHeaderPath)
+            rcasHeaderEntry.time = System.currentTimeMillis()
+            patchedNestedZip.putNextEntry(rcasHeaderEntry)
+            patchedNestedZip.write(rcasOnlyHeaderBytes)
+            patchedNestedZip.closeEntry()
+            patchedShaderPaths.add(rcasOnlyHeaderPath)
         } finally {
             renderScaleZip.close()
             patchedNestedZip.close()
         }
 
-        if (!patchedShaderPaths.contains(shaderPath) || !easuCommentPatched) {
+        if (!patchedShaderPaths.contains(shaderPath) || !easuCommentPatched
+                || !patchedShaderPaths.contains(easuShaderPath)
+                || !patchedShaderPaths.contains(rcasShaderPath)
+                || !patchedShaderPaths.contains(easuOnlyHeaderPath)
+                || !patchedShaderPaths.contains(rcasOnlyHeaderPath)) {
             throw new GradleException("Could not patch all required RenderScale FSR shader resources: " + patchedShaderPaths)
         }
 
