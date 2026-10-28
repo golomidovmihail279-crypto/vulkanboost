@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "vulkanboost",
+  "version": "${version}",
+  "name": "VulkanBoost",
+  "description": "A single-JAR Minecraft 1.21.11 optimization bundle built around VulkanMod. Temporal reconstruction research is in progress and is not enabled in this build.",
+  "authors": [
+    "golomidovmihail279-crypto"
+  ],
+  "contact": {
+    "homepage": "https://github.com/golomidovmihail279-crypto/vulkanboost",
+    "sources": "https://github.com/golomidovmihail279-crypto/vulkanboost",
+    "issues": "https://github.com/golomidovmihail279-crypto/vulkanboost/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "1.21.11",
+    "vulkanmod": ">=0.6.8",
+    "fabric-api": "*",
+    "betterhurtcam": ">=1.12.0",
+    "ukulib": "^1.10.0"
+  }
+}

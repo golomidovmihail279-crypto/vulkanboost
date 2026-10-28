@@ -1,0 +1,82 @@
+plugins {
+    id "net.fabricmc.fabric-loom-remap" version "${loom_version}"
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+    archivesName = project.archives_base_name
+}
+
+repositories {
+    maven {
+        name = "Fabric"
+        url = "https://maven.fabricmc.net/"
+    }
+    maven {
+        name = "Modrinth"
+        url = "https://api.modrinth.com/maven"
+        content {
+            includeGroup "maven.modrinth"
+        }
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${minecraft_version}"
+    mappings loom.officialMojangMappings()
+    modImplementation "net.fabricmc:fabric-loader:${loader_version}"
+
+    // Core rendering and compatibility dependencies.
+    include(modImplementation("maven.modrinth:P7dR8mSH:gB6TkYEJ")) // Fabric API 0.140.2+1.21.11
+    include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
+
+    // Established optimization components pinned to reproducible artifacts.
+    include(modImplementation("maven.modrinth:gvQqBUqZ:Ow7wA0kG")) // Lithium 0.21.4
+    include(modImplementation("maven.modrinth:uXXizFIs:Ii0gP3D8")) // FerriteCore 8.2.0
+    include(modImplementation("maven.modrinth:r0v8vy1s:XdouG8YV")) // Alternate Current 1.9.0
+    include(modImplementation("maven.modrinth:g96Z4WVZ:Q3Dusz2j")) // BadOptimizations 2.4.1
+    include(modImplementation("maven.modrinth:TjSm1wrD:QrRIY2rV")) // ModernFix-mVUS 5.26.3-build.2
+    include(modImplementation("maven.modrinth:Ps1zyz6x:PV9KcrYQ")) // ScalableLux 0.1.6+fabric.c25518a
+    include(modImplementation("maven.modrinth:OnlVIpq5:WBTi826Z")) // Fast Noise 1.0.36+1.21.11
+    include(modImplementation("maven.modrinth:fQEb0iXm:O9LmWYR7")) // Krypton 0.2.10
+
+    // Additional optimization candidates; retain independent compatibility testing.
+    include(modImplementation("maven.modrinth:VSNURh3q:olrVZpJd")) // C2ME 0.3.6.0.0
+    include(modImplementation("maven.modrinth:XxO7e7xt:Upo8PRjv")) // Bura 0.1.0 alpha
+    include(modImplementation("maven.modrinth:epitaph-optimizer:1.0.0")) // Epitaph Optimizer
+    include(modImplementation("maven.modrinth:LQ3K71Q1:PUe5Asxs")) // Dynamic FPS 3.11.4
+    include(modImplementation("maven.modrinth:x1hIzbuY:ip2tVKLp")) // FastQuit 3.1.3+mc1.21.11
+    include(modImplementation("maven.modrinth:l8rWP4Tc:dN2uh6Yw")) // Smart Particles 1.11.10
+    include(modImplementation("maven.modrinth:9s6osm5g:xuX40TN5")) // Cloth Config API 21.11.153
+
+    // Unmodified upstream quality-of-life mods and their required library.
+    include(modImplementation("maven.modrinth:o4y0N2hu:bacofMP2")) // BetterHurtCam 1.12.0+mc1.21.11
+    include(modImplementation("maven.modrinth:Y8uFrUil:t9ZJ7RPT")) // Ukulib 1.10.2+1.21.11
+}
+
+processResources {
+    inputs.property "version", project.version
+
+    filesMatching("fabric.mod.json") {
+        expand "version": inputs.properties.version
+    }
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.release = 21
+    options.encoding = "UTF-8"
+}
+
+tasks.named("jar") {
+    from("LICENSE") {
+        rename { "${it}_VulkanBoost" }
+    }
+}
