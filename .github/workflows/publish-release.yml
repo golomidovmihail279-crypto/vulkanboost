@@ -76,7 +76,16 @@ jobs:
           gh release delete v0.1.0-alpha.1 --yes || true
           gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.1.0-alpha.1" || true
 
-      - name: Point the existing v0.5 tag at the validated source commit
+      - name: Delete existing v0.5 release and tag for explicit recreation
+        if: steps.guard.outputs.publish == 'true' && contains(github.event.workflow_run.head_commit.message, '[recreate-v0.5]')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release delete v0.5 --yes --cleanup-tag --repo "$GITHUB_REPOSITORY"
+
+      - name: Create or point the v0.5 tag at the validated source commit
         if: steps.guard.outputs.publish == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -84,9 +93,13 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          existing_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha)"
+          existing_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha 2>/dev/null || true)"
           if [[ "$existing_sha" != "$BUILT_SHA" ]]; then
-            gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" -f "sha=$BUILT_SHA" -F force=true
+            if [[ -n "$existing_sha" ]]; then
+              gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" -f "sha=$BUILT_SHA" -F force=true
+            else
+              gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/v0.5" -f "sha=$BUILT_SHA"
+            fi
           fi
 
       - name: Publish VulkanBoost 0.5 for Minecraft 1.21.11 as Latest
