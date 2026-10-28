@@ -1,6 +1,7 @@
 """Tests for the final nested-JAR bundle validator."""
 import io
 import json
+import os
 import tempfile
 import unittest
 import zipfile
@@ -48,7 +49,6 @@ def make_bundle(mod_ids=None, extra_path=None):
         for path, payload in payloads.items():
             archive.writestr(path, payload)
     handle, path = tempfile.mkstemp(suffix=".jar")
-    import os
     os.close(handle)
     Path(path).write_bytes(stream.getvalue())
     return path
@@ -96,6 +96,19 @@ class BundleCheckerTests(unittest.TestCase):
             self.assertTrue(any("legacy FSR/RenderScale resource" in error for error in errors))
         finally:
             Path(path).unlink(missing_ok=True)
+
+    def test_legacy_shader_patch_code_is_rejected_from_source_tree(self):
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "build.gradle").write_text(
+                'tasks.register("patchBundledRenderScaleShader") {}\\n',
+                encoding="utf-8",
+            )
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any("patchBundledRenderScaleShader" in error for error in errors))
 
 
 if __name__ == "__main__":
