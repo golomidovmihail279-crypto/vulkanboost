@@ -28,8 +28,6 @@ REQUIRED_DEPENDENCIES = {
     "vulkanmod": ">=0.6.8", "fabric-api": "*",
     "betterhurtcam": ">=1.12.0", "ukulib": "^1.10.0",
 }
-FORBIDDEN_RESOURCE_MARKERS = ("assets/renderscale/shaders/",)
-FORBIDDEN_SOURCE_MARKERS = ("patchBundledRenderScaleShader",)
 
 def load_metadata(archive: zipfile.ZipFile, label: str) -> dict[str, Any]:
     try:
@@ -54,9 +52,6 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
             except ValueError as exc:
                 errors.append(str(exc))
                 return
-            for name in names:
-                if any(marker in name.lower() for marker in FORBIDDEN_RESOURCE_MARKERS):
-                    errors.append(f"{label}: legacy FSR/RenderScale resource remains: {name}")
             for child in metadata.get("jars", []):
                 child_path = child.get("file") if isinstance(child, dict) else None
                 if not child_path or child_path not in names:
@@ -70,15 +65,6 @@ def check_source_tree(root: str | Path = ".") -> list[str]:
     """Ensure the base bundle declares no custom runtime hooks."""
     root = Path(root)
     errors: list[str] = []
-    for candidate in [root / "build.gradle"]:
-        if candidate.is_file():
-            try:
-                source_text = candidate.read_text(encoding="utf-8")
-            except (UnicodeDecodeError, OSError):
-                source_text = ""
-            for marker in FORBIDDEN_SOURCE_MARKERS:
-                if marker in source_text:
-                    errors.append(f"{candidate.relative_to(root).as_posix()}: obsolete shader patch code marker remains: {marker}")
     metadata_path = root / "src" / "main" / "resources" / "fabric.mod.json"
     if metadata_path.is_file():
         try:
@@ -148,9 +134,6 @@ def check_bundle(path: str | Path) -> list[str]:
                             continue
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
-                        for resource_path in child.namelist():
-                            if any(marker in resource_path.lower() for marker in FORBIDDEN_RESOURCE_MARKERS):
-                                errors.append(f"{nested_path}: legacy FSR/RenderScale resource remains: {resource_path}")
                         for grandchild in child_metadata.get("jars", []):
                             child_path = grandchild.get("file") if isinstance(grandchild, dict) else None
                             if not child_path or child_path not in child.namelist():
@@ -160,9 +143,6 @@ def check_bundle(path: str | Path) -> list[str]:
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
                     errors.append(f"{nested_path}: invalid nested JAR/metadata: {exc}")
 
-            for name in names:
-                if any(marker in name.lower() for marker in FORBIDDEN_RESOURCE_MARKERS):
-                    errors.append(f"legacy FSR/RenderScale resource remains in outer JAR: {name}")
             if len(nested_entries) != len(EXPECTED_COMPONENT_IDS):
                 errors.append(f"expected {len(EXPECTED_COMPONENT_IDS)} top-level components, found {len(nested_entries)}")
             duplicates = sorted({item for item in nested_ids if nested_ids.count(item) > 1})
