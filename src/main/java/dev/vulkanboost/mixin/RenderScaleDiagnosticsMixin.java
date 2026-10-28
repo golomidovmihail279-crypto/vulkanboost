@@ -13,9 +13,8 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 /**
- * Disables the experimental FSR branch before RenderScale runs because this
- * Minecraft 1.21.11 + VulkanMod combination reached its draw calls but output
- * a black world. The original diagnostics remain available for future testing.
+ * FSR is blocked by default; the dedicated development toggle permits only the
+ * isolated EASU test path. RCAS is replaced by a pass-through shader in this build.
  */
 @Mixin(targets = "dev.zelo.renderscale.RenderScale")
 public abstract class RenderScaleDiagnosticsMixin {
@@ -38,7 +37,7 @@ public abstract class RenderScaleDiagnosticsMixin {
     private void vulkanboost$disableBlackFsrPath(
             RenderTarget input, RenderTarget output, FilterMode filter, CallbackInfo ci) {
         RenderScaleConfig config = RenderScale.getConfig();
-        if (!config.fsr) {
+        if (!config.fsr || FsrEasuTestMode.enabled) {
             return;
         }
 
@@ -47,7 +46,7 @@ public abstract class RenderScaleDiagnosticsMixin {
         if (!vulkanboost$loggedSafeFallback) {
             vulkanboost$loggedSafeFallback = true;
             VULKANBOOST$LOGGER.warn(
-                    "[VulkanBoost] Disabled RenderScale FSR: its draw calls produced a black world on Minecraft 1.21.11 + VulkanMod. Falling back to RenderScale's normal blit at scale {}.",
+                    "[VulkanBoost] Disabled saved RenderScale FSR state outside the explicit EASU test toggle. Falling back to RenderScale's normal blit at scale {}.",
                     config.getScale());
         }
     }
