@@ -179,6 +179,7 @@ tasks.register("patchBundledRenderScaleShader") {
         boolean rcasPipelinePatched = false
         byte[] easuOnlyHeaderBytes = null
         byte[] rcasOnlyHeaderBytes = null
+        boolean rcasEasuOnlyTestPatched = false
         try {
             ZipEntry item
             while ((item = renderScaleZip.nextEntry) != null) {
@@ -362,6 +363,35 @@ tasks.register("patchBundledRenderScaleShader") {
                     rcasOnlyHeaderBytes = rcasOnlyHeader.getBytes(StandardCharsets.UTF_8)
                 }
 
+                // Development-only probe: leave EASU active and bypass RCAS sharpening.
+                // This second pass only copies the EASU target into the final target.
+                if (item.name == rcasShaderPath) {
+                    String easuOnlyCopyShader = """#version 420
+#define A_GPU 1
+#define A_GLSL 1
+#define FSR_RCAS_F 1
+#define FSR_COLOUR AF3
+#define FSR_SCALAR AF1
+#define FSR_LOAD AF4
+#define FSR_POSITION ASU2
+#define FSR_RCAS_LOAD FsrRcasLoadF
+#define FSR_RCAS_INPUT FsrRcasInputF
+#define FSR_RCAS FsrRcasF
+#moj_import <renderscale:ffx_a.glsl>
+#moj_import <renderscale:ffx_fsr1_rcas.glsl>
+uniform sampler2D InSampler;
+in vec2 texCoord;
+out vec4 fragColor;
+// VULKANBOOST_EASU_ONLY_TEST: RCAS bypassed; copy EASU output unchanged.
+void main() {
+    fragColor = texture(InSampler, texCoord);
+}
+"""
+                    bytes = easuOnlyCopyShader.getBytes(StandardCharsets.UTF_8)
+                    rcasEasuOnlyTestPatched = true
+                    patchedShaderPaths.add(item.name)
+                }
+
                 ZipEntry outputEntry = new ZipEntry(item.name)
                 if (item.time >= 0) outputEntry.time = item.time
                 if (item.comment != null) outputEntry.comment = item.comment
@@ -371,7 +401,7 @@ tasks.register("patchBundledRenderScaleShader") {
                 renderScaleZip.closeEntry()
             }
 
-            if (!easuPipelinePatched || !rcasPipelinePatched
+            if (!easuPipelinePatched || !rcasPipelinePatched || !rcasEasuOnlyTestPatched
                     || easuOnlyHeaderBytes == null || rcasOnlyHeaderBytes == null) {
                 throw new GradleException("Could not create both pass-specific RenderScale FSR shader includes")
             }
@@ -438,7 +468,7 @@ tasks.register("patchBundledRenderScaleShader") {
         }
 
         Files.move(temporaryJar.toPath(), bundleJar.toPath(), StandardCopyOption.REPLACE_EXISTING)
-        logger.lifecycle("Patched RenderScale FSR shader sources in ${bundleJar.name} for VulkanMod's GLSL converter.")
+        logger.lifecycle("Patched RenderScale shaders in ${bundleJar.name}: EASU enabled, RCAS replaced by pass-through for isolated first-pass testing.")
     }
 }
 
