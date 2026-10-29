@@ -14,7 +14,8 @@ jobs:
     if: >-
       github.event.workflow_run.conclusion == 'success' &&
       github.event.workflow_run.head_branch == 'main' &&
-      github.event.workflow_run.head_repository.full_name == github.repository
+      github.event.workflow_run.head_repository.full_name == github.repository &&
+      contains(github.event.workflow_run.head_commit.message, '[release-v0.6]')
     runs-on: ubuntu-latest
     steps:
       - name: Ensure this is the latest main commit
@@ -29,7 +30,7 @@ jobs:
             echo "Skipping stale build $BUILT_SHA; main is now $latest_sha."
           else
             echo "publish=true" >> "$GITHUB_OUTPUT"
-            echo "Build SHA matches the current main branch."
+            echo "Build SHA matches the current main commit."
           fi
 
       - name: Check out release metadata
@@ -54,70 +55,23 @@ jobs:
         run: |
           set -euo pipefail
           shopt -s nullglob
-          jars=(dist/vulkanboost-0.5.jar)
+          jars=(dist/vulkanboost-0.6.jar)
           if [[ "${#jars[@]}" -ne 1 ]]; then
-            echo "Expected exactly one validated build artifact: dist/vulkanboost-0.5.jar"
+            echo "Expected exactly one validated build artifact: dist/vulkanboost-0.6.jar"
             find dist -maxdepth 3 -type f -print
             exit 1
           fi
-          output="VulkanBoost-0.5-for-1.21.11.jar"
+          output="VulkanBoost-0.6-for-1.21.11.jar"
           cp "${jars[0]}" "dist/${output}"
           cd dist
           sha256sum "${output}" > "${output}.sha256"
 
-      - name: Remove superseded alpha release and tag
-        if: steps.guard.outputs.publish == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          gh release delete v0.4.0 --yes || true
-          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.4.0" || true
-          gh release delete v0.1.0-alpha.1 --yes || true
-          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.1.0-alpha.1" || true
-
-      - name: Delete existing v0.5 release and tag for explicit recreation
-        if: steps.guard.outputs.publish == 'true' && contains(github.event.workflow_run.head_commit.message, '[recreate-v0.5]')
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          gh release delete v0.5 --yes --repo "$GITHUB_REPOSITORY" || true
-          gh api --method DELETE "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" || true
-
-      - name: Create or point the v0.5 tag at the validated source commit
-        if: steps.guard.outputs.publish == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          BUILT_SHA: ${{ github.event.workflow_run.head_sha }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          existing_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha 2>/dev/null || true)"
-          if [[ "$existing_sha" == "$BUILT_SHA" ]]; then
-            echo "v0.5 already points to the validated build."
-          elif [[ -n "$existing_sha" ]]; then
-            if ! gh api --method PATCH "repos/${GITHUB_REPOSITORY}/git/refs/tags/v0.5" -f "sha=$BUILT_SHA" -F force=true; then
-              echo "Tag disappeared during update; attempting to create it."
-              gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/v0.5" -f "sha=$BUILT_SHA" || {
-                actual_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha 2>/dev/null || true)"
-                [[ "$actual_sha" == "$BUILT_SHA" ]]
-              }
-            fi
-          else
-            gh api --method POST "repos/${GITHUB_REPOSITORY}/git/refs" -f "ref=refs/tags/v0.5" -f "sha=$BUILT_SHA" || {
-              actual_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/tags/v0.5" --jq .object.sha 2>/dev/null || true)"
-              [[ "$actual_sha" == "$BUILT_SHA" ]]
-            }
-          fi
-
-      - name: Publish VulkanBoost 0.5 for Minecraft 1.21.11 as Latest
+      - name: Publish VulkanBoost 0.6 for Minecraft 1.21.11
         if: steps.guard.outputs.publish == 'true'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.5
-          name: VulkanBoost-0.5-for-1.21.11
+          tag_name: v0.6
+          name: VulkanBoost-0.6-for-1.21.11
           target_commitish: ${{ github.event.workflow_run.head_sha }}
           body_path: .github/RELEASE_NOTES.md
           prerelease: false
@@ -126,7 +80,7 @@ jobs:
           overwrite_files: true
           fail_on_unmatched_files: true
           files: |
-            dist/VulkanBoost-0.5-for-1.21.11.jar
-            dist/VulkanBoost-0.5-for-1.21.11.jar.sha256
+            dist/VulkanBoost-0.6-for-1.21.11.jar
+            dist/VulkanBoost-0.6-for-1.21.11.jar.sha256
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
