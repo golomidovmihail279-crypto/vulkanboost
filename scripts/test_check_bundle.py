@@ -154,5 +154,53 @@ class BundleCheckerTests(unittest.TestCase):
         self.assertIsNone(check_bundle.predicate_matches("1.2.3", "latest-stable"))
 
 
+    def test_nested_duplicates_choose_highest_compatible_version(self):
+        root = ("vulkanboost", {"id": "vulkanboost", "depends": {"shared-lib": ">=1.0 <2.0"}})
+        candidates = {
+            "shared-lib": [
+                {"version": "2.0.0", "metadata": {"id": "shared-lib", "version": "2.0.0", "depends": {}}, "origin": "newer.jar"},
+                {"version": "1.5.0", "metadata": {"id": "shared-lib", "version": "1.5.0", "depends": {}}, "origin": "compatible.jar"},
+            ]
+        }
+        errors = []
+        selected = check_bundle.resolve_and_validate_dependencies([root], candidates, errors)
+        self.assertEqual(errors, [])
+        self.assertEqual(selected["shared-lib"]["version"], "1.5.0")
+
+    def test_nested_dependency_conflict_is_reported_when_no_candidate_matches(self):
+        root = ("vulkanboost", {"id": "vulkanboost", "depends": {"shared-lib": "<1.0.0"}})
+        candidates = {
+            "shared-lib": [
+                {"version": "1.2.0", "metadata": {"id": "shared-lib", "version": "1.2.0", "depends": {}}, "origin": "shared.jar"},
+            ]
+        }
+        errors = []
+        check_bundle.resolve_and_validate_dependencies([root], candidates, errors)
+        self.assertTrue(any("no compatible bundled candidate" in error for error in errors))
+
+    def test_system_java_dependency_uses_target_java_21(self):
+        root_ok = ("vulkanboost", {"id": "vulkanboost", "depends": {"java": ">=21"}})
+        errors = []
+        check_bundle.resolve_and_validate_dependencies([root_ok], {}, errors)
+        self.assertEqual(errors, [])
+
+        root_bad = ("native-module", {"id": "native-module", "depends": {"java": ">=22"}})
+        errors = []
+        check_bundle.resolve_and_validate_dependencies([root_bad], {}, errors)
+        self.assertTrue(any("target provides '21'" in error for error in errors))
+
+    def test_unused_nested_candidate_is_not_forced_into_active_set(self):
+        root = ("vulkanboost", {"id": "vulkanboost", "depends": {}})
+        candidates = {
+            "optional-native": [
+                {"version": "1.0.0", "metadata": {"id": "optional-native", "version": "1.0.0", "depends": {"java": ">=22"}}, "origin": "optional-native.jar"},
+            ]
+        }
+        errors = []
+        selected = check_bundle.resolve_and_validate_dependencies([root], candidates, errors)
+        self.assertEqual(errors, [])
+        self.assertNotIn("optional-native", selected)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
