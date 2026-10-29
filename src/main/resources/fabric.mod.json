@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A single-JAR Minecraft 1.21.11 optimization bundle built around VulkanMod. Temporal reconstruction research is in progress and is not enabled in this build.",
+  "description": "A single-JAR Minecraft 1.21.11 optimization bundle with 25 pinned nested components, including structure-generation and leaf-rendering optimizations. Temporal reconstruction research is not enabled in this build.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
