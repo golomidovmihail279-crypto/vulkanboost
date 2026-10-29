@@ -151,7 +151,7 @@ def version_sort_key(value: str):
     return (numbers if numbers is not None else (), value)
 
 
-def resolve_and_validate_dependencies(top_level_records, candidates, errors):
+def resolve_and_validate_dependencies(top_level_records, candidates, errors, warnings=None):
     """Resolve required nested candidates by priority while satisfying active dependencies.
 
     Root/top-level mods are fixed. Nested candidates are only activated when an active
@@ -159,6 +159,7 @@ def resolve_and_validate_dependencies(top_level_records, candidates, errors):
     every active requirement. This models the relevant Loader behavior without claiming
     to replace Fabric Loader's full SAT4J resolver.
     """
+    warnings = warnings if warnings is not None else []
     top_level = {}
     for owner, metadata in top_level_records:
         mod_id = metadata.get("id")
@@ -253,6 +254,26 @@ def resolve_and_validate_dependencies(top_level_records, candidates, errors):
                     f"but target provides {actual!r}"
                 )
 
+    selected_ids = {id(candidate) for candidate in selected.values()}
+    for mod_id, available in sorted(candidates.items()):
+        for candidate in available:
+            if id(candidate) in selected_ids:
+                continue
+            dependencies = candidate["metadata"].get("depends", {})
+            if not isinstance(dependencies, dict):
+                continue
+            for dependency, constraint in dependencies.items():
+                if dependency not in ENVIRONMENT_PROVIDES:
+                    continue
+                actual = ENVIRONMENT_PROVIDES[dependency]
+                result = predicate_matches_any(actual, constraint)
+                if result is False:
+                    warnings.append(
+                        f"{candidate['origin']}: inactive nested candidate {mod_id} "
+                        f"{candidate['version']} requires {dependency} {constraint!r}; "
+                        f"target provides {actual!r}"
+                    )
+
     for mod_id, candidate in sorted(selected.items()):
         ignored = [
             item["version"] for item in candidates.get(mod_id, [])
@@ -328,8 +349,9 @@ def check_source_tree(root: str | Path = ".") -> list[str]:
     return errors
 
 
-def check_bundle(path: str | Path) -> list[str]:
+def check_bundle(path: str | Path, warnings: list[str] | None = None) -> list[str]:
     errors: list[str] = []
+    warnings = warnings if warnings is not None else []
     try:
         with zipfile.ZipFile(path) as archive:
             names = set(archive.namelist())
@@ -430,7 +452,7 @@ def check_bundle(path: str | Path) -> list[str]:
             if unexpected:
                 errors.append(f"unexpected components present: {unexpected}")
             resolve_and_validate_dependencies(
-                top_level_records, nested_candidates, errors
+                top_level_records, nested_candidates, errors, warnings
             )
 
             for mod_id, expected in EXPECTED_VERSIONS.items():
@@ -448,7 +470,10 @@ def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__.strip(), file=sys.stderr)
         return 2
-    findings = check_source_tree(Path.cwd()) + check_bundle(sys.argv[1])
+    warnings: list[str] = []
+    findings = check_source_tree(Path.cwd()) + check_bundle(sys.argv[1], warnings)
+    for warning in warnings:
+        print("WARNING:", warning)
     for finding in findings:
         print("ERROR:", finding)
     if findings:
@@ -456,7 +481,8 @@ def main() -> int:
         return 1
     print(
         "Validation passed: 25 unique top-level components, pinned component versions, "
-        "satisfied bundled dependencies, valid nested-JAR metadata, and no unexpected project-owned runtime hooks."
+        "satisfied bundled dependencies, target Java/Minecraft checks, valid nested-JAR metadata, "
+        "and no unexpected project-owned runtime hooks."
     )
     return 0
 
