@@ -29,7 +29,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
 
     // Core rendering and compatibility dependencies.
-    include(modImplementation("maven.modrinth:P7dR8mSH:gB6TkYEJ")) // Fabric API 0.140.2+1.21.11
+    include(modImplementation("maven.modrinth:P7dR8mSH:L34yYPTD")) // Fabric API 0.141.2+1.21.11
     include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
 
     // Established optimization components pinned to reproducible artifacts.
