@@ -24,7 +24,7 @@ EXPECTED_VERSIONS = {
     "vulkanmod": "0.6.8+1.21.11",
     "betterhurtcam": "1.12.0+mc1.21.11",
     "ukulib": "1.10.2+1.21.11",
-    "structure_layout_optimizer": "1.1.4",
+    "structure_layout_optimizer": "1.1.4+1.21.11-fabric",
     "resourcefulconfig": "3.11.3",
     "cullleaves": "4.1.1.1",
     "midnightlib": "1.9.2",
