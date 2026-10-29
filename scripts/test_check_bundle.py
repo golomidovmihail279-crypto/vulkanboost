@@ -150,6 +150,22 @@ class BundleCheckerTests(unittest.TestCase):
         self.assertTrue(check_bundle.predicate_matches("1.21.11", ">=1.21.11- <1.21.12-"))
         self.assertFalse(check_bundle.predicate_matches("1.21.12", ">=1.21.11- <1.21.12-"))
 
+
+    def test_prerelease_predicates_match_release_versions(self):
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">=1.21.9-beta.1"))
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">=1.21.6-rc.1"))
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">1.19-alpha.22.11.a"))
+        self.assertFalse(check_bundle.predicate_matches("1.21.8", ">=1.21.9-beta.1"))
+
+    def test_minecraft_wildcard_predicate(self):
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", "1.21.x"))
+        self.assertFalse(check_bundle.predicate_matches("1.22.0", "1.21.x"))
+        self.assertFalse(check_bundle.predicate_matches("1.20.6", "1.21.x"))
+
+    def test_prerelease_is_lower_than_corresponding_release(self):
+        self.assertLess(check_bundle.compare_full_versions("1.21.11-beta.1", "1.21.11"), 0)
+        self.assertGreater(check_bundle.compare_full_versions("1.21.11", "1.21.11-rc.1"), 0)
+
     def test_unsupported_internal_predicate_is_not_silently_accepted(self):
         self.assertIsNone(check_bundle.predicate_matches("1.2.3", "latest-stable"))
 
