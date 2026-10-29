@@ -6,10 +6,10 @@ This branch establishes a clean foundation for research into native-resolution t
 
 ## Current state
 
-- The one-JAR bundle retains 19 pinned top-level mod/library components.
+- The one-JAR bundle retains 25 pinned top-level mod/library components.
 - Custom rendering hooks and resolution-scaling integration are not part of this branch.
 - No rendering option is advertised as working when no implementation exists.
-- The refreshed v0.5 package is the clean optimization baseline; image reconstruction is not implemented yet.
+- The v0.6 package is the expanded optimization bundle; image reconstruction is not implemented yet.
 - Temporal reconstruction is a research target, not yet an implemented or validated feature.
 
 ## Platform
@@ -43,8 +43,23 @@ This branch establishes a clean foundation for research into native-resolution t
 | [Cloth Config API](https://modrinth.com/mod/cloth-config) | 21.11.153 | Shared configuration library |
 | [BetterHurtCam](https://github.com/uku3lig/betterhurtcam/tree/1.21.11) | 1.12.0+mc1.21.11 | Damage-camera effects |
 | [Ukulib](https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11) | 1.10.2+1.21.11 | BetterHurtCam dependency |
+| [Structure Layout Optimizer](https://modrinth.com/mod/structure-layout-optimizer/version/YDgvKeWI) | 1.1.4 (1.21.11 Fabric) | Optimizes Jigsaw structure and NBT-piece generation |
+| [Resourceful Config](https://modrinth.com/mod/resourceful-config/version/8bR7M6K7) | 3.11.3 | Structure Layout Optimizer configuration library |
+| [Cull Leaves](https://modrinth.com/mod/cull-leaves/version/yrL6pwHZ) | 4.1.1.1 (1.21.11 Fabric) | Avoids drawing hidden faces of leaf blocks |
+| [MidnightLib](https://modrinth.com/mod/midnightlib/version/OeTayxh3) | 1.9.2+1.21.11 Fabric | Cull Leaves configuration library |
+| [Puzzles Lib](https://modrinth.com/mod/puzzles-lib/version/O1SlsQzW) | 21.11.11 | Dependency for optional Fast Item Frames add-on |
+| [Forge Config API Port](https://modrinth.com/mod/forge-config-api-port/version/Idk1R3dD) | 21.11.0 Fabric | Dependency for optional Fast Item Frames add-on |
 
-The aggregate remains experimental. C2ME, Bura and Fast Noise affect overlapping chunk-generation or rendering-scheduling areas; troubleshoot them independently if crashes, missing chunks, flicker or frame pacing issues occur.
+## Optional add-on: Fast Item Frames
+
+Fast Item Frames is not embedded in this JAR. Its upstream repository separately marks its resource assets as All Rights Reserved, so the complete mod cannot be repackaged in this bundle without the author's permission. Download the official [Fast Item Frames 21.11.1 build for Minecraft 1.21.11](https://modrinth.com/mod/fast-item-frames/version/4QQcgJi6) and install it as a separate mod.
+
+The add-on is required on both client and server in multiplayer. It replaces item-frame entities with block-based frames, so back up worlds before using its conversion options. The bundle includes Puzzles Lib and Forge Config API Port, but for a dedicated server install Fast Item Frames and the dependencies listed on its official page directly on the server as well.
+
+## Compatibility notes
+
+The aggregate remains experimental. C2ME, Bura and Fast Noise affect overlapping chunk-generation or rendering-scheduling areas; troubleshoot them independently if crashes, missing chunks, flicker or frame pacing issues occur. Structure Layout Optimizer changes structure-generation code paths; test new-world creation and saving before using the pack with important worlds.
+
 
 ## Temporal reconstruction research
 
@@ -73,7 +88,7 @@ Requirements: JDK 21 and Gradle 9.5.0.
 
 ```bash
 gradle --no-daemon clean build
-python3 scripts/check_bundle.py build/libs/vulkanboost-0.5.jar
+python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
 python3 -m unittest discover -s scripts -p "test_*.py"
 ```
 
