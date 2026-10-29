@@ -197,9 +197,11 @@ class BundleCheckerTests(unittest.TestCase):
             ]
         }
         errors = []
-        selected = check_bundle.resolve_and_validate_dependencies([root], candidates, errors)
+        warnings = []
+        selected = check_bundle.resolve_and_validate_dependencies([root], candidates, errors, warnings)
         self.assertEqual(errors, [])
         self.assertNotIn("optional-native", selected)
+        self.assertTrue(any("requires java" in warning for warning in warnings))
 
 
 if __name__ == "__main__":
