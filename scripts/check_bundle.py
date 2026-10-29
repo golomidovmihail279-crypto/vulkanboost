@@ -73,11 +73,56 @@ def nested_paths(metadata: dict[str, Any], label: str, errors: list[str]) -> lis
     return paths
 
 
+def parse_version(value: str):
+    """Parse numeric versions with optional Fabric/Maven-style qualifiers."""
+    value = value.split("+", 1)[0].strip()
+    match = re.fullmatch(r"(\d+(?:\.\d+)*)(?:-([0-9A-Za-z.-]*))?", value)
+    if not match:
+        return None
+    numbers = tuple(int(part) for part in match.group(1).split("."))
+    qualifier = match.group(2)
+    if qualifier is None or qualifier == "":
+        prerelease = None
+    else:
+        prerelease = tuple(
+            int(part) if part.isdigit() else part.lower()
+            for part in re.split(r"[.-]", qualifier) if part != ""
+        )
+    return numbers, prerelease
+
+
 def version_numbers(value: str) -> tuple[int, ...] | None:
-    """Read numeric release prefixes for common Fabric version predicates."""
-    value = value.split("+", 1)[0]
-    match = re.match(r"^(\d+(?:\.\d+)*)(?:-|$)", value)
-    return tuple(int(part) for part in match.group(1).split(".")) if match else None
+    """Return numeric release components for sorting and range comparisons."""
+    parsed = parse_version(value)
+    return parsed[0] if parsed else None
+
+
+def compare_full_versions(left: str, right: str) -> int | None:
+    a = parse_version(left)
+    b = parse_version(right)
+    if a is None or b is None:
+        return None
+    relation = compare_versions(a[0], b[0])
+    if relation:
+        return relation
+    aq, bq = a[1], b[1]
+    if aq is None and bq is None:
+        return 0
+    if aq is None:
+        return 1
+    if bq is None:
+        return -1
+    for x, y in zip(aq, bq):
+        if x == y:
+            continue
+        if isinstance(x, int) and isinstance(y, int):
+            return (x > y) - (x < y)
+        if isinstance(x, int):
+            return 1
+        if isinstance(y, int):
+            return -1
+        return (x > y) - (x < y)
+    return (len(aq) > len(bq)) - (len(aq) < len(bq))
 
 
 def compare_versions(left: tuple[int, ...], right: tuple[int, ...]) -> int:
@@ -89,8 +134,7 @@ def compare_versions(left: tuple[int, ...], right: tuple[int, ...]) -> int:
 
 def predicate_matches(version: str, constraint: str) -> bool | None:
     """Evaluate common Fabric predicates; None means unsupported syntax."""
-    actual = version_numbers(version)
-    if actual is None:
+    if parse_version(version) is None:
         return None
     constraint = constraint.strip()
     if constraint == "*":
@@ -103,25 +147,36 @@ def predicate_matches(version: str, constraint: str) -> bool | None:
     if not tokens:
         return None
     for token in tokens:
-        match = re.fullmatch(r"(>=|<=|>|<|\^|~)?(\d+(?:\.\d+)*)(?:-|\+[^ ]*)?", token)
+        wildcard = re.fullmatch(r"(\d+(?:\.\d+)*)\.(?:x|X|\\*)", token)
+        if wildcard:
+            prefix = tuple(int(part) for part in wildcard.group(1).split("."))
+            actual = version_numbers(version)
+            if actual is None or actual[:len(prefix)] != prefix:
+                return False
+            continue
+        match = re.fullmatch(r"(>=|<=|>|<|\^|~)?(\d+(?:\.\d+)*)(?:-([0-9A-Za-z.-]*))?", token)
         if not match:
             return None
-        operator, raw = match.groups()
-        expected = tuple(int(part) for part in raw.split("."))
-        relation = compare_versions(actual, expected)
+        operator, raw, qualifier = match.groups()
+        expected = raw + (("-" + qualifier) if qualifier is not None else "")
+        relation = compare_full_versions(version, expected)
+        if relation is None:
+            return None
+        expected_numbers = tuple(int(part) for part in raw.split("."))
+        actual_numbers = version_numbers(version)
         if operator == ">=" and relation < 0: return False
         if operator == ">" and relation <= 0: return False
         if operator == "<=" and relation > 0: return False
         if operator == "<" and relation >= 0: return False
         if operator == "^":
             if relation < 0: return False
-            pivot = next((i for i, part in enumerate(expected) if part), len(expected) - 1)
-            upper = list(expected[:pivot + 1]); upper[pivot] += 1
-            if compare_versions(actual, tuple(upper)) >= 0: return False
+            pivot = next((i for i, part in enumerate(expected_numbers) if part), len(expected_numbers) - 1)
+            upper = list(expected_numbers[:pivot + 1]); upper[pivot] += 1
+            if compare_versions(actual_numbers, tuple(upper)) >= 0: return False
         if operator == "~":
             if relation < 0: return False
-            upper = list(expected[:max(1, len(expected) - 1)]); upper[-1] += 1
-            if compare_versions(actual, tuple(upper)) >= 0: return False
+            upper = list(expected_numbers[:max(1, len(expected_numbers) - 1)]); upper[-1] += 1
+            if compare_versions(actual_numbers, tuple(upper)) >= 0: return False
         if operator is None and relation != 0: return False
     return True
 
