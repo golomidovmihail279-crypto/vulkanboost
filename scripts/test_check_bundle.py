@@ -39,7 +39,7 @@ def make_bundle(mod_ids=None, extra_path=None):
     root_metadata = {
         "schemaVersion": 1,
         "id": "vulkanboost",
-        "version": "0.5",
+        "version": "0.6",
         "jars": nested_jars,
         "depends": check_bundle.REQUIRED_DEPENDENCIES.copy(),
     }
@@ -55,7 +55,7 @@ def make_bundle(mod_ids=None, extra_path=None):
 
 
 class BundleCheckerTests(unittest.TestCase):
-    def test_clean_19_component_bundle_passes(self):
+    def test_clean_25_component_bundle_passes(self):
         path = make_bundle()
         try:
             self.assertEqual(check_bundle.check_bundle(path), [])
