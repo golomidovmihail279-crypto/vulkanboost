@@ -136,5 +136,23 @@ class BundleCheckerTests(unittest.TestCase):
             self.assertTrue(any("metadata must be an object" in error for error in errors))
 
 
+    def test_internal_dependency_minimum_version_mismatch_is_rejected(self):
+        self.assertFalse(check_bundle.predicate_matches("0.140.2+1.21.11", ">=0.141.2"))
+        self.assertTrue(check_bundle.predicate_matches("0.141.2+1.21.11", ">=0.141.2"))
+
+    def test_internal_dependency_caret_and_tilde_predicates(self):
+        self.assertTrue(check_bundle.predicate_matches("1.10.2+1.21.11", "^1.10.0"))
+        self.assertFalse(check_bundle.predicate_matches("2.0.0", "^1.10.0"))
+        self.assertTrue(check_bundle.predicate_matches("1.10.2", "~1.10.0"))
+        self.assertFalse(check_bundle.predicate_matches("1.11.0", "~1.10.0"))
+
+    def test_internal_dependency_space_separated_range(self):
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">=1.21.11- <1.21.12-"))
+        self.assertFalse(check_bundle.predicate_matches("1.21.12", ">=1.21.11- <1.21.12-"))
+
+    def test_unsupported_internal_predicate_is_not_silently_accepted(self):
+        self.assertIsNone(check_bundle.predicate_matches("1.2.3", "latest-stable"))
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
