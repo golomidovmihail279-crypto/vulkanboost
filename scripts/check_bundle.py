@@ -126,27 +126,147 @@ def predicate_matches(version: str, constraint: str) -> bool | None:
     return True
 
 
-def validate_internal_dependencies(installed, records, errors):
-    """Check version predicates only when the dependency is bundled here."""
-    for owner, metadata in records:
+ENVIRONMENT_PROVIDES = {
+    "java": "21",
+    "minecraft": "1.21.11",
+    "fabricloader": "0.20.1",
+}
+
+
+def predicate_matches_any(version: str, constraint: Any) -> bool | None:
+    """Fabric dependency arrays are OR alternatives; strings are single predicates."""
+    if isinstance(constraint, str):
+        return predicate_matches(version, constraint)
+    if isinstance(constraint, list) and constraint and all(isinstance(item, str) for item in constraint):
+        results = [predicate_matches(version, item) for item in constraint]
+        if any(result is True for result in results):
+            return True
+        return None if any(result is None for result in results) else False
+    return None
+
+
+def version_sort_key(value: str):
+    """Stable best-effort ordering for the numeric version forms in this bundle."""
+    numbers = version_numbers(value)
+    return (numbers if numbers is not None else (), value)
+
+
+def resolve_and_validate_dependencies(top_level_records, candidates, errors):
+    """Resolve required nested candidates by priority while satisfying active dependencies.
+
+    Root/top-level mods are fixed. Nested candidates are only activated when an active
+    mod requires their ID. For each required ID, prefer the highest version satisfying
+    every active requirement. This models the relevant Loader behavior without claiming
+    to replace Fabric Loader's full SAT4J resolver.
+    """
+    top_level = {}
+    for owner, metadata in top_level_records:
+        mod_id = metadata.get("id")
+        version = str(metadata.get("version", "0"))
+        top_level[mod_id] = version
+
+    selected = {}
+    for _ in range(100):
+        active_records = list(top_level_records)
+        active_records.extend(
+            (candidate["origin"], candidate["metadata"])
+            for candidate in selected.values()
+        )
+
+        requirements = {}
+        for owner, metadata in active_records:
+            dependencies = metadata.get("depends", {})
+            if not isinstance(dependencies, dict):
+                errors.append(f"{owner}: 'depends' must be an object")
+                continue
+            for dependency, constraint in dependencies.items():
+                requirements.setdefault(dependency, []).append((owner, constraint))
+
+        next_selected = {}
+        for dependency, constraints in requirements.items():
+            if dependency in ENVIRONMENT_PROVIDES or dependency in top_level:
+                continue
+            available = candidates.get(dependency, [])
+            if not available:
+                continue
+            compatible = []
+            for candidate in available:
+                outcomes = [
+                    predicate_matches_any(candidate["version"], constraint)
+                    for _, constraint in constraints
+                ]
+                if all(outcome is True for outcome in outcomes):
+                    compatible.append(candidate)
+            if not compatible:
+                details = ", ".join(
+                    f"{owner} requires {dependency} {constraint!r}"
+                    for owner, constraint in constraints
+                )
+                versions = ", ".join(candidate["version"] for candidate in available)
+                errors.append(
+                    f"no compatible bundled candidate for {dependency!r}: "
+                    f"{details}; available versions: {versions}"
+                )
+                continue
+            next_selected[dependency] = max(
+                compatible, key=lambda candidate: version_sort_key(candidate["version"])
+            )
+
+        old_signature = {
+            mod_id: (item["version"], item["origin"])
+            for mod_id, item in selected.items()
+        }
+        new_signature = {
+            mod_id: (item["version"], item["origin"])
+            for mod_id, item in next_selected.items()
+        }
+        selected = next_selected
+        if old_signature == new_signature:
+            break
+    else:
+        errors.append("nested dependency resolution did not converge")
+
+    active_records = list(top_level_records)
+    active_records.extend(
+        (candidate["origin"], candidate["metadata"])
+        for candidate in selected.values()
+    )
+    for owner, metadata in active_records:
         dependencies = metadata.get("depends", {})
         if not isinstance(dependencies, dict):
-            errors.append(f"{owner}: 'depends' must be an object")
             continue
         for dependency, constraint in dependencies.items():
-            if dependency not in installed:
+            actual = ENVIRONMENT_PROVIDES.get(dependency, top_level.get(dependency))
+            if actual is None and dependency in selected:
+                actual = selected[dependency]["version"]
+            if actual is None:
                 continue
-            if not isinstance(constraint, str):
-                errors.append(f"{owner}: dependency {dependency!r} has a non-string predicate")
-                continue
-            result = predicate_matches(installed[dependency], constraint)
+            result = predicate_matches_any(actual, constraint)
             if result is None:
-                errors.append(f"{owner}: unsupported predicate {constraint!r} for bundled dependency {dependency!r}")
+                errors.append(
+                    f"{owner}: unsupported predicate {constraint!r} "
+                    f"for dependency {dependency!r}"
+                )
             elif not result:
-                errors.append(f"{owner} requires {dependency} {constraint}, but bundle contains {installed[dependency]}")
+                errors.append(
+                    f"{owner} requires {dependency} {constraint!r}, "
+                    f"but target provides {actual!r}"
+                )
+
+    for mod_id, candidate in sorted(selected.items()):
+        ignored = [
+            item["version"] for item in candidates.get(mod_id, [])
+            if item is not candidate
+        ]
+        if ignored:
+            print(
+                f"Resolved JiJ {mod_id}: selected {candidate['version']} "
+                f"from {candidate['origin']}; ignored {', '.join(ignored)}"
+            )
+    return selected
 
 
-def inspect_nested_jar(data, label, errors, installed, records, depth=0):
+def inspect_nested_jar(data, label, errors, candidates, depth=0):
     if depth > 8:
         errors.append(f"{label}: nested-JAR recursion limit exceeded")
         return
@@ -160,18 +280,19 @@ def inspect_nested_jar(data, label, errors, installed, records, depth=0):
             mod_id, version = metadata.get("id"), metadata.get("version")
             if isinstance(mod_id, str) and mod_id and isinstance(version, (str, int, float)):
                 version = str(version)
-                previous = installed.get(mod_id)
-                if previous is not None and previous != version:
-                    errors.append(f"duplicate bundled mod id {mod_id!r} has versions {previous!r} and {version!r}")
-                else:
-                    installed[mod_id] = version
-                records.append((mod_id, metadata))
+                candidates.setdefault(mod_id, []).append({
+                    "version": version,
+                    "metadata": metadata,
+                    "origin": label,
+                })
             for child_path in nested_paths(metadata, label, errors):
                 if child_path not in names:
                     errors.append(f"{label}: missing nested JAR entry {child_path!r}")
                     continue
-                inspect_nested_jar(nested.read(child_path), f"{label}!/{child_path}",
-                                   errors, installed, records, depth + 1)
+                inspect_nested_jar(
+                    nested.read(child_path), f"{label}!/{child_path}",
+                    errors, candidates, depth + 1
+                )
     except (zipfile.BadZipFile, OSError) as exc:
         errors.append(f"{label}: invalid nested JAR: {exc}")
 
@@ -220,8 +341,8 @@ def check_bundle(path: str | Path) -> list[str]:
             if metadata.get("id") != "vulkanboost":
                 errors.append("outer metadata id must be 'vulkanboost'")
 
-            installed_mods = {"vulkanboost": str(metadata.get("version", "0"))}
-            dependency_records = [("vulkanboost", metadata)]
+            top_level_records = [(str(path), metadata)]
+            nested_candidates = {}
 
             dependencies = metadata.get("depends", {})
             if not isinstance(dependencies, dict):
@@ -276,8 +397,7 @@ def check_bundle(path: str | Path) -> list[str]:
 
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
-                        installed_mods[mod_id] = str(version)
-                        dependency_records.append((mod_id, child_metadata))
+                        top_level_records.append((nested_path, child_metadata))
                         child_names = set(child.namelist())
                         for child_path in nested_paths(child_metadata, nested_path, errors):
                             if child_path not in child_names:
@@ -289,8 +409,7 @@ def check_bundle(path: str | Path) -> list[str]:
                                 child.read(child_path),
                                 f"{nested_path}!/{child_path}",
                                 errors,
-                                installed_mods,
-                                dependency_records,
+                                nested_candidates,
                                 depth=1,
                             )
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
@@ -310,7 +429,9 @@ def check_bundle(path: str | Path) -> list[str]:
                 errors.append(f"required components missing: {missing}")
             if unexpected:
                 errors.append(f"unexpected components present: {unexpected}")
-            validate_internal_dependencies(installed_mods, dependency_records, errors)
+            resolve_and_validate_dependencies(
+                top_level_records, nested_candidates, errors
+            )
 
             for mod_id, expected in EXPECTED_VERSIONS.items():
                 actual = nested_versions.get(mod_id)
