@@ -53,27 +53,3 @@ jobs:
           if-no-files-found: error
           retention-days: 14
 
-  publish-v0-5:
-    if: github.event_name == 'push' && contains(github.event.head_commit.message, '[update-v0.5]')
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - name: Check out source for release notes
-        uses: actions/checkout@v4
-
-      - name: Download validated installable JAR
-        uses: actions/download-artifact@v4
-        with:
-          name: vulkanboost-minecraft-1.21.11
-          path: artifact
-
-      - name: Replace the existing v0.5 release asset
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          cp artifact/vulkanboost-0.5.jar VulkanBoost-0.5-for-1.21.11.jar
-          sha256sum VulkanBoost-0.5-for-1.21.11.jar > VulkanBoost-0.5-for-1.21.11.jar.sha256
-          gh release upload v0.5 VulkanBoost-0.5-for-1.21.11.jar VulkanBoost-0.5-for-1.21.11.jar.sha256 --clobber --repo "$GITHUB_REPOSITORY"
-          gh release edit v0.5 --title "VulkanBoost 0.5 for Minecraft 1.21.11" --notes-file .github/RELEASE_NOTES.md --repo "$GITHUB_REPOSITORY"
