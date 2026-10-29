@@ -147,7 +147,7 @@ def predicate_matches(version: str, constraint: str) -> bool | None:
     if not tokens:
         return None
     for token in tokens:
-        wildcard = re.fullmatch(r"(\d+(?:\.\d+)*)\.(?:x|X|\\*)", token)
+        wildcard = re.fullmatch(r"(\d+(?:\.\d+)*)\.(?:x|X|\*)", token)
         if wildcard:
             prefix = tuple(int(part) for part in wildcard.group(1).split("."))
             actual = version_numbers(version)
