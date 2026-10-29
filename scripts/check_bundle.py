@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import io
 import json
+import re
 import sys
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -21,7 +22,7 @@ EXPECTED_COMPONENT_IDS = {
     "puzzleslib", "forgeconfigapiport",
 }
 EXPECTED_VERSIONS = {
-    "fabric-api": "0.140.2+1.21.11",
+    "fabric-api": "0.141.2+1.21.11",
     "vulkanmod": "0.6.8+1.21.11",
     "betterhurtcam": "1.12.0+mc1.21.11",
     "ukulib": "1.10.2+1.21.11",
@@ -72,7 +73,80 @@ def nested_paths(metadata: dict[str, Any], label: str, errors: list[str]) -> lis
     return paths
 
 
-def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 0) -> None:
+def version_numbers(value: str) -> tuple[int, ...] | None:
+    """Read numeric release prefixes for common Fabric version predicates."""
+    value = value.split("+", 1)[0]
+    match = re.match(r"^(\d+(?:\.\d+)*)(?:-|$)", value)
+    return tuple(int(part) for part in match.group(1).split(".")) if match else None
+
+
+def compare_versions(left: tuple[int, ...], right: tuple[int, ...]) -> int:
+    width = max(len(left), len(right))
+    a = left + (0,) * (width - len(left))
+    b = right + (0,) * (width - len(right))
+    return (a > b) - (a < b)
+
+
+def predicate_matches(version: str, constraint: str) -> bool | None:
+    """Evaluate common Fabric predicates; None means unsupported syntax."""
+    actual = version_numbers(version)
+    if actual is None:
+        return None
+    constraint = constraint.strip()
+    if constraint == "*":
+        return True
+    alternatives = [part.strip() for part in constraint.split("||")]
+    if len(alternatives) > 1:
+        results = [predicate_matches(version, part) for part in alternatives]
+        return None if any(item is None for item in results) else any(results)
+    tokens = constraint.split()
+    if not tokens:
+        return None
+    for token in tokens:
+        match = re.fullmatch(r"(>=|<=|>|<|\^|~)?(\d+(?:\.\d+)*)(?:-|\+[^ ]*)?", token)
+        if not match:
+            return None
+        operator, raw = match.groups()
+        expected = tuple(int(part) for part in raw.split("."))
+        relation = compare_versions(actual, expected)
+        if operator == ">=" and relation < 0: return False
+        if operator == ">" and relation <= 0: return False
+        if operator == "<=" and relation > 0: return False
+        if operator == "<" and relation >= 0: return False
+        if operator == "^":
+            if relation < 0: return False
+            pivot = next((i for i, part in enumerate(expected) if part), len(expected) - 1)
+            upper = list(expected[:pivot + 1]); upper[pivot] += 1
+            if compare_versions(actual, tuple(upper)) >= 0: return False
+        if operator == "~":
+            if relation < 0: return False
+            upper = list(expected[:max(1, len(expected) - 1)]); upper[-1] += 1
+            if compare_versions(actual, tuple(upper)) >= 0: return False
+        if operator is None and relation != 0: return False
+    return True
+
+
+def validate_internal_dependencies(installed, records, errors):
+    """Check version predicates only when the dependency is bundled here."""
+    for owner, metadata in records:
+        dependencies = metadata.get("depends", {})
+        if not isinstance(dependencies, dict):
+            errors.append(f"{owner}: 'depends' must be an object")
+            continue
+        for dependency, constraint in dependencies.items():
+            if dependency not in installed:
+                continue
+            if not isinstance(constraint, str):
+                errors.append(f"{owner}: dependency {dependency!r} has a non-string predicate")
+                continue
+            result = predicate_matches(installed[dependency], constraint)
+            if result is None:
+                errors.append(f"{owner}: unsupported predicate {constraint!r} for bundled dependency {dependency!r}")
+            elif not result:
+                errors.append(f"{owner} requires {dependency} {constraint}, but bundle contains {installed[dependency]}")
+
+
+def inspect_nested_jar(data, label, errors, installed, records, depth=0):
     if depth > 8:
         errors.append(f"{label}: nested-JAR recursion limit exceeded")
         return
@@ -82,15 +156,22 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
             try:
                 metadata = load_metadata(nested, label)
             except ValueError as exc:
-                errors.append(str(exc))
-                return
+                errors.append(str(exc)); return
+            mod_id, version = metadata.get("id"), metadata.get("version")
+            if isinstance(mod_id, str) and mod_id and isinstance(version, (str, int, float)):
+                version = str(version)
+                previous = installed.get(mod_id)
+                if previous is not None and previous != version:
+                    errors.append(f"duplicate bundled mod id {mod_id!r} has versions {previous!r} and {version!r}")
+                else:
+                    installed[mod_id] = version
+                records.append((mod_id, metadata))
             for child_path in nested_paths(metadata, label, errors):
                 if child_path not in names:
                     errors.append(f"{label}: missing nested JAR entry {child_path!r}")
                     continue
-                inspect_nested_jar(
-                    nested.read(child_path), f"{label}!/{child_path}", errors, depth + 1
-                )
+                inspect_nested_jar(nested.read(child_path), f"{label}!/{child_path}",
+                                   errors, installed, records, depth + 1)
     except (zipfile.BadZipFile, OSError) as exc:
         errors.append(f"{label}: invalid nested JAR: {exc}")
 
@@ -138,6 +219,9 @@ def check_bundle(path: str | Path) -> list[str]:
 
             if metadata.get("id") != "vulkanboost":
                 errors.append("outer metadata id must be 'vulkanboost'")
+
+            installed_mods = {"vulkanboost": str(metadata.get("version", "0"))}
+            dependency_records = [("vulkanboost", metadata)]
 
             dependencies = metadata.get("depends", {})
             if not isinstance(dependencies, dict):
@@ -192,6 +276,8 @@ def check_bundle(path: str | Path) -> list[str]:
 
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
+                        installed_mods[mod_id] = str(version)
+                        dependency_records.append((mod_id, child_metadata))
                         child_names = set(child.namelist())
                         for child_path in nested_paths(child_metadata, nested_path, errors):
                             if child_path not in child_names:
@@ -203,6 +289,8 @@ def check_bundle(path: str | Path) -> list[str]:
                                 child.read(child_path),
                                 f"{nested_path}!/{child_path}",
                                 errors,
+                                installed_mods,
+                                dependency_records,
                                 depth=1,
                             )
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
@@ -222,6 +310,8 @@ def check_bundle(path: str | Path) -> list[str]:
                 errors.append(f"required components missing: {missing}")
             if unexpected:
                 errors.append(f"unexpected components present: {unexpected}")
+            validate_internal_dependencies(installed_mods, dependency_records, errors)
+
             for mod_id, expected in EXPECTED_VERSIONS.items():
                 actual = nested_versions.get(mod_id)
                 if actual != expected:
@@ -245,7 +335,7 @@ def main() -> int:
         return 1
     print(
         "Validation passed: 25 unique top-level components, pinned component versions, "
-        "valid nested-JAR metadata, and no unexpected project-owned runtime hooks."
+        "satisfied bundled dependencies, valid nested-JAR metadata, and no unexpected project-owned runtime hooks."
     )
     return 0
 
