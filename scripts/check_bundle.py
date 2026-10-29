@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the distributable VulkanBoost bundle.
 
-Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.5.jar
+Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
 """
 from __future__ import annotations
 import io
@@ -16,12 +16,20 @@ EXPECTED_COMPONENT_IDS = {
     "badoptimizations", "modernfix", "scalablelux", "zfastnoise", "krypton",
     "c2me", "bura", "epitaph-optimizer", "dynamic_fps", "fastquit",
     "smart_particles", "cloth-config", "betterhurtcam", "ukulib",
+    "structure_layout_optimizer", "resourcefulconfig", "cullleaves", "midnightlib",
+    "puzzleslib", "forgeconfigapiport",
 }
 EXPECTED_VERSIONS = {
     "fabric-api": "0.140.2+1.21.11",
     "vulkanmod": "0.6.8+1.21.11",
     "betterhurtcam": "1.12.0+mc1.21.11",
     "ukulib": "1.10.2+1.21.11",
+    "structure_layout_optimizer": "1.1.4",
+    "resourcefulconfig": "3.11.3",
+    "cullleaves": "4.1.1.1",
+    "midnightlib": "1.9.2",
+    "puzzleslib": "21.11.11",
+    "forgeconfigapiport": "21.11.0",
 }
 REQUIRED_DEPENDENCIES = {
     "fabricloader": ">=0.19.3", "minecraft": "1.21.11",
@@ -172,7 +180,7 @@ def main() -> int:
     if findings:
         print(f"Validation failed: {len(findings)} error(s).")
         return 1
-    print("Validation passed: 19 unique top-level components, pinned core versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
+    print("Validation passed: 25 unique top-level components, pinned component versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
     return 0
 
 if __name__ == "__main__":
