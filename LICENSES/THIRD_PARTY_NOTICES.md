@@ -23,6 +23,14 @@ VulkanBoost bundles upstream mod JARs using Fabric Loader's nested-JAR mechanism
 | BetterHurtCam | 1.12.0+mc1.21.11 (unmodified upstream JAR) | MIT | https://github.com/uku3lig/betterhurtcam/tree/1.21.11 |
 | Ukulib | 1.10.2+1.21.11 (unmodified upstream JAR) | MPL-2.0 | https://github.com/uku3lig/ukulib/releases/tag/1.10.2+1.21.11 |
 | Cloth Config API | 21.11.153 | LGPL-3.0-only | https://modrinth.com/mod/cloth-config |
+| Structure Layout Optimizer | 1.1.4 (1.21.11 Fabric) | MIT | https://modrinth.com/mod/structure-layout-optimizer/version/YDgvKeWI |
+| Resourceful Config | 3.11.3 | MIT | https://modrinth.com/mod/resourceful-config/version/8bR7M6K7 |
+| Cull Leaves | 4.1.1.1 (1.21.11 Fabric) | MIT | https://modrinth.com/mod/cull-leaves/version/yrL6pwHZ |
+| MidnightLib | 1.9.2+1.21.11 Fabric | MIT | https://modrinth.com/mod/midnightlib/version/OeTayxh3 |
+| Puzzles Lib | 21.11.11 | MPL-2.0 | https://modrinth.com/mod/puzzles-lib/version/O1SlsQzW |
+| Forge Config API Port | 21.11.0 Fabric | MPL-2.0 | https://modrinth.com/mod/forge-config-api-port/version/Idk1R3dD |
+
+Fast Item Frames is an optional external add-on, not bundled here: its upstream repository's LICENSE-ASSETS.md states that its resource assets are All Rights Reserved. Do not redistribute the complete mod JAR inside VulkanBoost without permission from its author. Official compatible build: https://modrinth.com/mod/fast-item-frames/version/4QQcgJi6.
 
 Temporal reconstruction research documents may link to external projects for study. Those projects are not dependencies included in this bundle, and their source code is not copied into this branch. Review each upstream license before adopting code or assets.
 
