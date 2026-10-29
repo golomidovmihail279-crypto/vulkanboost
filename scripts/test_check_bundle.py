@@ -20,7 +20,7 @@ def make_nested(mod_id, version):
     return stream.getvalue()
 
 
-def make_bundle(mod_ids=None, extra_path=None):
+def make_bundle(mod_ids=None, extra_path=None, root_overrides=None):
     mod_ids = mod_ids or sorted(check_bundle.EXPECTED_COMPONENT_IDS)
     versions = dict(check_bundle.EXPECTED_VERSIONS)
     nested_jars = []
@@ -43,6 +43,9 @@ def make_bundle(mod_ids=None, extra_path=None):
         "jars": nested_jars,
         "depends": check_bundle.REQUIRED_DEPENDENCIES.copy(),
     }
+    if root_overrides:
+        root_metadata.update(root_overrides)
+
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("fabric.mod.json", json.dumps(root_metadata))
@@ -90,6 +93,30 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
+    def test_non_array_jars_metadata_is_reported_not_crashed(self):
+        path = make_bundle(root_overrides={"jars": "not-an-array"})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("'jars' must be an array" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_non_object_depends_metadata_is_reported_not_crashed(self):
+        path = make_bundle(root_overrides={"depends": ["not", "an", "object"]})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("'depends' must be an object" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_unsafe_nested_jar_path_is_rejected(self):
+        path = make_bundle(root_overrides={"jars": [{"file": "../outside.jar"}]})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("unsafe nested-JAR path" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
     def test_source_tree_rejects_custom_runtime_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -98,6 +125,15 @@ class BundleCheckerTests(unittest.TestCase):
             source.write_text("class CustomRenderer {}", encoding="utf-8")
             errors = check_bundle.check_source_tree(root)
             self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
+
+    def test_source_tree_rejects_non_object_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            metadata = root / "src" / "main" / "resources" / "fabric.mod.json"
+            metadata.parent.mkdir(parents=True)
+            metadata.write_text("[]", encoding="utf-8")
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any("metadata must be an object" in error for error in errors))
 
 
 if __name__ == "__main__":
