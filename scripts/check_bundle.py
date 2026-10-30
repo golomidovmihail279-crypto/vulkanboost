@@ -19,7 +19,7 @@ EXPECTED_COMPONENT_IDS = {
     "c2me", "bura", "epitaph-optimizer", "dynamic_fps", "fastquit",
     "smart_particles", "cloth-config", "betterhurtcam", "ukulib",
     "structure_layout_optimizer", "resourcefulconfig", "cullleaves", "midnightlib",
-    "puzzleslib", "forgeconfigapiport",
+    "puzzleslib", "forgeconfigapiport", "fastitemframes",
 }
 EXPECTED_VERSIONS = {
     "fabric-api": "0.141.2+1.21.11",
@@ -32,10 +32,12 @@ EXPECTED_VERSIONS = {
     "midnightlib": "1.9.2",
     "puzzleslib": "21.11.11",
     "forgeconfigapiport": "21.11.0",
+    "fastitemframes": "21.11.1",
 }
 REQUIRED_DEPENDENCIES = {
     "fabricloader": ">=0.19.3", "minecraft": "1.21.11",
     "vulkanmod": ">=0.6.8", "fabric-api": "*",
+    "fastitemframes": ">=21.11.1",
     "betterhurtcam": ">=1.12.0", "ukulib": "^1.10.0",
 }
 
@@ -535,7 +537,7 @@ def main() -> int:
         print(f"Validation failed: {len(findings)} error(s).")
         return 1
     print(
-        "Validation passed: 25 unique top-level components, pinned component versions, "
+        "Validation passed: 26 unique top-level components, pinned component versions, "
         "satisfied bundled dependencies, target Java/Minecraft checks, valid nested-JAR metadata, "
         "and no unexpected project-owned runtime hooks."
     )
