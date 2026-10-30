@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the distributable VulkanBoost bundle.
 
-Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
+Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.7.1.jar
 """
 from __future__ import annotations
 import io
@@ -11,6 +11,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+EXPECTED_BUNDLE_VERSION = "0.7.1"
 EXPECTED_COMPONENT_IDS = {
     "fabric-api", "vulkanmod", "lithium", "ferritecore", "alternate-current",
     "badoptimizations", "modernfix", "scalablelux", "zfastnoise", "krypton",
@@ -70,7 +71,7 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
         errors.append(f"{label}: invalid nested JAR: {exc}")
 
 def check_source_tree(root: str | Path = ".") -> list[str]:
-    """Ensure the base bundle declares no custom runtime hooks."""
+    """Allow first-party client code but reject unreviewed renderer hooks and shaders."""
     root = Path(root)
     errors: list[str] = []
     metadata_path = root / "src" / "main" / "resources" / "fabric.mod.json"
@@ -79,17 +80,31 @@ def check_source_tree(root: str | Path = ".") -> list[str]:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             return [f"fabric.mod.json: invalid metadata: {exc}"]
+        if not isinstance(metadata, dict):
+            return ["fabric.mod.json: metadata must be an object"]
         if metadata.get("mixins"):
-            errors.append("custom mixin registration is not expected in the bundle base")
+            errors.append("custom mixin registration is not expected in the Control Center foundation")
+        client_entrypoints = metadata.get("entrypoints", {}).get("client", [])
+        if "dev.vulkanboost.client.VulkanBoostClient" not in client_entrypoints:
+            errors.append("fabric.mod.json: VulkanBoost client entrypoint is missing")
+
+    allowed_java_root = root / "src" / "main" / "java" / "dev" / "vulkanboost"
     source_root = root / "src" / "main"
     if source_root.exists():
         for path in source_root.rglob("*"):
             if not path.is_file():
                 continue
-            if path.suffix.lower() in {".java", ".class", ".glsl", ".fsh", ".vsh"}:
-                errors.append(f"unexpected project-owned runtime file: {path.relative_to(root).as_posix()}")
+            relative = path.relative_to(root).as_posix()
+            suffix = path.suffix.lower()
+            if suffix == ".java":
+                try:
+                    path.relative_to(allowed_java_root)
+                except ValueError:
+                    errors.append(f"unexpected project-owned runtime file: {relative}")
+            elif suffix in {".class", ".glsl", ".fsh", ".vsh"}:
+                errors.append(f"unexpected project-owned runtime file: {relative}")
             if path.name.endswith(".mixins.json"):
-                errors.append(f"unexpected mixin configuration: {path.relative_to(root).as_posix()}")
+                errors.append(f"unexpected mixin configuration: {relative}")
     return errors
 
 def check_bundle(path: str | Path) -> list[str]:
@@ -103,6 +118,11 @@ def check_bundle(path: str | Path) -> list[str]:
                 return [str(exc)]
             if metadata.get("id") != "vulkanboost":
                 errors.append("outer metadata id must be 'vulkanboost'")
+            actual_bundle_version = str(metadata.get("version", ""))
+            if actual_bundle_version != EXPECTED_BUNDLE_VERSION:
+                errors.append(
+                    f"bundle version mismatch: expected {EXPECTED_BUNDLE_VERSION!r}, found {actual_bundle_version!r}"
+                )
             dependencies = metadata.get("depends", {})
             for dependency, expected in REQUIRED_DEPENDENCIES.items():
                 actual = dependencies.get(dependency)
@@ -112,9 +132,12 @@ def check_bundle(path: str | Path) -> list[str]:
                 errors.append("unexpected root mixin registration remains")
             if "vulkanboost.mixins.json" in names:
                 errors.append("unexpected mixin config remains")
-            custom_classes = sorted(name for name in names if name.startswith("dev/vulkanboost/") and name.endswith(".class"))
-            if custom_classes:
-                errors.append(f"unexpected project-owned runtime classes remain: {custom_classes}")
+            unexpected_root_classes = sorted(
+                name for name in names
+                if name.endswith(".class") and not name.startswith("dev/vulkanboost/")
+            )
+            if unexpected_root_classes:
+                errors.append(f"unexpected classes outside the VulkanBoost namespace: {unexpected_root_classes}")
 
             nested_entries = metadata.get("jars", [])
             nested_ids: list[str] = []
@@ -180,7 +203,7 @@ def main() -> int:
     if findings:
         print(f"Validation failed: {len(findings)} error(s).")
         return 1
-    print("Validation passed: 25 unique top-level components, pinned component versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
+    print("Validation passed: version 0.7.1, 25 unique top-level components, pinned component versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
     return 0
 
 if __name__ == "__main__":

@@ -20,16 +20,16 @@ def make_nested(mod_id, version):
     return stream.getvalue()
 
 
-def make_bundle(mod_ids=None, extra_path=None):
+def make_bundle(mod_ids=None, extra_path=None, version=check_bundle.EXPECTED_BUNDLE_VERSION):
     mod_ids = mod_ids or sorted(check_bundle.EXPECTED_COMPONENT_IDS)
     versions = dict(check_bundle.EXPECTED_VERSIONS)
     nested_jars = []
     payloads = {}
     for index, mod_id in enumerate(mod_ids):
-        version = versions.get(mod_id, "test-version")
+        component_version = versions.get(mod_id, "test-version")
         path = f"META-INF/jars/{index:02d}-{mod_id}.jar"
         nested_jars.append({"file": path})
-        payloads[path] = make_nested(mod_id, version)
+        payloads[path] = make_nested(mod_id, component_version)
 
     if extra_path:
         path, payload = extra_path
@@ -39,7 +39,7 @@ def make_bundle(mod_ids=None, extra_path=None):
     root_metadata = {
         "schemaVersion": 1,
         "id": "vulkanboost",
-        "version": "0.6",
+        "version": version,
         "jars": nested_jars,
         "depends": check_bundle.REQUIRED_DEPENDENCIES.copy(),
     }
@@ -59,6 +59,14 @@ class BundleCheckerTests(unittest.TestCase):
         path = make_bundle()
         try:
             self.assertEqual(check_bundle.check_bundle(path), [])
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_wrong_root_version_is_rejected(self):
+        path = make_bundle(version="0.7")
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("bundle version mismatch" in error for error in errors))
         finally:
             Path(path).unlink(missing_ok=True)
 
@@ -90,12 +98,29 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_source_tree_rejects_custom_runtime_files(self):
+    def test_source_tree_allows_vulkanboost_client_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "src" / "main" / "java" / "dev" / "vulkanboost" / "client" / "VulkanBoostClient.java"
+            source.parent.mkdir(parents=True)
+            source.write_text("class VulkanBoostClient {}", encoding="utf-8")
+            self.assertEqual(check_bundle.check_source_tree(root), [])
+
+    def test_source_tree_rejects_java_outside_vulkanboost_namespace(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "src" / "main" / "java" / "example" / "CustomRenderer.java"
             source.parent.mkdir(parents=True)
             source.write_text("class CustomRenderer {}", encoding="utf-8")
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
+
+    def test_source_tree_still_rejects_custom_shaders(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shader = root / "src" / "main" / "resources" / "assets" / "vulkanboost" / "shaders" / "custom.fsh"
+            shader.parent.mkdir(parents=True)
+            shader.write_text("// no project-owned renderer yet", encoding="utf-8")
             errors = check_bundle.check_source_tree(root)
             self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
 

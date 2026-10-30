@@ -30,6 +30,11 @@ dependencies {
 
     // Core rendering and compatibility dependencies.
     include(modImplementation("maven.modrinth:P7dR8mSH:gB6TkYEJ")) // Fabric API 0.140.2+1.21.11
+
+    // Compile against the Fabric API modules used by our client entrypoint.
+    // Runtime copies remain provided by the bundled Fabric API nested JAR.
+    modCompileOnly("net.fabricmc.fabric-api:fabric-key-binding-api-v1:1.1.7+4fc5413f3e")
+    modCompileOnly("net.fabricmc.fabric-api:fabric-lifecycle-events-v1:2.6.15+4ebb5c083e")
     include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
 
     // Established optimization components pinned to reproducible artifacts.
