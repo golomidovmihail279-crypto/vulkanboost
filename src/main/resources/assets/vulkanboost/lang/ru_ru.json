@@ -72,6 +72,7 @@
   "screen.vulkanboost.memory.status.observing": "Наблюдение за использованием памяти",
   "screen.vulkanboost.memory.status.high": "Высокая нагрузка на память — проверяем, сохраняется ли она",
   "screen.vulkanboost.memory.status.reduced": "Уменьшена дальность прорисовки и симуляции для снижения нагрузки от чанков",
+  "screen.vulkanboost.memory.status.profile_active": "Профиль автонастройки активен — помощник памяти приостановлен",
   "screen.vulkanboost.memory.status.restored": "Нагрузка снизилась — прежняя дальность восстановлена",
   "screen.vulkanboost.memory.status.manual": "Ты изменил дальность вручную; автоматическое восстановление отменено",
   "screen.vulkanboost.memory.status.api_unavailable": "Настройки дальности недоступны в этой версии",
