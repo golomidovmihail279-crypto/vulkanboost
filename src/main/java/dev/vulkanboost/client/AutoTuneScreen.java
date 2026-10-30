@@ -17,6 +17,8 @@ public final class AutoTuneScreen extends Screen {
     private final Screen parent;
     private AutoTuneService.Profile selectedProfile = AutoTuneService.recommendedProfile();
     private AutoTuneService.Plan plan;
+    private Button applyButton;
+    private Button undoButton;
 
     public AutoTuneScreen(Screen parent) {
         super(Component.translatable("screen.vulkanboost.autotune.title"));
@@ -47,13 +49,13 @@ public final class AutoTuneScreen extends Screen {
         ).bounds(x, y, width, 20).build());
         y += 30;
 
-        addRenderableWidget(Button.builder(
+        applyButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.autotune.apply"),
                 button -> applyPlan()
         ).bounds(x, y, width, 20).build());
         y += 24;
 
-        addRenderableWidget(Button.builder(
+        undoButton = addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.autotune.undo"),
                 button -> undo()
         ).bounds(x, y, width, 20).build());
@@ -65,6 +67,17 @@ public final class AutoTuneScreen extends Screen {
         ).bounds(x, y, width, 20).build());
 
         refreshPlan();
+        updateActionButtons();
+    }
+
+    private void updateActionButtons() {
+        boolean canUndo = AutoTuneService.canUndo();
+        if (applyButton != null) {
+            applyButton.active = !canUndo;
+        }
+        if (undoButton != null) {
+            undoButton.active = canUndo;
+        }
     }
 
     private void selectProfile(AutoTuneService.Profile profile) {
@@ -86,6 +99,7 @@ public final class AutoTuneScreen extends Screen {
         try {
             AutoTuneService.apply(this.minecraft, plan);
             refreshPlan();
+            updateActionButtons();
         } catch (RuntimeException exception) {
             this.minecraft.setScreen(new AutoTuneResultScreen(this, false));
         }
@@ -98,6 +112,7 @@ public final class AutoTuneScreen extends Screen {
         try {
             AutoTuneService.undo(this.minecraft);
             refreshPlan();
+            updateActionButtons();
         } catch (ReflectiveOperationException | RuntimeException exception) {
             this.minecraft.setScreen(new AutoTuneResultScreen(this, false));
         }
