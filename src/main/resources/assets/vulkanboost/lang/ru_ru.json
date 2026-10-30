@@ -1,0 +1,11 @@
+{
+  "key.category.vulkanboost.main": "VulkanBoost",
+  "key.vulkanboost.open_control_center": "Открыть панель VulkanBoost",
+  "screen.vulkanboost.control_center.title": "Панель управления VulkanBoost",
+  "screen.vulkanboost.control_center.subtitle": "Настройки оптимизации в одном месте",
+  "screen.vulkanboost.control_center.hint": "Горячую клавишу можно изменить в Настройки → Управление → Назначение клавиш.",
+  "screen.vulkanboost.control_center.hints_on": "Показывать подсказки: ВКЛ",
+  "screen.vulkanboost.control_center.hints_off": "Показывать подсказки: ВЫКЛ",
+  "screen.vulkanboost.control_center.reset": "Сбросить настройки",
+  "screen.vulkanboost.control_center.close": "Закрыть"
+}
