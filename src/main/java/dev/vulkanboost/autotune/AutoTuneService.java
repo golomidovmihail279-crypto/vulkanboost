@@ -98,6 +98,9 @@ public final class AutoTuneService {
     }
 
     public static void apply(Minecraft client, Plan plan) {
+        if (canUndo()) {
+            throw new IllegalStateException("Undo the previously applied profile before applying another one.");
+        }
         verifyPreviewIsCurrent(client, "renderDistance", plan.currentRenderDistance());
         verifyPreviewIsCurrent(client, "simulationDistance", plan.currentSimulationDistance());
 
