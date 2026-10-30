@@ -24,11 +24,15 @@ public final class VulkanBoostConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger("VulkanBoost");
     private static final int CURRENT_SCHEMA_VERSION = 1;
     private static final String SHOW_HINTS_KEY = "panel.showHints";
+    private static final String MEMORY_ASSIST_KEY = "memory.autoReduceDistances";
+    private static final String MEMORY_THRESHOLD_KEY = "memory.pressureThresholdPercent";
     private static final Path CONFIG_FILE = FabricLoader.getInstance()
             .getConfigDir()
             .resolve("vulkanboost.properties");
 
     private static boolean showHints = true;
+    private static boolean memoryAssistEnabled;
+    private static int memoryThresholdPercent = 85;
     private static boolean readOnly;
 
     private VulkanBoostConfig() {
@@ -69,14 +73,38 @@ public final class VulkanBoostConfig {
         }
 
         String showHintsValue = properties.getProperty(SHOW_HINTS_KEY, "true");
-        if (!"true".equalsIgnoreCase(showHintsValue) && !"false".equalsIgnoreCase(showHintsValue)) {
+        String memoryAssistValue = properties.getProperty(MEMORY_ASSIST_KEY, "false");
+        String memoryThresholdValue = properties.getProperty(MEMORY_THRESHOLD_KEY, "85");
+
+        if (!isBoolean(showHintsValue) || !isBoolean(memoryAssistValue)) {
             readOnly = true;
-            LOGGER.warn("Invalid value for '{}'. Defaults will be used and the file will be left untouched.",
-                    SHOW_HINTS_KEY);
+            LOGGER.warn("Invalid boolean in VulkanBoost config. Defaults will be used and the file will be left untouched.");
+            return;
+        }
+
+        final int parsedThreshold;
+        try {
+            parsedThreshold = Integer.parseInt(memoryThresholdValue);
+        } catch (NumberFormatException exception) {
+            readOnly = true;
+            LOGGER.warn("Invalid memory threshold '{}'. Defaults will be used and the file will be left untouched.",
+                    memoryThresholdValue);
+            return;
+        }
+
+        if (parsedThreshold < 70 || parsedThreshold > 95) {
+            readOnly = true;
+            LOGGER.warn("Memory threshold must be between 70 and 95. The config file will be left untouched.");
             return;
         }
 
         showHints = Boolean.parseBoolean(showHintsValue);
+        memoryAssistEnabled = Boolean.parseBoolean(memoryAssistValue);
+        memoryThresholdPercent = parsedThreshold;
+    }
+
+    private static boolean isBoolean(String value) {
+        return "true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value);
     }
 
     public static boolean showHints() {
@@ -88,8 +116,31 @@ public final class VulkanBoostConfig {
         save();
     }
 
+    public static boolean memoryAssistEnabled() {
+        return memoryAssistEnabled;
+    }
+
+    public static void setMemoryAssistEnabled(boolean enabled) {
+        memoryAssistEnabled = enabled;
+        save();
+    }
+
+    public static int memoryThresholdPercent() {
+        return memoryThresholdPercent;
+    }
+
+    public static void setMemoryThresholdPercent(int threshold) {
+        if (threshold < 70 || threshold > 95) {
+            throw new IllegalArgumentException("Memory pressure threshold must be between 70 and 95.");
+        }
+        memoryThresholdPercent = threshold;
+        save();
+    }
+
     public static void resetToDefaults() {
         showHints = true;
+        memoryAssistEnabled = false;
+        memoryThresholdPercent = 85;
         save();
     }
 
@@ -102,6 +153,8 @@ public final class VulkanBoostConfig {
         Properties properties = new Properties();
         properties.setProperty("schemaVersion", Integer.toString(CURRENT_SCHEMA_VERSION));
         properties.setProperty(SHOW_HINTS_KEY, Boolean.toString(showHints));
+        properties.setProperty(MEMORY_ASSIST_KEY, Boolean.toString(memoryAssistEnabled));
+        properties.setProperty(MEMORY_THRESHOLD_KEY, Integer.toString(memoryThresholdPercent));
 
         Path temporaryFile = CONFIG_FILE.resolveSibling(CONFIG_FILE.getFileName() + ".tmp");
         try {
