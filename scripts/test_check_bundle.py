@@ -39,7 +39,7 @@ def make_bundle(mod_ids=None, extra_path=None):
     root_metadata = {
         "schemaVersion": 1,
         "id": "vulkanboost",
-        "version": "0.6",
+        "version": "0.7",
         "jars": nested_jars,
         "depends": check_bundle.REQUIRED_DEPENDENCIES.copy(),
     }
