@@ -66,7 +66,7 @@ public final class SmartMemoryManager {
 
         if (hasIntervention()) {
             if (!stillAtAppliedValues(client)) {
-                clearIntervention();
+                restoreIfUnchanged(client);
                 statusKey = "screen.vulkanboost.memory.status.manual";
                 lowPressureSamples = 0;
                 return;
@@ -177,29 +177,39 @@ public final class SmartMemoryManager {
         if (!hasIntervention()) {
             return;
         }
-        if (stillAtAppliedValues(client)) {
-            try {
-                restoreOriginalValues(client);
-                statusKey = "screen.vulkanboost.memory.status.restored";
-            } catch (RuntimeException exception) {
-                statusKey = "screen.vulkanboost.memory.status.error";
-                LOGGER.warn("Could not restore the previous distance settings.", exception);
-            }
-        } else {
-            clearIntervention();
-            statusKey = "screen.vulkanboost.memory.status.manual";
+        boolean changedManually = !stillAtAppliedValues(client);
+        try {
+            restoreOriginalValues(client);
+            statusKey = changedManually
+                    ? "screen.vulkanboost.memory.status.manual"
+                    : "screen.vulkanboost.memory.status.restored";
+        } catch (RuntimeException exception) {
+            statusKey = "screen.vulkanboost.memory.status.error";
+            LOGGER.warn("Could not restore the previous distance settings.", exception);
         }
     }
 
+    /**
+     * Restores each setting only when it still has the value written by this helper.
+     * If the user changed one distance manually, the other can still be restored.
+     */
     private static void restoreOriginalValues(Minecraft client) {
         try {
-            if (originalRenderDistance != null) {
-                MinecraftOptionAccess.write(client, "renderDistance", originalRenderDistance);
+            OptionalInt currentRender = MinecraftOptionAccess.read(client, "renderDistance");
+            OptionalInt currentSimulation = MinecraftOptionAccess.read(client, "simulationDistance");
+
+            boolean restoredAny = false;
+            if (originalRenderDistance != null && currentRender.isPresent() &&
+                    currentRender.getAsInt() == appliedRenderDistance) {
+                restoredAny |= MinecraftOptionAccess.write(client, "renderDistance", originalRenderDistance);
             }
-            if (originalSimulationDistance != null) {
-                MinecraftOptionAccess.write(client, "simulationDistance", originalSimulationDistance);
+            if (originalSimulationDistance != null && currentSimulation.isPresent() &&
+                    currentSimulation.getAsInt() == appliedSimulationDistance) {
+                restoredAny |= MinecraftOptionAccess.write(client, "simulationDistance", originalSimulationDistance);
             }
-            MinecraftOptionAccess.save(client);
+            if (restoredAny) {
+                MinecraftOptionAccess.save(client);
+            }
         } catch (ReflectiveOperationException exception) {
             throw new IllegalStateException("Could not restore vanilla distance settings", exception);
         } finally {
