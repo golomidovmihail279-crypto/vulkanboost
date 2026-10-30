@@ -1,11 +1,14 @@
 package dev.vulkanboost.memory;
 
 import dev.vulkanboost.autotune.MinecraftOptionAccess;
+import dev.vulkanboost.autotune.ReversibleOptionChanges;
 import dev.vulkanboost.config.VulkanBoostConfig;
 import net.minecraft.client.Minecraft;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.OptionalInt;
 
 /**
@@ -28,10 +31,7 @@ public final class SmartMemoryManager {
     private static int lowPressureSamples;
     private static long lastAdjustmentMillis;
 
-    private static Integer originalRenderDistance;
-    private static Integer originalSimulationDistance;
-    private static int appliedRenderDistance = -1;
-    private static int appliedSimulationDistance = -1;
+    private static ReversibleOptionChanges.Snapshot intervention;
 
     private static String statusKey = "screen.vulkanboost.memory.status.disabled";
     private static int pressurePercent;
@@ -46,7 +46,9 @@ public final class SmartMemoryManager {
         ticks = 0;
 
         if (!VulkanBoostConfig.memoryAssistEnabled()) {
-            restoreIfUnchanged(client);
+            if (!restoreIfUnchanged(client)) {
+                return;
+            }
             highPressureSamples = 0;
             lowPressureSamples = 0;
             statusKey = "screen.vulkanboost.memory.status.disabled";
@@ -55,7 +57,9 @@ public final class SmartMemoryManager {
         }
 
         if (client.level == null) {
-            restoreIfUnchanged(client);
+            if (!restoreIfUnchanged(client)) {
+                return;
+            }
             statusKey = "screen.vulkanboost.memory.status.waiting";
             updatePressure();
             return;
@@ -65,9 +69,10 @@ public final class SmartMemoryManager {
         int threshold = VulkanBoostConfig.memoryThresholdPercent();
 
         if (hasIntervention()) {
-            if (!stillAtAppliedValues(client)) {
+            ReversibleOptionChanges.Access access = MinecraftOptionAccess.bind(client);
+            if (!ReversibleOptionChanges.stillAtAppliedValues(access, intervention)) {
                 restoreIfUnchanged(client);
-                statusKey = "screen.vulkanboost.memory.status.manual";
+                highPressureSamples = 0;
                 lowPressureSamples = 0;
                 return;
             }
@@ -76,7 +81,6 @@ public final class SmartMemoryManager {
                 lowPressureSamples++;
                 if (lowPressureSamples >= REQUIRED_LOW_SAMPLES) {
                     restoreIfUnchanged(client);
-                    statusKey = "screen.vulkanboost.memory.status.restored";
                     lowPressureSamples = 0;
                     highPressureSamples = 0;
                 } else {
@@ -116,7 +120,9 @@ public final class SmartMemoryManager {
         Runtime runtime = Runtime.getRuntime();
         long max = runtime.maxMemory();
         long used = runtime.totalMemory() - runtime.freeMemory();
-        pressurePercent = max <= 0 ? 0 : (int) Math.min(100, (used * 100L) / max);
+        pressurePercent = max <= 0
+                ? 0
+                : (int) Math.min(100.0, ((double) used / (double) max) * 100.0);
     }
 
     private static void reduceChunkDistances(Minecraft client) {
@@ -131,96 +137,76 @@ public final class SmartMemoryManager {
         int nextSimulation = Math.max(2, simulation.getAsInt() - 1);
         if (nextRender == render.getAsInt() && nextSimulation == simulation.getAsInt()) {
             statusKey = "screen.vulkanboost.memory.status.minimum";
+            highPressureSamples = 0;
+            lastAdjustmentMillis = System.currentTimeMillis();
             return;
         }
 
-        try {
-            originalRenderDistance = render.getAsInt();
-            originalSimulationDistance = simulation.getAsInt();
+        Map<String, Integer> targets = new LinkedHashMap<>();
+        targets.put("renderDistance", nextRender);
+        targets.put("simulationDistance", nextSimulation);
 
-            if (!MinecraftOptionAccess.write(client, "renderDistance", nextRender) ||
-                    !MinecraftOptionAccess.write(client, "simulationDistance", nextSimulation)) {
-                restoreOriginalValues(client);
-                statusKey = "screen.vulkanboost.memory.status.api_unavailable";
+        try {
+            ReversibleOptionChanges.Snapshot snapshot = ReversibleOptionChanges.apply(
+                    MinecraftOptionAccess.bind(client), targets, true
+            );
+            if (snapshot.isEmpty()) {
+                statusKey = "screen.vulkanboost.memory.status.minimum";
+                highPressureSamples = 0;
+                lastAdjustmentMillis = System.currentTimeMillis();
                 return;
             }
 
-            MinecraftOptionAccess.save(client);
-            appliedRenderDistance = nextRender;
-            appliedSimulationDistance = nextSimulation;
+            intervention = snapshot;
             highPressureSamples = 0;
             lowPressureSamples = 0;
             lastAdjustmentMillis = System.currentTimeMillis();
             statusKey = "screen.vulkanboost.memory.status.reduced";
             LOGGER.info("Memory assistance reduced render distance {}→{} and simulation distance {}→{} at {}% Java heap pressure.",
                     render.getAsInt(), nextRender, simulation.getAsInt(), nextSimulation, pressurePercent);
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            restoreOriginalValues(client);
+        } catch (ReversibleOptionChanges.ApplyException exception) {
+            if (!exception.rollbackComplete()) {
+                intervention = exception.snapshot();
+            }
             statusKey = "screen.vulkanboost.memory.status.error";
-            LOGGER.warn("Could not apply safe memory assistance.", exception);
+            LOGGER.warn("Could not apply memory assistance. Rollback complete: {}.",
+                    exception.rollbackComplete(), exception);
+        } catch (RuntimeException exception) {
+            statusKey = "screen.vulkanboost.memory.status.error";
+            LOGGER.warn("Could not apply memory assistance.", exception);
         }
     }
 
     private static boolean hasIntervention() {
-        return originalRenderDistance != null && originalSimulationDistance != null;
+        return intervention != null && !intervention.isEmpty();
     }
 
-    private static boolean stillAtAppliedValues(Minecraft client) {
-        OptionalInt render = MinecraftOptionAccess.read(client, "renderDistance");
-        OptionalInt simulation = MinecraftOptionAccess.read(client, "simulationDistance");
-        return render.isPresent() && simulation.isPresent() &&
-                render.getAsInt() == appliedRenderDistance &&
-                simulation.getAsInt() == appliedSimulationDistance;
-    }
-
-    private static void restoreIfUnchanged(Minecraft client) {
+    private static boolean restoreIfUnchanged(Minecraft client) {
         if (!hasIntervention()) {
-            return;
+            intervention = null;
+            return true;
         }
-        boolean changedManually = !stillAtAppliedValues(client);
+
         try {
-            restoreOriginalValues(client);
-            statusKey = changedManually
+            ReversibleOptionChanges.RestoreResult result =
+                    ReversibleOptionChanges.restoreIfUnchanged(
+                            MinecraftOptionAccess.bind(client), intervention
+                    );
+            if (!result.complete()) {
+                statusKey = "screen.vulkanboost.memory.status.error";
+                LOGGER.warn("Memory-assistance restoration is pending; option values are not currently readable or writable.");
+                return false;
+            }
+
+            intervention = null;
+            statusKey = result.preservedValues() > 0
                     ? "screen.vulkanboost.memory.status.manual"
                     : "screen.vulkanboost.memory.status.restored";
-        } catch (RuntimeException exception) {
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException exception) {
             statusKey = "screen.vulkanboost.memory.status.error";
-            LOGGER.warn("Could not restore the previous distance settings.", exception);
+            LOGGER.warn("Could not restore the previous distance settings. Restoration will be retried.", exception);
+            return false;
         }
-    }
-
-    /**
-     * Restores each setting only when it still has the value written by this helper.
-     * If the user changed one distance manually, the other can still be restored.
-     */
-    private static void restoreOriginalValues(Minecraft client) {
-        try {
-            OptionalInt currentRender = MinecraftOptionAccess.read(client, "renderDistance");
-            OptionalInt currentSimulation = MinecraftOptionAccess.read(client, "simulationDistance");
-
-            boolean restoredAny = false;
-            if (originalRenderDistance != null && currentRender.isPresent() &&
-                    currentRender.getAsInt() == appliedRenderDistance) {
-                restoredAny |= MinecraftOptionAccess.write(client, "renderDistance", originalRenderDistance);
-            }
-            if (originalSimulationDistance != null && currentSimulation.isPresent() &&
-                    currentSimulation.getAsInt() == appliedSimulationDistance) {
-                restoredAny |= MinecraftOptionAccess.write(client, "simulationDistance", originalSimulationDistance);
-            }
-            if (restoredAny) {
-                MinecraftOptionAccess.save(client);
-            }
-        } catch (ReflectiveOperationException exception) {
-            throw new IllegalStateException("Could not restore vanilla distance settings", exception);
-        } finally {
-            clearIntervention();
-        }
-    }
-
-    private static void clearIntervention() {
-        originalRenderDistance = null;
-        originalSimulationDistance = null;
-        appliedRenderDistance = -1;
-        appliedSimulationDistance = -1;
     }
 }

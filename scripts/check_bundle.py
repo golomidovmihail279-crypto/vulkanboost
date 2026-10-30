@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the distributable VulkanBoost bundle.
 
-Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.7.jar
+Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.7.1.jar
 """
 from __future__ import annotations
 import io
@@ -11,6 +11,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+EXPECTED_BUNDLE_VERSION = "0.7.1"
 EXPECTED_COMPONENT_IDS = {
     "fabric-api", "vulkanmod", "lithium", "ferritecore", "alternate-current",
     "badoptimizations", "modernfix", "scalablelux", "zfastnoise", "krypton",
@@ -117,6 +118,11 @@ def check_bundle(path: str | Path) -> list[str]:
                 return [str(exc)]
             if metadata.get("id") != "vulkanboost":
                 errors.append("outer metadata id must be 'vulkanboost'")
+            actual_bundle_version = str(metadata.get("version", ""))
+            if actual_bundle_version != EXPECTED_BUNDLE_VERSION:
+                errors.append(
+                    f"bundle version mismatch: expected {EXPECTED_BUNDLE_VERSION!r}, found {actual_bundle_version!r}"
+                )
             dependencies = metadata.get("depends", {})
             for dependency, expected in REQUIRED_DEPENDENCIES.items():
                 actual = dependencies.get(dependency)
@@ -197,7 +203,7 @@ def main() -> int:
     if findings:
         print(f"Validation failed: {len(findings)} error(s).")
         return 1
-    print("Validation passed: 25 unique top-level components, pinned component versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
+    print("Validation passed: version 0.7.1, 25 unique top-level components, pinned component versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
     return 0
 
 if __name__ == "__main__":

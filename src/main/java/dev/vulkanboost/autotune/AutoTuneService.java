@@ -40,14 +40,15 @@ public final class AutoTuneService {
             int targetRenderDistance,
             int currentSimulationDistance,
             int targetSimulationDistance,
-            Map<String, Boolean> featureTargets
+            Map<String, Boolean> featureTargets,
+            Map<String, Boolean> currentFeatureValues
     ) {
     }
 
     private record Snapshot(
-            Integer renderDistance,
-            Integer simulationDistance,
-            Map<String, Boolean> featureValues
+            ReversibleOptionChanges.Snapshot distanceChanges,
+            Map<String, Boolean> previousFeatureValues,
+            Map<String, Boolean> appliedFeatureValues
     ) {
     }
 
@@ -82,56 +83,87 @@ public final class AutoTuneService {
                 : Math.min(currentSimulation, profile.simulationDistance);
 
         Map<String, Boolean> featureTargets = new LinkedHashMap<>();
+        Map<String, Boolean> currentFeatureValues = new LinkedHashMap<>();
         for (OptimizationRegistry.Entry entry : OptimizationRegistry.entries()) {
             if (entry.canToggle() &&
                     (entry.id().equals("cullleaves") || entry.id().equals("dynamic_fps"))) {
                 featureTargets.put(entry.id(), true);
+                currentFeatureValues.put(entry.id(), entry.isEnabled());
             }
         }
 
         return new Plan(profile, runtime.availableProcessors(), runtime.maxMemory(),
                 currentRender, targetRender, currentSimulation, targetSimulation,
-                Map.copyOf(featureTargets));
+                Map.copyOf(featureTargets), Map.copyOf(currentFeatureValues));
     }
 
-    public static void apply(Minecraft client, Plan plan) throws ReflectiveOperationException {
-        Map<String, Boolean> oldFeatures = new LinkedHashMap<>();
-        for (OptimizationRegistry.Entry entry : OptimizationRegistry.entries()) {
-            if (plan.featureTargets().containsKey(entry.id()) && entry.canToggle()) {
-                oldFeatures.put(entry.id(), entry.isEnabled());
+    public static void apply(Minecraft client, Plan plan) {
+        verifyPreviewIsCurrent(client, "renderDistance", plan.currentRenderDistance());
+        verifyPreviewIsCurrent(client, "simulationDistance", plan.currentSimulationDistance());
+
+        for (Map.Entry<String, Boolean> expected : plan.currentFeatureValues().entrySet()) {
+            OptimizationRegistry.Entry entry = findEntry(expected.getKey());
+            if (!entry.canToggle() || entry.isEnabled() != expected.getValue()) {
+                throw new IllegalStateException("Optimization settings changed after the preview. Preview the profile again.");
             }
         }
 
-        Snapshot before = new Snapshot(
-                plan.currentRenderDistance() >= 0 ? plan.currentRenderDistance() : null,
-                plan.currentSimulationDistance() >= 0 ? plan.currentSimulationDistance() : null,
-                Map.copyOf(oldFeatures)
-        );
+        Map<String, Integer> distanceTargets = new LinkedHashMap<>();
+        if (plan.targetRenderDistance() >= 0) {
+            distanceTargets.put("renderDistance", plan.targetRenderDistance());
+        }
+        if (plan.targetSimulationDistance() >= 0) {
+            distanceTargets.put("simulationDistance", plan.targetSimulationDistance());
+        }
 
+        ReversibleOptionChanges.Snapshot distanceChanges;
         try {
-            if (plan.targetRenderDistance() >= 0 &&
-                    plan.targetRenderDistance() != plan.currentRenderDistance() &&
-                    !MinecraftOptionAccess.write(client, "renderDistance", plan.targetRenderDistance())) {
-                throw new IllegalStateException("Render distance cannot be changed on this Minecraft version.");
+            distanceChanges = ReversibleOptionChanges.apply(
+                    MinecraftOptionAccess.bind(client), distanceTargets, false
+            );
+        } catch (ReversibleOptionChanges.ApplyException exception) {
+            if (!exception.rollbackComplete()) {
+                lastAppliedSnapshot = new Snapshot(exception.snapshot(), Map.of(), Map.of());
             }
-            if (plan.targetSimulationDistance() >= 0 &&
-                    plan.targetSimulationDistance() != plan.currentSimulationDistance() &&
-                    !MinecraftOptionAccess.write(client, "simulationDistance", plan.targetSimulationDistance())) {
-                throw new IllegalStateException("Simulation distance cannot be changed on this Minecraft version.");
-            }
+            throw exception;
+        }
 
-            for (OptimizationRegistry.Entry entry : OptimizationRegistry.entries()) {
-                Boolean target = plan.featureTargets().get(entry.id());
-                if (target != null && entry.canToggle() && entry.isEnabled() != target) {
-                    entry.setEnabled(target);
+        Map<String, Boolean> previousFeatures = new LinkedHashMap<>();
+        Map<String, Boolean> appliedFeatures = new LinkedHashMap<>();
+        try {
+            for (Map.Entry<String, Boolean> target : plan.featureTargets().entrySet()) {
+                OptimizationRegistry.Entry entry = findEntry(target.getKey());
+                if (!entry.canToggle()) {
+                    throw new IllegalStateException("Optimization adapter is no longer available: " + target.getKey());
+                }
+
+                boolean previous = entry.isEnabled();
+                previousFeatures.put(target.getKey(), previous);
+                appliedFeatures.put(target.getKey(), target.getValue());
+
+                if (previous != target.getValue()) {
+                    entry.setEnabled(target.getValue());
                 }
             }
 
-            MinecraftOptionAccess.save(client);
-            lastAppliedSnapshot = before;
-        } catch (ReflectiveOperationException | RuntimeException exception) {
-            restore(client, before);
-            throw exception;
+            lastAppliedSnapshot = new Snapshot(
+                    distanceChanges,
+                    Map.copyOf(previousFeatures),
+                    Map.copyOf(appliedFeatures)
+            );
+        } catch (ReflectiveOperationException | RuntimeException failure) {
+            Snapshot failedAttempt = new Snapshot(
+                    distanceChanges,
+                    Map.copyOf(previousFeatures),
+                    Map.copyOf(appliedFeatures)
+            );
+            try {
+                restore(client, failedAttempt);
+            } catch (ReflectiveOperationException | RuntimeException rollbackFailure) {
+                lastAppliedSnapshot = failedAttempt;
+                failure.addSuppressed(rollbackFailure);
+            }
+            throw failure;
         }
     }
 
@@ -143,25 +175,53 @@ public final class AutoTuneService {
         if (lastAppliedSnapshot == null) {
             return;
         }
-        Snapshot snapshot = lastAppliedSnapshot;
-        restore(client, snapshot);
+        restore(client, lastAppliedSnapshot);
         lastAppliedSnapshot = null;
     }
 
-    private static void restore(Minecraft client, Snapshot snapshot) throws ReflectiveOperationException {
-        if (snapshot.renderDistance() != null) {
-            MinecraftOptionAccess.write(client, "renderDistance", snapshot.renderDistance());
+    private static void verifyPreviewIsCurrent(Minecraft client, String optionName, int expected) {
+        if (expected < 0) {
+            return;
         }
-        if (snapshot.simulationDistance() != null) {
-            MinecraftOptionAccess.write(client, "simulationDistance", snapshot.simulationDistance());
+
+        OptionalInt current = MinecraftOptionAccess.read(client, optionName);
+        if (current.isEmpty() || current.getAsInt() != expected) {
+            throw new IllegalStateException("Minecraft settings changed after the preview. Preview the profile again.");
+        }
+    }
+
+    private static OptimizationRegistry.Entry findEntry(String id) {
+        return OptimizationRegistry.entries().stream()
+                .filter(entry -> entry.id().equals(id))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("Unknown optimization adapter: " + id));
+    }
+
+    private static void restore(Minecraft client, Snapshot snapshot) throws ReflectiveOperationException {
+        ReversibleOptionChanges.RestoreResult distanceResult =
+                ReversibleOptionChanges.restoreIfUnchanged(
+                        MinecraftOptionAccess.bind(client), snapshot.distanceChanges()
+                );
+        if (!distanceResult.complete()) {
+            throw new IllegalStateException("Distance settings could not be restored yet.");
         }
 
         for (OptimizationRegistry.Entry entry : OptimizationRegistry.entries()) {
-            Boolean original = snapshot.featureValues().get(entry.id());
-            if (original != null && entry.canToggle() && entry.isEnabled() != original) {
+            Boolean original = snapshot.previousFeatureValues().get(entry.id());
+            Boolean applied = snapshot.appliedFeatureValues().get(entry.id());
+            if (original == null || applied == null) {
+                continue;
+            }
+            if (!entry.canToggle()) {
+                throw new IllegalStateException("Optimization adapter is no longer available: " + entry.id());
+            }
+
+            boolean current = entry.isEnabled();
+            if (current == applied && current != original) {
                 entry.setEnabled(original);
             }
+            // If current differs from the value applied by VulkanBoost, preserve
+            // it: the user or another mod has changed the setting since then.
         }
-        MinecraftOptionAccess.save(client);
     }
 }

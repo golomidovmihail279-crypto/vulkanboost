@@ -49,6 +49,29 @@ public final class MinecraftOptionAccess {
         client.options.getClass().getMethod("save").invoke(client.options);
     }
 
+    public static ReversibleOptionChanges.Access bind(Minecraft client) {
+        return new ReversibleOptionChanges.Access() {
+            @Override
+            public OptionalInt read(String optionName) {
+                return MinecraftOptionAccess.read(client, optionName);
+            }
+
+            @Override
+            public boolean write(String optionName, int value) {
+                try {
+                    return MinecraftOptionAccess.write(client, optionName, value);
+                } catch (ReflectiveOperationException exception) {
+                    throw new IllegalStateException("Could not write Minecraft option " + optionName, exception);
+                }
+            }
+
+            @Override
+            public void save() throws ReflectiveOperationException {
+                MinecraftOptionAccess.save(client);
+            }
+        };
+    }
+
     private static Object optionObject(Minecraft client, String optionName)
             throws ReflectiveOperationException {
         return client.options.getClass().getMethod(optionName).invoke(client.options);

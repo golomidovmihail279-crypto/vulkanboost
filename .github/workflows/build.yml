@@ -43,6 +43,16 @@ jobs:
       - name: Run checker unit tests
         run: python3 -m unittest discover -s scripts -p "test_*.py"
 
+      - name: Run Java option-transaction tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/option-transaction-tests
+          javac -encoding UTF-8 -d build/option-transaction-tests \
+            src/main/java/dev/vulkanboost/autotune/ReversibleOptionChanges.java \
+            src/test/java/dev/vulkanboost/autotune/ReversibleOptionChangesSelfTest.java
+          java -cp build/option-transaction-tests dev.vulkanboost.autotune.ReversibleOptionChangesSelfTest
+
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:
@@ -52,4 +62,3 @@ jobs:
             !build/libs/*-sources.jar
           if-no-files-found: error
           retention-days: 14
-
