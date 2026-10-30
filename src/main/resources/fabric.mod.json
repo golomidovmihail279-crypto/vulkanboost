@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A Minecraft 1.21.11 optimization bundle with an in-game VulkanBoost Control Center. Additional tuning and monitoring features are under development.",
+  "description": "A Minecraft 1.21.11 optimization mod with a Control Center, performance monitor, verified optimization controls, reversible auto-tuning profiles, and optional memory pressure assistance.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
