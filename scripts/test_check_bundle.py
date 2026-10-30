@@ -161,6 +161,19 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
+    def test_top_level_component_rejects_empty_string_jars_metadata(self):
+        component = make_nested(
+            "fabric-api",
+            check_bundle.EXPECTED_VERSIONS["fabric-api"],
+            jars_override="",
+        )
+        path = make_bundle(nested_overrides={"fabric-api": component})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("nested metadata jars must be a JSON array" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
     def test_nested_metadata_jars_must_be_an_array(self):
         deep_archive = make_nested("deep-library", "1.0", jars_override=17)
         component = make_nested(
