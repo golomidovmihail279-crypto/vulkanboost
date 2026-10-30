@@ -107,6 +107,11 @@ Memory assistance is disabled by default and must be enabled in the UI. It sampl
 
 The build now compiles and runs a standalone Java test harness for the transactional option helper. It covers normal apply/restore, manual override preservation, partial-write rollback, save-failure rollback, retry after incomplete rollback, and values already restored by an earlier attempt. The bundle validator also rejects an outer JAR whose metadata version does not match the expected build version.
 
+
+### v0.7.1 regression coverage
+
+The build compiles and runs a standalone Java test harness for the transactional option helper. It covers normal apply/restore, manual override preservation, partial-write rollback, save-failure rollback, retry after incomplete rollback, and already-restored values. The bundle validator also rejects an outer JAR whose metadata version does not match the expected build version.
+
 ## Acceptance criteria
 
 - The settings screen opens reliably and the key binding can be changed.
