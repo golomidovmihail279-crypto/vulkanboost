@@ -3,7 +3,7 @@
   "id": "vulkanboost",
   "version": "${version}",
   "name": "VulkanBoost",
-  "description": "A single-JAR Minecraft 1.21.11 optimization bundle with 25 pinned nested components, including structure-generation and leaf-rendering optimizations. Temporal reconstruction research is not enabled in this build.",
+  "description": "A Minecraft 1.21.11 optimization bundle with an in-game VulkanBoost Control Center. Additional tuning and monitoring features are under development.",
   "authors": [
     "golomidovmihail279-crypto"
   ],
@@ -14,6 +14,11 @@
   },
   "license": "MIT",
   "environment": "client",
+  "entrypoints": {
+    "client": [
+      "dev.vulkanboost.client.VulkanBoostClient"
+    ]
+  },
   "depends": {
     "fabricloader": ">=0.19.3",
     "minecraft": "1.21.11",
