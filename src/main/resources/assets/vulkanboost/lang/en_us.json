@@ -1,0 +1,11 @@
+{
+  "key.category.vulkanboost.main": "VulkanBoost",
+  "key.vulkanboost.open_control_center": "Open Control Center",
+  "screen.vulkanboost.control_center.title": "VulkanBoost Control Center",
+  "screen.vulkanboost.control_center.subtitle": "Your optimization settings in one place",
+  "screen.vulkanboost.control_center.hint": "You can change this shortcut in Options → Controls → Key Binds.",
+  "screen.vulkanboost.control_center.hints_on": "Show interface hints: ON",
+  "screen.vulkanboost.control_center.hints_off": "Show interface hints: OFF",
+  "screen.vulkanboost.control_center.reset": "Reset settings",
+  "screen.vulkanboost.control_center.close": "Close"
+}
