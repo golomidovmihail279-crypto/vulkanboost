@@ -23,7 +23,7 @@ public final class ControlCenterScreen extends Screen {
     protected void init() {
         int buttonWidth = 230;
         int buttonX = (this.width - buttonWidth) / 2;
-        int firstButtonY = this.height / 2 - 73;
+        int firstButtonY = this.height / 2 - 86;
 
         this.hintsButton = this.addRenderableWidget(Button.builder(
                 hintsButtonLabel(),
@@ -61,17 +61,26 @@ public final class ControlCenterScreen extends Screen {
         ).bounds(buttonX, firstButtonY + 84, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
+                Component.translatable("screen.vulkanboost.control_center.memory"),
+                button -> {
+                    if (this.minecraft != null) {
+                        this.minecraft.setScreen(new MemoryScreen(this));
+                    }
+                }
+        ).bounds(buttonX, firstButtonY + 112, buttonWidth, 20).build());
+
+        this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.reset"),
                 button -> {
                     VulkanBoostConfig.resetToDefaults();
                     this.hintsButton.setMessage(hintsButtonLabel());
                 }
-        ).bounds(buttonX, firstButtonY + 112, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 140, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.close"),
                 button -> this.onClose()
-        ).bounds(buttonX, firstButtonY + 140, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 168, buttonWidth, 20).build());
     }
 
     private static Component hintsButtonLabel() {
@@ -97,7 +106,7 @@ public final class ControlCenterScreen extends Screen {
                     this.font,
                     Component.translatable("screen.vulkanboost.control_center.hint"),
                     this.width / 2,
-                    this.height / 2 + 135,
+                    this.height / 2 + 155,
                     0xA0A0A0
             );
         }
