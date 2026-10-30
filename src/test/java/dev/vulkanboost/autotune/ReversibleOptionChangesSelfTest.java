@@ -69,6 +69,7 @@ public final class ReversibleOptionChangesSelfTest {
         manualChangesArePreserved();
         partialWriteFailureRollsBackEarlierWrites();
         failedSaveRollsBackAppliedValues();
+        failedRollbackSaveCanBeRetried();
         incompleteRollbackCanBeRetried();
         alreadyRestoredValuesAreNotOverwritten();
         System.out.println("ReversibleOptionChanges: " + checks + " checks passed.");
@@ -127,6 +128,24 @@ public final class ReversibleOptionChangesSelfTest {
         check(failure.rollbackComplete(), "save failure rollback completes");
         check(access.value("renderDistance") == 16, "render distance rolled back after save failure");
         check(access.value("simulationDistance") == 8, "simulation distance rolled back after save failure");
+    }
+
+    private static void failedRollbackSaveCanBeRetried() {
+        FakeAccess access = new FakeAccess(16, 8);
+        access.failSaveCount = 2;
+
+        ReversibleOptionChanges.ApplyException failure = expectApplyFailure(
+                () -> ReversibleOptionChanges.apply(access, targets(12, 6), true)
+        );
+        check(!failure.rollbackComplete(), "failed rollback save is reported as pending");
+        check(access.value("renderDistance") == 16, "distance values are rolled back before retrying save");
+        check(access.value("simulationDistance") == 8, "both values are restored before retrying save");
+
+        ReversibleOptionChanges.RestoreResult retry =
+                ReversibleOptionChanges.restoreIfUnchanged(access, failure.snapshot());
+        check(retry.complete(), "retry persists values already restored in memory");
+        check(access.value("renderDistance") == 16, "retry keeps original render distance");
+        check(access.value("simulationDistance") == 8, "retry keeps original simulation distance");
     }
 
     private static void incompleteRollbackCanBeRetried() {
