@@ -72,7 +72,11 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
             except ValueError as exc:
                 errors.append(str(exc))
                 return
-            for child in metadata.get("jars") or []:
+            child_entries = metadata.get("jars", [])
+            if not isinstance(child_entries, list):
+                errors.append(f"{label}: nested metadata jars must be a JSON array")
+                return
+            for child in child_entries:
                 if not isinstance(child, dict):
                     errors.append(f"{label}: malformed nested-JAR entry")
                     continue
@@ -121,7 +125,7 @@ def check_bundle(path: str | Path) -> list[str]:
                 return [str(exc)]
             if metadata.get("id") != "vulkanboost":
                 errors.append("outer metadata id must be 'vulkanboost'")
-            dependencies = metadata.get("depends") or {}
+            dependencies = metadata.get("depends", {})
             if not isinstance(dependencies, dict):
                 errors.append("root metadata depends must be a JSON object")
                 dependencies = {}
@@ -137,7 +141,7 @@ def check_bundle(path: str | Path) -> list[str]:
             if custom_classes:
                 errors.append(f"unexpected project-owned runtime classes remain: {custom_classes}")
 
-            nested_entries = metadata.get("jars") or []
+            nested_entries = metadata.get("jars", [])
             if not isinstance(nested_entries, list):
                 errors.append("root metadata jars must be a JSON array")
                 nested_entries = []
@@ -169,7 +173,7 @@ def check_bundle(path: str | Path) -> list[str]:
                             continue
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
-                        child_entries = child_metadata.get("jars") or []
+                        child_entries = child_metadata.get("jars", [])
                         if not isinstance(child_entries, list):
                             errors.append(f"{nested_path}: nested metadata jars must be a JSON array")
                             child_entries = []
@@ -181,7 +185,7 @@ def check_bundle(path: str | Path) -> list[str]:
                             if not isinstance(child_path, str) or is_unsafe_nested_path(child_path) or child_path not in child.namelist():
                                 errors.append(f"{nested_path}: missing nested JAR entry {child_path!r}")
                                 continue
-                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, depth + 1)
+                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, depth=1)
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
                     errors.append(f"{nested_path}: invalid nested JAR/metadata: {exc}")
 

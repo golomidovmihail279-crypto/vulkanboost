@@ -10,17 +10,35 @@ from pathlib import Path
 import check_bundle
 
 
-def make_nested(mod_id, version):
+def make_nested(mod_id, version, child_jars=None, jars_override=None):
+    child_jars = child_jars or {}
+    nested_entries = [{"file": path} for path in child_jars]
+    if jars_override is not None:
+        nested_entries = jars_override
+
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr(
             "fabric.mod.json",
-            json.dumps({"schemaVersion": 1, "id": mod_id, "version": version, "jars": []}),
+            json.dumps({
+                "schemaVersion": 1,
+                "id": mod_id,
+                "version": version,
+                "jars": nested_entries,
+            }),
         )
+        for path, payload in child_jars.items():
+            archive.writestr(path, payload)
     return stream.getvalue()
 
 
-def make_bundle(mod_ids=None, extra_path=None, depends=None, root_overrides=None):
+def make_bundle(
+    mod_ids=None,
+    extra_path=None,
+    depends=None,
+    root_overrides=None,
+    nested_overrides=None,
+):
     mod_ids = mod_ids or sorted(check_bundle.EXPECTED_COMPONENT_IDS)
     versions = dict(check_bundle.EXPECTED_VERSIONS)
     nested_jars = []
@@ -29,7 +47,7 @@ def make_bundle(mod_ids=None, extra_path=None, depends=None, root_overrides=None
         version = versions.get(mod_id, "test-version")
         path = f"META-INF/jars/{index:02d}-{mod_id}.jar"
         nested_jars.append({"file": path})
-        payloads[path] = make_nested(mod_id, version)
+        payloads[path] = (nested_overrides or {}).get(mod_id, make_nested(mod_id, version))
 
     if extra_path:
         path, payload = extra_path
@@ -140,6 +158,55 @@ class BundleCheckerTests(unittest.TestCase):
         try:
             errors = check_bundle.check_bundle(path)
             self.assertTrue(any("malformed nested-JAR entry" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_top_level_component_rejects_empty_string_jars_metadata(self):
+        component = make_nested(
+            "fabric-api",
+            check_bundle.EXPECTED_VERSIONS["fabric-api"],
+            jars_override="",
+        )
+        path = make_bundle(nested_overrides={"fabric-api": component})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("nested metadata jars must be a JSON array" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_nested_metadata_jars_must_be_an_array(self):
+        deep_archive = make_nested("deep-library", "1.0", jars_override=17)
+        component = make_nested(
+            "fabric-api",
+            check_bundle.EXPECTED_VERSIONS["fabric-api"],
+            child_jars={"META-INF/jars/deep.jar": deep_archive},
+        )
+        path = make_bundle(nested_overrides={"fabric-api": component})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("nested metadata jars must be a JSON array" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_nested_jar_recursion_depth_is_incremented(self):
+        def make_chain(remaining):
+            if remaining == 0:
+                return make_nested("deep-leaf", "1.0")
+            return make_nested(
+                f"deep-level-{remaining}",
+                "1.0",
+                child_jars={"META-INF/jars/next.jar": make_chain(remaining - 1)},
+            )
+
+        component = make_nested(
+            "fabric-api",
+            check_bundle.EXPECTED_VERSIONS["fabric-api"],
+            child_jars={"META-INF/jars/level-1.jar": make_chain(8)},
+        )
+        path = make_bundle(nested_overrides={"fabric-api": component})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("nested-JAR recursion limit exceeded" in error for error in errors))
         finally:
             Path(path).unlink(missing_ok=True)
 
