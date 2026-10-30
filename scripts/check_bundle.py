@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the distributable VulkanBoost bundle.
 
-Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
+Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.7.jar
 """
 from __future__ import annotations
 import io
