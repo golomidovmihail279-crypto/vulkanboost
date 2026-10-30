@@ -1,5 +1,6 @@
 package dev.vulkanboost.memory;
 
+import dev.vulkanboost.autotune.AutoTuneService;
 import dev.vulkanboost.autotune.MinecraftOptionAccess;
 import dev.vulkanboost.autotune.ReversibleOptionChanges;
 import dev.vulkanboost.config.VulkanBoostConfig;
@@ -40,6 +41,13 @@ public final class SmartMemoryManager {
     }
 
     public static void tick(Minecraft client) {
+        // Auto-tune and memory assistance both own reversible distance snapshots.
+        // Do not let the memory helper interpret an active profile as a manual
+        // override; resume after the profile has been undone.
+        if (AutoTuneService.canUndo()) {
+            return;
+        }
+
         if (++ticks < SAMPLE_INTERVAL_TICKS) {
             return;
         }
