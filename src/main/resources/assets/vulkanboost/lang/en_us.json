@@ -72,6 +72,7 @@
   "screen.vulkanboost.memory.status.observing": "Monitoring memory use",
   "screen.vulkanboost.memory.status.high": "High heap use detected — confirming sustained pressure",
   "screen.vulkanboost.memory.status.reduced": "Reduced render and simulation distance to lower active chunk load",
+  "screen.vulkanboost.memory.status.profile_active": "Auto-tune profile active — memory assistance is paused",
   "screen.vulkanboost.memory.status.restored": "Memory pressure subsided — previous distances restored",
   "screen.vulkanboost.memory.status.manual": "Your distance settings changed manually; automatic restore was cancelled",
   "screen.vulkanboost.memory.status.api_unavailable": "Vanilla distance settings are not accessible on this version",
