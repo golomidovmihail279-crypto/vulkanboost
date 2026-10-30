@@ -75,6 +75,32 @@ Do not claim precise per-mod CPU/GPU attribution unless a real profiling source 
 
 Each phase must build and pass automated checks before moving on. The completed feature set also requires an in-game test on the target Minecraft/Fabric/Java/VulkanMod combination.
 
+## Implementation status on `feature/control-center-v0.7`
+
+The first implementation of all five phases is now present in this branch. Automated CI and in-game validation are tracked separately.
+
+| Phase | Implemented scope | Remaining validation |
+|---|---|---|
+| A — Foundation | Fabric client initializer, default `O` key binding, Control Center screen, versioned persistent settings | Open and use the screen in Minecraft |
+| B — Optimization controls | Verified live adapters for Cull Leaves and Dynamic FPS; real loader status for Lithium, Structure Layout Optimizer, and ModernFix | Confirm both live adapters in a running 1.21.11 instance; add more adapters only after auditing their upstream APIs |
+| C — Monitor | FPS, frame time, used/committed/max Java heap, and loaded Fabric component count | Compare displayed values with the running client; GPU/per-component utilization is intentionally not fabricated |
+| D — Auto-tuning | CPU thread and max Java heap detection; Balanced, FPS Priority, and Lower Memory profiles; distance-setting preview, apply, and undo | Check vanilla option access and resulting chunk changes in-game |
+| E — Memory assistance | Opt-in heap-pressure monitoring; configurable 70–95% threshold (85% default); sustained-pressure reduction of render/simulation distance; restoration after pressure falls if the user has not changed those options | Run a long-world test and confirm pressure, reduction, recovery, and manual-override behavior |
+
+### Current real control coverage
+
+- **Cull Leaves:** checks the bundled mod and the public `CullLeavesConfig.enabled` field, then saves through MidnightLib's `MidnightConfig.write("cullleaves")` method. The upstream config save hook refreshes the affected world renderer.
+- **Dynamic FPS:** checks the bundled mod's `DynamicFPSConfig.INSTANCE`, `setEnabled(boolean)`, `save()`, and `DynamicFPSMod.onConfigChanged()` methods before exposing the live switch.
+- **Lithium, Structure Layout Optimizer, ModernFix:** shown as loaded components where present, but not presented as working switches until a safe configuration interface is verified.
+
+### Auto-tune safety
+
+The tuner uses the available logical CPU count and maximum Java heap as its initial hardware signals. Profiles only lower render and simulation distances; they do not silently increase the user's view distance. It enables only registered, verified feature adapters. Original values are captured so the last profile can be undone. No operating-system settings, JVM launch arguments, drivers, or GPU settings are modified.
+
+### Memory-assistance safety
+
+Memory assistance is disabled by default and must be enabled in the UI. It samples Java heap pressure every 100 client ticks, requires three consecutive high-pressure samples before intervening, and only changes vanilla render/simulation distances. It never calls `System.gc()`. It waits for pressure to fall below a hysteresis threshold before restoring previous values, and avoids overwriting distance settings the user changed manually. This reduces the active chunk workload; it does not promise to instantly reclaim Java heap.
+
 ## Acceptance criteria
 
 - The settings screen opens reliably and the key binding can be changed.
