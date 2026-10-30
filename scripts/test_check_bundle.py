@@ -20,7 +20,7 @@ def make_nested(mod_id, version):
     return stream.getvalue()
 
 
-def make_bundle(mod_ids=None, extra_path=None):
+def make_bundle(mod_ids=None, extra_path=None, root_overrides=None):
     mod_ids = mod_ids or sorted(check_bundle.EXPECTED_COMPONENT_IDS)
     versions = dict(check_bundle.EXPECTED_VERSIONS)
     nested_jars = []
@@ -43,6 +43,9 @@ def make_bundle(mod_ids=None, extra_path=None):
         "jars": nested_jars,
         "depends": check_bundle.REQUIRED_DEPENDENCIES.copy(),
     }
+    if root_overrides:
+        root_metadata.update(root_overrides)
+
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("fabric.mod.json", json.dumps(root_metadata))
@@ -55,7 +58,7 @@ def make_bundle(mod_ids=None, extra_path=None):
 
 
 class BundleCheckerTests(unittest.TestCase):
-    def test_clean_25_component_bundle_passes(self):
+    def test_clean_26_component_bundle_passes(self):
         path = make_bundle()
         try:
             self.assertEqual(check_bundle.check_bundle(path), [])
@@ -90,6 +93,30 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
+    def test_non_array_jars_metadata_is_reported_not_crashed(self):
+        path = make_bundle(root_overrides={"jars": "not-an-array"})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("'jars' must be an array" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_non_object_depends_metadata_is_reported_not_crashed(self):
+        path = make_bundle(root_overrides={"depends": ["not", "an", "object"]})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("'depends' must be an object" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_unsafe_nested_jar_path_is_rejected(self):
+        path = make_bundle(root_overrides={"jars": [{"file": "../outside.jar"}]})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("unsafe nested-JAR path" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
     def test_source_tree_rejects_custom_runtime_files(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -98,6 +125,99 @@ class BundleCheckerTests(unittest.TestCase):
             source.write_text("class CustomRenderer {}", encoding="utf-8")
             errors = check_bundle.check_source_tree(root)
             self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
+
+    def test_source_tree_rejects_non_object_metadata(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            metadata = root / "src" / "main" / "resources" / "fabric.mod.json"
+            metadata.parent.mkdir(parents=True)
+            metadata.write_text("[]", encoding="utf-8")
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any("metadata must be an object" in error for error in errors))
+
+
+    def test_internal_dependency_minimum_version_mismatch_is_rejected(self):
+        self.assertFalse(check_bundle.predicate_matches("0.140.2+1.21.11", ">=0.141.2"))
+        self.assertTrue(check_bundle.predicate_matches("0.141.2+1.21.11", ">=0.141.2"))
+
+    def test_internal_dependency_caret_and_tilde_predicates(self):
+        self.assertTrue(check_bundle.predicate_matches("1.10.2+1.21.11", "^1.10.0"))
+        self.assertFalse(check_bundle.predicate_matches("2.0.0", "^1.10.0"))
+        self.assertTrue(check_bundle.predicate_matches("1.10.2", "~1.10.0"))
+        self.assertFalse(check_bundle.predicate_matches("1.11.0", "~1.10.0"))
+
+    def test_internal_dependency_space_separated_range(self):
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">=1.21.11- <1.21.12-"))
+        self.assertFalse(check_bundle.predicate_matches("1.21.12", ">=1.21.11- <1.21.12-"))
+
+
+    def test_prerelease_predicates_match_release_versions(self):
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">=1.21.9-beta.1"))
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">=1.21.6-rc.1"))
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", ">1.19-alpha.22.11.a"))
+        self.assertFalse(check_bundle.predicate_matches("1.21.8", ">=1.21.9-beta.1"))
+
+    def test_minecraft_wildcard_predicate(self):
+        self.assertTrue(check_bundle.predicate_matches("1.21.11", "1.21.x"))
+        self.assertFalse(check_bundle.predicate_matches("1.22.0", "1.21.x"))
+        self.assertFalse(check_bundle.predicate_matches("1.20.6", "1.21.x"))
+
+    def test_prerelease_is_lower_than_corresponding_release(self):
+        self.assertLess(check_bundle.compare_full_versions("1.21.11-beta.1", "1.21.11"), 0)
+        self.assertGreater(check_bundle.compare_full_versions("1.21.11", "1.21.11-rc.1"), 0)
+
+    def test_unsupported_internal_predicate_is_not_silently_accepted(self):
+        self.assertIsNone(check_bundle.predicate_matches("1.2.3", "latest-stable"))
+
+
+    def test_nested_duplicates_choose_highest_compatible_version(self):
+        root = ("vulkanboost", {"id": "vulkanboost", "depends": {"shared-lib": ">=1.0 <2.0"}})
+        candidates = {
+            "shared-lib": [
+                {"version": "2.0.0", "metadata": {"id": "shared-lib", "version": "2.0.0", "depends": {}}, "origin": "newer.jar"},
+                {"version": "1.5.0", "metadata": {"id": "shared-lib", "version": "1.5.0", "depends": {}}, "origin": "compatible.jar"},
+            ]
+        }
+        errors = []
+        selected = check_bundle.resolve_and_validate_dependencies([root], candidates, errors)
+        self.assertEqual(errors, [])
+        self.assertEqual(selected["shared-lib"]["version"], "1.5.0")
+
+    def test_nested_dependency_conflict_is_reported_when_no_candidate_matches(self):
+        root = ("vulkanboost", {"id": "vulkanboost", "depends": {"shared-lib": "<1.0.0"}})
+        candidates = {
+            "shared-lib": [
+                {"version": "1.2.0", "metadata": {"id": "shared-lib", "version": "1.2.0", "depends": {}}, "origin": "shared.jar"},
+            ]
+        }
+        errors = []
+        check_bundle.resolve_and_validate_dependencies([root], candidates, errors)
+        self.assertTrue(any("no compatible bundled candidate" in error for error in errors))
+
+    def test_system_java_dependency_uses_target_java_21(self):
+        root_ok = ("vulkanboost", {"id": "vulkanboost", "depends": {"java": ">=21"}})
+        errors = []
+        check_bundle.resolve_and_validate_dependencies([root_ok], {}, errors)
+        self.assertEqual(errors, [])
+
+        root_bad = ("native-module", {"id": "native-module", "depends": {"java": ">=22"}})
+        errors = []
+        check_bundle.resolve_and_validate_dependencies([root_bad], {}, errors)
+        self.assertTrue(any("target provides '21'" in error for error in errors))
+
+    def test_unused_nested_candidate_is_not_forced_into_active_set(self):
+        root = ("vulkanboost", {"id": "vulkanboost", "depends": {}})
+        candidates = {
+            "optional-native": [
+                {"version": "1.0.0", "metadata": {"id": "optional-native", "version": "1.0.0", "depends": {"java": ">=22"}}, "origin": "optional-native.jar"},
+            ]
+        }
+        errors = []
+        warnings = []
+        selected = check_bundle.resolve_and_validate_dependencies([root], candidates, errors, warnings)
+        self.assertEqual(errors, [])
+        self.assertNotIn("optional-native", selected)
+        self.assertTrue(any("requires java" in warning for warning in warnings))
 
 
 if __name__ == "__main__":

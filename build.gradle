@@ -29,7 +29,7 @@ dependencies {
     modImplementation "net.fabricmc:fabric-loader:${loader_version}"
 
     // Core rendering and compatibility dependencies.
-    include(modImplementation("maven.modrinth:P7dR8mSH:gB6TkYEJ")) // Fabric API 0.140.2+1.21.11
+    include(modImplementation("maven.modrinth:P7dR8mSH:L34yYPTD")) // Fabric API 0.141.2+1.21.11
     include(modImplementation("maven.modrinth:JYQhtZtO:hWKRTXbQ")) // VulkanMod 0.6.8+1.21.11
 
     // Established optimization components pinned to reproducible artifacts.
@@ -58,8 +58,9 @@ dependencies {
     // Added world-generation and leaf-rendering optimizations for Minecraft 1.21.11.
     include(modImplementation("maven.modrinth:ayPU0OHc:YDgvKeWI")) // Structure Layout Optimizer 1.1.4
     include(modImplementation("maven.modrinth:GNxdLCoP:yrL6pwHZ")) // Cull Leaves 4.1.1.1+1.21.11 Fabric
+    include(modImplementation("maven.modrinth:FsoeTIV0:4QQcgJi6")) // Fast Item Frames 21.11.1
 
-    // Required libraries for the added optimizers and the optional Fast Item Frames add-on.
+    // Required libraries for Fast Item Frames and the other added optimizers.
     include(modImplementation("maven.modrinth:M1953qlQ:8bR7M6K7")) // Resourceful Config 3.11.3
     include(modImplementation("maven.modrinth:codAaoxh:OeTayxh3")) // MidnightLib 1.9.2+1.21.11 Fabric
     include(modImplementation("maven.modrinth:QAGBst4M:O1SlsQzW")) // Puzzles Lib 21.11.11
