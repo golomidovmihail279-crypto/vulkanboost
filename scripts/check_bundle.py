@@ -181,7 +181,7 @@ def check_bundle(path: str | Path) -> list[str]:
                             if not isinstance(child_path, str) or is_unsafe_nested_path(child_path) or child_path not in child.namelist():
                                 errors.append(f"{nested_path}: missing nested JAR entry {child_path!r}")
                                 continue
-                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, depth + 1)
+                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, 1)
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
                     errors.append(f"{nested_path}: invalid nested JAR/metadata: {exc}")
 
