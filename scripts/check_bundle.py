@@ -173,7 +173,7 @@ def check_bundle(path: str | Path) -> list[str]:
                             continue
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
-                        child_entries = child_metadata.get("jars") or []
+                        child_entries = child_metadata.get("jars", [])
                         if not isinstance(child_entries, list):
                             errors.append(f"{nested_path}: nested metadata jars must be a JSON array")
                             child_entries = []
