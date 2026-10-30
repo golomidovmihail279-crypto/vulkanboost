@@ -7,5 +7,17 @@
   "screen.vulkanboost.control_center.hints_on": "Показывать подсказки: ВКЛ",
   "screen.vulkanboost.control_center.hints_off": "Показывать подсказки: ВЫКЛ",
   "screen.vulkanboost.control_center.reset": "Сбросить настройки",
-  "screen.vulkanboost.control_center.close": "Закрыть"
+  "screen.vulkanboost.control_center.close": "Закрыть",
+  "screen.vulkanboost.control_center.monitor": "Монитор производительности",
+  "screen.vulkanboost.performance.title": "Производительность VulkanBoost",
+  "screen.vulkanboost.performance.subtitle": "Текущие показатели Minecraft и Java",
+  "screen.vulkanboost.performance.fps": "FPS: %s",
+  "screen.vulkanboost.performance.frame_time": "Время кадра: %s мс",
+  "screen.vulkanboost.performance.memory": "Использовано памяти Java: %s / %s МиБ",
+  "screen.vulkanboost.performance.committed": "Выделено памяти Java: %s МиБ",
+  "screen.vulkanboost.performance.components": "Загружено компонентов Fabric: %s",
+  "screen.vulkanboost.performance.component_usage_unavailable": "Загрузка CPU/GPU по отдельным компонентам не предоставляется Fabric Loader.",
+  "screen.vulkanboost.performance.hardware_usage_unavailable": "Нет надёжного кроссплатформенного источника загрузки CPU/GPU.",
+  "screen.vulkanboost.performance.refresh_rate": "Показатели обновляются каждые 0,5 секунды.",
+  "screen.vulkanboost.performance.back": "Назад"
 }
