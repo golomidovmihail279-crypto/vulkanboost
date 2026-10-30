@@ -109,11 +109,15 @@ public final class AutoTuneService {
         );
 
         try {
-            if (plan.targetRenderDistance() >= 0) {
-                MinecraftOptionAccess.write(client, "renderDistance", plan.targetRenderDistance());
+            if (plan.targetRenderDistance() >= 0 &&
+                    plan.targetRenderDistance() != plan.currentRenderDistance() &&
+                    !MinecraftOptionAccess.write(client, "renderDistance", plan.targetRenderDistance())) {
+                throw new IllegalStateException("Render distance cannot be changed on this Minecraft version.");
             }
-            if (plan.targetSimulationDistance() >= 0) {
-                MinecraftOptionAccess.write(client, "simulationDistance", plan.targetSimulationDistance());
+            if (plan.targetSimulationDistance() >= 0 &&
+                    plan.targetSimulationDistance() != plan.currentSimulationDistance() &&
+                    !MinecraftOptionAccess.write(client, "simulationDistance", plan.targetSimulationDistance())) {
+                throw new IllegalStateException("Simulation distance cannot be changed on this Minecraft version.");
             }
 
             for (OptimizationRegistry.Entry entry : OptimizationRegistry.entries()) {
