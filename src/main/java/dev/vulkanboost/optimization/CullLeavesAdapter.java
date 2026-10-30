@@ -4,6 +4,7 @@ import net.fabricmc.loader.api.FabricLoader;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 /**
  * Adapter for Cull Leaves' documented MidnightConfig fields.
@@ -30,11 +31,13 @@ public final class CullLeavesAdapter implements OptimizationAdapter {
             return false;
         }
         try {
-            Class<?> config = Class.forName(CONFIG_CLASS);
-            config.getField("enabled");
-            Class<?> library = Class.forName(LIBRARY_CLASS);
-            Method write = library.getMethod("write", String.class);
-            return java.lang.reflect.Modifier.isStatic(write.getModifiers());
+            Field enabled = Class.forName(CONFIG_CLASS).getField("enabled");
+            if (enabled.getType() != boolean.class || !Modifier.isStatic(enabled.getModifiers())) {
+                return false;
+            }
+
+            Method write = Class.forName(LIBRARY_CLASS).getMethod("write", String.class);
+            return Modifier.isStatic(write.getModifiers());
         } catch (ReflectiveOperationException | LinkageError exception) {
             return false;
         }
@@ -44,7 +47,7 @@ public final class CullLeavesAdapter implements OptimizationAdapter {
     public boolean isEnabled() {
         try {
             return configField().getBoolean(null);
-        } catch (ReflectiveOperationException exception) {
+        } catch (ReflectiveOperationException | RuntimeException exception) {
             throw new IllegalStateException("Cull Leaves config field is unavailable", exception);
         }
     }
