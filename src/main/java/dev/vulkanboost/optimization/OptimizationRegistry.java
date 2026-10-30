@@ -1,5 +1,7 @@
 package dev.vulkanboost.optimization;
 
+import net.fabricmc.loader.api.FabricLoader;
+
 import java.util.List;
 
 /**
@@ -14,8 +16,9 @@ public final class OptimizationRegistry {
             OptimizationAdapter adapter
     ) {
         public boolean isInstalled() {
-            // Every entry in this registry is a component pinned in the VulkanBoost bundle.
-            return adapter == null || adapter.isInstalled();
+            return adapter != null
+                    ? adapter.isInstalled()
+                    : FabricLoader.getInstance().isModLoaded(id);
         }
 
         public boolean canToggle() {
