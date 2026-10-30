@@ -8,7 +8,7 @@ import net.minecraft.network.chat.Component;
 
 /**
  * First iteration of the in-game VulkanBoost Control Center.
- * Further feature sections will be added in the planned implementation phases.
+ * The performance monitor is available as a separate screen.
  */
 public final class ControlCenterScreen extends Screen {
     private final Screen parent;
@@ -23,7 +23,7 @@ public final class ControlCenterScreen extends Screen {
     protected void init() {
         int buttonWidth = 230;
         int buttonX = (this.width - buttonWidth) / 2;
-        int firstButtonY = this.height / 2 - 18;
+        int firstButtonY = this.height / 2 - 46;
 
         this.hintsButton = this.addRenderableWidget(Button.builder(
                 hintsButtonLabel(),
@@ -34,17 +34,26 @@ public final class ControlCenterScreen extends Screen {
         ).bounds(buttonX, firstButtonY, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
+                Component.translatable("screen.vulkanboost.control_center.monitor"),
+                button -> {
+                    if (this.minecraft != null) {
+                        this.minecraft.setScreen(new PerformanceScreen(this));
+                    }
+                }
+        ).bounds(buttonX, firstButtonY + 28, buttonWidth, 20).build());
+
+        this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.reset"),
                 button -> {
                     VulkanBoostConfig.resetToDefaults();
                     this.hintsButton.setMessage(hintsButtonLabel());
                 }
-        ).bounds(buttonX, firstButtonY + 28, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 56, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.close"),
                 button -> this.onClose()
-        ).bounds(buttonX, firstButtonY + 56, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 84, buttonWidth, 20).build());
     }
 
     private static Component hintsButtonLabel() {
@@ -70,7 +79,7 @@ public final class ControlCenterScreen extends Screen {
                     this.font,
                     Component.translatable("screen.vulkanboost.control_center.hint"),
                     this.width / 2,
-                    this.height / 2 + 93,
+                    this.height / 2 + 105,
                     0xA0A0A0
             );
         }
