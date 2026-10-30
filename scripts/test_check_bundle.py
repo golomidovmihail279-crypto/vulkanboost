@@ -58,7 +58,7 @@ def make_bundle(mod_ids=None, extra_path=None, root_overrides=None):
 
 
 class BundleCheckerTests(unittest.TestCase):
-    def test_clean_25_component_bundle_passes(self):
+    def test_clean_26_component_bundle_passes(self):
         path = make_bundle()
         try:
             self.assertEqual(check_bundle.check_bundle(path), [])
