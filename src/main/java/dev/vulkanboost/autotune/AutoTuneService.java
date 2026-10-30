@@ -149,11 +149,17 @@ public final class AutoTuneService {
                 }
             }
 
-            lastAppliedSnapshot = new Snapshot(
-                    distanceChanges,
-                    Map.copyOf(previousFeatures),
-                    Map.copyOf(appliedFeatures)
-            );
+            boolean changedFeature = previousFeatures.entrySet().stream()
+                    .anyMatch(entry -> !entry.getValue().equals(appliedFeatures.get(entry.getKey())));
+            if (distanceChanges.isEmpty() && !changedFeature) {
+                lastAppliedSnapshot = null;
+            } else {
+                lastAppliedSnapshot = new Snapshot(
+                        distanceChanges,
+                        Map.copyOf(previousFeatures),
+                        Map.copyOf(appliedFeatures)
+                );
+            }
         } catch (ReflectiveOperationException | RuntimeException failure) {
             Snapshot failedAttempt = new Snapshot(
                     distanceChanges,
