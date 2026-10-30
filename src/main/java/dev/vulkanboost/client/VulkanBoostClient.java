@@ -9,6 +9,7 @@ import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import dev.vulkanboost.config.VulkanBoostConfig;
+import dev.vulkanboost.memory.SmartMemoryManager;
 import dev.vulkanboost.client.PerformanceMonitor;
 
 /**
@@ -34,6 +35,7 @@ public final class VulkanBoostClient implements ClientModInitializer {
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
             PerformanceMonitor.tick(client);
+            SmartMemoryManager.tick(client);
             while (openControlCenterKey.consumeClick()) {
                 if (!(client.screen instanceof ControlCenterScreen)) {
                     client.setScreen(new ControlCenterScreen(client.screen));
