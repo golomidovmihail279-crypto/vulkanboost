@@ -55,6 +55,7 @@ public final class SmartMemoryManager {
         }
 
         if (client.level == null) {
+            restoreIfUnchanged(client);
             statusKey = "screen.vulkanboost.memory.status.waiting";
             updatePressure();
             return;
