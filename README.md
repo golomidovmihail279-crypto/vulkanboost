@@ -11,7 +11,7 @@ This branch establishes a clean foundation for research into native-resolution t
 - No rendering option is advertised as working when no implementation exists.
 - The v0.6 package is the expanded optimization bundle; image reconstruction is not implemented yet.
 - Temporal reconstruction is a research target, not yet an implemented or validated feature.
-- The first-party **VulkanBoost Control Center** foundation is being developed on `feature/control-center-v0.7`: an in-game panel, configurable shortcut (default `O`), and a versioned settings file. Monitoring, verified optimization controls, auto-tuning, and smart memory management remain planned phases.
+- The `feature/control-center-v0.7` branch implements the first-party **VulkanBoost Control Center**: a configurable `O` shortcut, persistent settings, FPS/heap monitor, verified Cull Leaves and Dynamic FPS controls, reversible auto-tuning profiles, and optional memory-pressure assistance. In-game validation is still required before a public v0.7 release.
 
 ## Platform
 
@@ -89,7 +89,7 @@ Requirements: JDK 21 and Gradle 9.5.0.
 
 ```bash
 gradle --no-daemon clean build
-python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
+python3 scripts/check_bundle.py build/libs/vulkanboost-0.7.jar
 python3 -m unittest discover -s scripts -p "test_*.py"
 ```
 
