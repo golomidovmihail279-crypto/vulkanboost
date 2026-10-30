@@ -100,7 +100,7 @@ public final class AutoTuneScreen extends Screen {
             AutoTuneService.apply(this.minecraft, plan);
             refreshPlan();
             updateActionButtons();
-        } catch (RuntimeException exception) {
+        } catch (ReflectiveOperationException | RuntimeException exception) {
             this.minecraft.setScreen(new AutoTuneResultScreen(this, false));
         }
     }
