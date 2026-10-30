@@ -97,7 +97,7 @@ public final class AutoTuneService {
                 Map.copyOf(featureTargets), Map.copyOf(currentFeatureValues));
     }
 
-    public static void apply(Minecraft client, Plan plan) {
+    public static void apply(Minecraft client, Plan plan) throws ReflectiveOperationException {
         if (canUndo()) {
             throw new IllegalStateException("Undo the previously applied profile before applying another one.");
         }
