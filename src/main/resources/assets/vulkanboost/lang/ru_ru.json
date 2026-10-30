@@ -41,5 +41,22 @@
   "screen.vulkanboost.optimizations.status.not_installed": "Не установлен",
   "screen.vulkanboost.optimizations.status.no_adapter": "Нет проверенного адаптера управления",
   "screen.vulkanboost.optimizations.status.restart_unsupported": "Нет безопасного переключателя на лету",
-  "screen.vulkanboost.optimizations.status.error": "Не удалось изменить %s"
+  "screen.vulkanboost.optimizations.status.error": "Не удалось изменить %s",
+  "screen.vulkanboost.control_center.autotune": "Автонастройка",
+  "screen.vulkanboost.autotune.title": "Автонастройка VulkanBoost",
+  "screen.vulkanboost.autotune.subtitle": "Сначала посмотри изменения, затем примени их",
+  "screen.vulkanboost.autotune.detected": "Обнаружено: потоков CPU — %s, максимум памяти Java — %s ГиБ",
+  "screen.vulkanboost.autotune.selected": "Выбранный профиль: %s",
+  "screen.vulkanboost.autotune.profile.balanced": "Сбалансированный",
+  "screen.vulkanboost.autotune.profile.fps": "Приоритет FPS",
+  "screen.vulkanboost.autotune.profile.memory": "Меньше расход памяти",
+  "screen.vulkanboost.autotune.apply": "Применить профиль",
+  "screen.vulkanboost.autotune.undo": "Отменить последний профиль",
+  "screen.vulkanboost.autotune.adapters": "Проверенных переключателей для включения: %s",
+  "screen.vulkanboost.autotune.preview_note": "Меняются только настройки, поддерживаемые этой сборкой.",
+  "screen.vulkanboost.autotune.option_unavailable": "Дистанция %s: API недоступен",
+  "screen.vulkanboost.autotune.option_change": "Дистанция %s: %s → %s",
+  "screen.vulkanboost.autotune.result_title": "Результат автонастройки",
+  "screen.vulkanboost.autotune.result_success": "Профиль применён.",
+  "screen.vulkanboost.autotune.result_error": "Не удалось применить часть настроек. Проверь совместимость."
 }
