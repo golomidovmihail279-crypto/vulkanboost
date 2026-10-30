@@ -14,7 +14,8 @@ public final class OptimizationRegistry {
             OptimizationAdapter adapter
     ) {
         public boolean isInstalled() {
-            return adapter != null && adapter.isInstalled();
+            // Every entry in this registry is a component pinned in the VulkanBoost bundle.
+            return adapter == null || adapter.isInstalled();
         }
 
         public boolean canToggle() {
