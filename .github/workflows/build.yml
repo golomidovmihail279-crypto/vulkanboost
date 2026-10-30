@@ -50,7 +50,7 @@ jobs:
           mkdir -p build/option-transaction-tests
           javac -encoding UTF-8 -d build/option-transaction-tests \
             src/main/java/dev/vulkanboost/autotune/ReversibleOptionChanges.java \
-            src/test/java/dev/vulkanboost/autotune/ReversibleOptionChangesSelfTest.java
+            scripts/java-tests/dev/vulkanboost/autotune/ReversibleOptionChangesSelfTest.java
           java -cp build/option-transaction-tests dev.vulkanboost.autotune.ReversibleOptionChangesSelfTest
 
       - name: Upload installable JAR
