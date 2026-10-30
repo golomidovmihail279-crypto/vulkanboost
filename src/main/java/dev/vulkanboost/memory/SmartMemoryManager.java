@@ -41,17 +41,19 @@ public final class SmartMemoryManager {
     }
 
     public static void tick(Minecraft client) {
-        // Auto-tune and memory assistance both own reversible distance snapshots.
-        // Do not let the memory helper interpret an active profile as a manual
-        // override; resume after the profile has been undone.
-        if (AutoTuneService.canUndo()) {
-            return;
-        }
-
         if (++ticks < SAMPLE_INTERVAL_TICKS) {
             return;
         }
         ticks = 0;
+        updatePressure();
+
+        // Auto-tune and memory assistance both own reversible distance snapshots.
+        // Keep the monitor fresh, but do not let the memory helper interpret an
+        // active profile as a manual override. Resume after the profile is undone.
+        if (AutoTuneService.canUndo()) {
+            statusKey = "screen.vulkanboost.memory.status.profile_active";
+            return;
+        }
 
         if (!VulkanBoostConfig.memoryAssistEnabled()) {
             if (!restoreIfUnchanged(client)) {
@@ -60,7 +62,6 @@ public final class SmartMemoryManager {
             highPressureSamples = 0;
             lowPressureSamples = 0;
             statusKey = "screen.vulkanboost.memory.status.disabled";
-            updatePressure();
             return;
         }
 
@@ -69,11 +70,9 @@ public final class SmartMemoryManager {
                 return;
             }
             statusKey = "screen.vulkanboost.memory.status.waiting";
-            updatePressure();
             return;
         }
 
-        updatePressure();
         int threshold = VulkanBoostConfig.memoryThresholdPercent();
 
         if (hasIntervention()) {
