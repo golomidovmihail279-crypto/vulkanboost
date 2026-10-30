@@ -41,5 +41,22 @@
   "screen.vulkanboost.optimizations.status.not_installed": "Not installed",
   "screen.vulkanboost.optimizations.status.no_adapter": "No verified control adapter",
   "screen.vulkanboost.optimizations.status.restart_unsupported": "No safe runtime toggle",
-  "screen.vulkanboost.optimizations.status.error": "Could not change %s"
+  "screen.vulkanboost.optimizations.status.error": "Could not change %s",
+  "screen.vulkanboost.control_center.autotune": "Auto-tuning",
+  "screen.vulkanboost.autotune.title": "VulkanBoost Auto-tuning",
+  "screen.vulkanboost.autotune.subtitle": "Preview changes before applying them",
+  "screen.vulkanboost.autotune.detected": "Detected: %s CPU threads, %s GiB max Java heap",
+  "screen.vulkanboost.autotune.selected": "Selected profile: %s",
+  "screen.vulkanboost.autotune.profile.balanced": "Balanced",
+  "screen.vulkanboost.autotune.profile.fps": "FPS priority",
+  "screen.vulkanboost.autotune.profile.memory": "Lower memory use",
+  "screen.vulkanboost.autotune.apply": "Apply selected profile",
+  "screen.vulkanboost.autotune.undo": "Undo last profile",
+  "screen.vulkanboost.autotune.adapters": "Verified optimization switches to enable: %s",
+  "screen.vulkanboost.autotune.preview_note": "Only settings supported by this installation are changed.",
+  "screen.vulkanboost.autotune.option_unavailable": "%s distance: API unavailable",
+  "screen.vulkanboost.autotune.option_change": "%s distance: %s → %s",
+  "screen.vulkanboost.autotune.result_title": "Auto-tuning result",
+  "screen.vulkanboost.autotune.result_success": "Profile applied.",
+  "screen.vulkanboost.autotune.result_error": "Some settings could not be applied. Check compatibility."
 }
