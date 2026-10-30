@@ -4,6 +4,7 @@ import net.fabricmc.loader.api.FabricLoader;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 
 /**
  * Adapter for Dynamic FPS' public configuration methods.
@@ -30,12 +31,25 @@ public final class DynamicFpsAdapter implements OptimizationAdapter {
             return false;
         }
         try {
-            Object config = configInstance();
-            config.getClass().getMethod("enabled");
-            config.getClass().getMethod("setEnabled", boolean.class);
-            config.getClass().getMethod("save");
-            Class.forName(MOD_CLASS).getMethod("onConfigChanged");
-            return true;
+            Field instanceField = Class.forName(CONFIG_CLASS).getField("INSTANCE");
+            if (!Modifier.isStatic(instanceField.getModifiers())) {
+                return false;
+            }
+
+            Object config = instanceField.get(null);
+            if (config == null) {
+                return false;
+            }
+
+            Method enabled = config.getClass().getMethod("enabled");
+            Method setter = config.getClass().getMethod("setEnabled", boolean.class);
+            Method save = config.getClass().getMethod("save");
+            Method onConfigChanged = Class.forName(MOD_CLASS).getMethod("onConfigChanged");
+
+            return !Modifier.isStatic(enabled.getModifiers())
+                    && !Modifier.isStatic(setter.getModifiers())
+                    && !Modifier.isStatic(save.getModifiers())
+                    && Modifier.isStatic(onConfigChanged.getModifiers());
         } catch (ReflectiveOperationException | LinkageError exception) {
             return false;
         }
@@ -44,8 +58,9 @@ public final class DynamicFpsAdapter implements OptimizationAdapter {
     @Override
     public boolean isEnabled() {
         try {
-            return (boolean) configInstance().getClass().getMethod("enabled").invoke(configInstance());
-        } catch (ReflectiveOperationException exception) {
+            Object config = configInstance();
+            return (boolean) config.getClass().getMethod("enabled").invoke(config);
+        } catch (ReflectiveOperationException | RuntimeException exception) {
             throw new IllegalStateException("Dynamic FPS config API is unavailable", exception);
         }
     }
