@@ -7,5 +7,17 @@
   "screen.vulkanboost.control_center.hints_on": "Show interface hints: ON",
   "screen.vulkanboost.control_center.hints_off": "Show interface hints: OFF",
   "screen.vulkanboost.control_center.reset": "Reset settings",
-  "screen.vulkanboost.control_center.close": "Close"
+  "screen.vulkanboost.control_center.close": "Close",
+  "screen.vulkanboost.control_center.monitor": "Performance monitor",
+  "screen.vulkanboost.performance.title": "VulkanBoost Performance",
+  "screen.vulkanboost.performance.subtitle": "Live Minecraft client and Java runtime metrics",
+  "screen.vulkanboost.performance.fps": "FPS: %s",
+  "screen.vulkanboost.performance.frame_time": "Frame time: %s ms",
+  "screen.vulkanboost.performance.memory": "Java heap used: %s / %s MiB",
+  "screen.vulkanboost.performance.committed": "Java heap committed: %s MiB",
+  "screen.vulkanboost.performance.components": "Loaded Fabric components: %s",
+  "screen.vulkanboost.performance.component_usage_unavailable": "Per-component CPU/GPU usage is not exposed by Fabric Loader.",
+  "screen.vulkanboost.performance.hardware_usage_unavailable": "CPU/GPU utilization is not available from a reliable cross-platform source.",
+  "screen.vulkanboost.performance.refresh_rate": "Metrics refresh every 0.5 seconds.",
+  "screen.vulkanboost.performance.back": "Back"
 }
