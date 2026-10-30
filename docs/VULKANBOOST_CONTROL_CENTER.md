@@ -1,6 +1,6 @@
-# VulkanBoost Control Center — v0.7 feature scope
+# VulkanBoost Control Center — v0.7.1 safety update
 
-**Status:** planned. This document defines required product scope; it does not claim that any of these features are already implemented.  
+**Status:** implemented on the feature branch; awaiting live Minecraft validation.  
 **Target baseline:** Minecraft 1.21.11, Fabric Loader 0.20.1, Java 21, VulkanMod 0.6.8+1.21.11.  
 **Release policy:** keep the frozen 0.6 release unchanged. Develop the Control Center on a separate feature branch and target a later release.
 
@@ -95,11 +95,17 @@ The first implementation of all five phases is now present in this branch. Autom
 
 ### Auto-tune safety
 
-The tuner uses the available logical CPU count and maximum Java heap as its initial hardware signals. Profiles only lower render and simulation distances; they do not silently increase the user's view distance. It enables only registered, verified feature adapters. Original values are captured so the last profile can be undone. No operating-system settings, JVM launch arguments, drivers, or GPU settings are modified.
+The tuner uses the available logical CPU count and maximum Java heap as its initial hardware signals. Profiles only lower render and simulation distances; they do not silently increase the user's view distance. Before applying, it checks that the vanilla options and optimization switches still match the preview. Distance changes are transactional: a failed option write or save triggers rollback. Undo restores only values that still match those written by the profile, preserving later user or third-party changes. No operating-system settings, JVM launch arguments, drivers, or GPU settings are modified.
 
 ### Memory-assistance safety
 
-Memory assistance is disabled by default and must be enabled in the UI. It samples Java heap pressure every 100 client ticks, requires three consecutive high-pressure samples before intervening, and only changes vanilla render/simulation distances. It never calls `System.gc()`. It waits for pressure to fall below a hysteresis threshold before restoring previous values, and avoids overwriting distance settings the user changed manually. This reduces the active chunk workload; it does not promise to instantly reclaim Java heap.
+Memory assistance is disabled by default and must be enabled in the UI. It samples Java heap pressure every 100 client ticks, requires three consecutive high-pressure samples before intervening, and only changes vanilla render/simulation distances. It never calls `System.gc()`. Both distance changes are applied as one transaction. If a write or save fails, changed values are rolled back; if rollback cannot finish, its snapshot is retained and restoration is retried on later samples. It waits for pressure to fall below a hysteresis threshold before restoring previous values, and does not overwrite distance settings the user changed manually. This reduces the active chunk workload; it does not promise to instantly reclaim Java heap.
+
+
+
+### v0.7.1 regression coverage
+
+The build now compiles and runs a standalone Java test harness for the transactional option helper. It covers normal apply/restore, manual override preservation, partial-write rollback, save-failure rollback, retry after incomplete rollback, and values already restored by an earlier attempt. The bundle validator also rejects an outer JAR whose metadata version does not match the expected build version.
 
 ## Acceptance criteria
 
