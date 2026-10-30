@@ -90,12 +90,29 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_source_tree_rejects_custom_runtime_files(self):
+    def test_source_tree_allows_vulkanboost_client_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "src" / "main" / "java" / "dev" / "vulkanboost" / "client" / "VulkanBoostClient.java"
+            source.parent.mkdir(parents=True)
+            source.write_text("class VulkanBoostClient {}", encoding="utf-8")
+            self.assertEqual(check_bundle.check_source_tree(root), [])
+
+    def test_source_tree_rejects_java_outside_vulkanboost_namespace(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "src" / "main" / "java" / "example" / "CustomRenderer.java"
             source.parent.mkdir(parents=True)
             source.write_text("class CustomRenderer {}", encoding="utf-8")
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
+
+    def test_source_tree_still_rejects_custom_shaders(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            shader = root / "src" / "main" / "resources" / "assets" / "vulkanboost" / "shaders" / "custom.fsh"
+            shader.parent.mkdir(parents=True)
+            shader.write_text("// no project-owned renderer yet", encoding="utf-8")
             errors = check_bundle.check_source_tree(root)
             self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
 
