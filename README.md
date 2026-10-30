@@ -11,6 +11,7 @@ This branch establishes a clean foundation for research into native-resolution t
 - No rendering option is advertised as working when no implementation exists.
 - The v0.6 package is the expanded optimization bundle; image reconstruction is not implemented yet.
 - Temporal reconstruction is a research target, not yet an implemented or validated feature.
+- The first-party **VulkanBoost Control Center** foundation is being developed on `feature/control-center-v0.7`: an in-game panel, configurable shortcut (default `O`), and a versioned settings file. Monitoring, verified optimization controls, auto-tuning, and smart memory management remain planned phases.
 
 ## Platform
 
