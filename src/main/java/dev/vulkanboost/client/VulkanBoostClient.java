@@ -9,6 +9,7 @@ import net.minecraft.resources.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 import dev.vulkanboost.config.VulkanBoostConfig;
+import dev.vulkanboost.client.PerformanceMonitor;
 
 /**
  * Registers the VulkanBoost client entry point and Control Center shortcut.
@@ -32,6 +33,7 @@ public final class VulkanBoostClient implements ClientModInitializer {
         ));
 
         ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            PerformanceMonitor.tick(client);
             while (openControlCenterKey.consumeClick()) {
                 if (!(client.screen instanceof ControlCenterScreen)) {
                     client.setScreen(new ControlCenterScreen(client.screen));
