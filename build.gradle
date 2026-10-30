@@ -58,6 +58,7 @@ dependencies {
     // Added world-generation and leaf-rendering optimizations for Minecraft 1.21.11.
     include(modImplementation("maven.modrinth:ayPU0OHc:YDgvKeWI")) // Structure Layout Optimizer 1.1.4
     include(modImplementation("maven.modrinth:GNxdLCoP:yrL6pwHZ")) // Cull Leaves 4.1.1.1+1.21.11 Fabric
+    include(modImplementation("maven.modrinth:FsoeTIV0:4QQcgJi6")) // Fast Item Frames 21.11.1
 
     // Required libraries for the added optimizers and the optional Fast Item Frames add-on.
     include(modImplementation("maven.modrinth:M1953qlQ:8bR7M6K7")) // Resourceful Config 3.11.3
