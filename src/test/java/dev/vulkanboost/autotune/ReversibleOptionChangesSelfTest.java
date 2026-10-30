@@ -64,7 +64,7 @@ public final class ReversibleOptionChangesSelfTest {
     private ReversibleOptionChangesSelfTest() {
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ReflectiveOperationException {
         successfulApplyAndRestore();
         manualChangesArePreserved();
         partialWriteFailureRollsBackEarlierWrites();
@@ -75,7 +75,7 @@ public final class ReversibleOptionChangesSelfTest {
         System.out.println("ReversibleOptionChanges: " + checks + " checks passed.");
     }
 
-    private static void successfulApplyAndRestore() {
+    private static void successfulApplyAndRestore() throws ReflectiveOperationException {
         FakeAccess access = new FakeAccess(16, 8);
         ReversibleOptionChanges.Snapshot snapshot = ReversibleOptionChanges.apply(
                 access, targets(12, 6), true
@@ -91,7 +91,7 @@ public final class ReversibleOptionChangesSelfTest {
         check(access.value("simulationDistance") == 8, "simulation distance returns to original");
     }
 
-    private static void manualChangesArePreserved() {
+    private static void manualChangesArePreserved() throws ReflectiveOperationException {
         FakeAccess access = new FakeAccess(16, 8);
         ReversibleOptionChanges.Snapshot snapshot = ReversibleOptionChanges.apply(
                 access, targets(12, 6), true
@@ -130,7 +130,7 @@ public final class ReversibleOptionChangesSelfTest {
         check(access.value("simulationDistance") == 8, "simulation distance rolled back after save failure");
     }
 
-    private static void failedRollbackSaveCanBeRetried() {
+    private static void failedRollbackSaveCanBeRetried() throws ReflectiveOperationException {
         FakeAccess access = new FakeAccess(16, 8);
         access.failSaveCount = 2;
 
@@ -148,7 +148,7 @@ public final class ReversibleOptionChangesSelfTest {
         check(access.value("simulationDistance") == 8, "retry keeps original simulation distance");
     }
 
-    private static void incompleteRollbackCanBeRetried() {
+    private static void incompleteRollbackCanBeRetried() throws ReflectiveOperationException {
         FakeAccess access = new FakeAccess(16, 8);
         access.failWriteOption = "simulationDistance";
         access.hideOptionAfterFailedWrite = "renderDistance";
@@ -167,7 +167,7 @@ public final class ReversibleOptionChangesSelfTest {
         check(access.value("simulationDistance") == 8, "retry leaves untouched second option unchanged");
     }
 
-    private static void alreadyRestoredValuesAreNotOverwritten() {
+    private static void alreadyRestoredValuesAreNotOverwritten() throws ReflectiveOperationException {
         FakeAccess access = new FakeAccess(16, 8);
         ReversibleOptionChanges.Snapshot snapshot = ReversibleOptionChanges.apply(
                 access, targets(12, 6), true
