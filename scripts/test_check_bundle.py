@@ -20,7 +20,7 @@ def make_nested(mod_id, version):
     return stream.getvalue()
 
 
-def make_bundle(mod_ids=None, extra_path=None):
+def make_bundle(mod_ids=None, extra_path=None, depends=None, root_overrides=None):
     mod_ids = mod_ids or sorted(check_bundle.EXPECTED_COMPONENT_IDS)
     versions = dict(check_bundle.EXPECTED_VERSIONS)
     nested_jars = []
@@ -41,8 +41,10 @@ def make_bundle(mod_ids=None, extra_path=None):
         "id": "vulkanboost",
         "version": "0.6",
         "jars": nested_jars,
-        "depends": check_bundle.REQUIRED_DEPENDENCIES.copy(),
+        "depends": check_bundle.REQUIRED_DEPENDENCIES.copy() if depends is None else depends,
     }
+    if root_overrides:
+        root_metadata.update(root_overrides)
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("fabric.mod.json", json.dumps(root_metadata))
@@ -98,6 +100,56 @@ class BundleCheckerTests(unittest.TestCase):
             source.write_text("class CustomRenderer {}", encoding="utf-8")
             errors = check_bundle.check_source_tree(root)
             self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
+
+    def test_source_metadata_must_be_an_object(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            metadata = root / "src" / "main" / "resources"
+            metadata.mkdir(parents=True)
+            (metadata / "fabric.mod.json").write_text("[]", encoding="utf-8")
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any("fabric.mod.json: metadata must be a JSON object" in error for error in errors))
+
+    def test_source_metadata_invalid_json_reports_error(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            metadata = root / "src" / "main" / "resources"
+            metadata.mkdir(parents=True)
+            (metadata / "fabric.mod.json").write_text("{", encoding="utf-8")
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any(error.startswith("fabric.mod.json: invalid metadata") for error in errors))
+
+    def test_missing_required_dependency_is_rejected(self):
+        path = make_bundle(depends={"fabricloader": ">=0.19.3"})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("root dependency 'minecraft'" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_malformed_root_jars_is_rejected(self):
+        path = make_bundle(root_overrides={"jars": "not-a-list"})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("jars must be a JSON array" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_malformed_nested_entry_is_rejected(self):
+        path = make_bundle(root_overrides={"jars": ["oops"]})
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("malformed nested-JAR entry" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_unsafe_nested_path_is_rejected(self):
+        path = make_bundle(extra_path=("../evil.jar", b"not-a-zip"))
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("unsafe or missing nested-JAR path" in error for error in errors))
+        finally:
+            Path(path).unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
