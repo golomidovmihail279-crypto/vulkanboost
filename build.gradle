@@ -60,7 +60,7 @@ dependencies {
     include(modImplementation("maven.modrinth:GNxdLCoP:yrL6pwHZ")) // Cull Leaves 4.1.1.1+1.21.11 Fabric
     include(modImplementation("maven.modrinth:FsoeTIV0:4QQcgJi6")) // Fast Item Frames 21.11.1
 
-    // Required libraries for the added optimizers and the optional Fast Item Frames add-on.
+    // Required libraries for Fast Item Frames and the other added optimizers.
     include(modImplementation("maven.modrinth:M1953qlQ:8bR7M6K7")) // Resourceful Config 3.11.3
     include(modImplementation("maven.modrinth:codAaoxh:OeTayxh3")) // MidnightLib 1.9.2+1.21.11 Fabric
     include(modImplementation("maven.modrinth:QAGBst4M:O1SlsQzW")) // Puzzles Lib 21.11.11
