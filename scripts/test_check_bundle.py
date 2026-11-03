@@ -56,6 +56,30 @@ def make_bundle(mod_ids=None, extra_path=None, depends=None, root_overrides=None
     return path
 
 
+def make_jar(mod_id, version, child=None):
+    stream = io.BytesIO()
+    with zipfile.ZipFile(stream, "w") as archive:
+        archive.writestr(
+            "fabric.mod.json",
+            json.dumps({
+                "schemaVersion": 1,
+                "id": mod_id,
+                "version": version,
+                "jars": [{"file": f"META-INF/jars/{mod_id}.jar"}] if child is not None else [],
+            }),
+        )
+        if child is not None:
+            archive.writestr(f"META-INF/jars/{mod_id}.jar", child)
+    return stream.getvalue()
+
+
+def make_deep_chain(count):
+    jar_bytes = make_jar("deep-leaf", "1.0.0")
+    for index in range(count - 1):
+        jar_bytes = make_jar(f"deep-{index}", "1.0.0", child=jar_bytes)
+    return jar_bytes
+
+
 class BundleCheckerTests(unittest.TestCase):
     def test_clean_25_component_bundle_passes(self):
         path = make_bundle()
@@ -150,6 +174,16 @@ class BundleCheckerTests(unittest.TestCase):
             self.assertTrue(any("unsafe or missing nested-JAR path" in error for error in errors))
         finally:
             Path(path).unlink(missing_ok=True)
+
+    def test_shallow_nested_jar_chain_passes(self):
+        errors: list[str] = []
+        check_bundle.inspect_nested_jar(make_deep_chain(3), "deep-chain", errors, 0)
+        self.assertEqual(errors, [])
+
+    def test_deep_nested_jar_chain_reports_recursion_limit(self):
+        errors: list[str] = []
+        check_bundle.inspect_nested_jar(make_deep_chain(12), "deep-chain", errors, 0)
+        self.assertTrue(any("nested-JAR recursion limit exceeded" in error for error in errors))
 
 
 if __name__ == "__main__":
