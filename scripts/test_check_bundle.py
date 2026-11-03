@@ -143,6 +143,18 @@ class BundleCheckerTests(unittest.TestCase):
             errors = check_bundle.check_source_tree(root)
             self.assertTrue(any(error.startswith("fabric.mod.json: invalid metadata") for error in errors))
 
+    def test_source_tree_rejects_custom_mixins(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "src" / "main" / "resources"
+            source.mkdir(parents=True)
+            (source / "fabric.mod.json").write_text(
+                json.dumps({"schemaVersion": 1, "id": "vulkanboost", "version": "0.6", "mixins": ["vulkanboost.mixins"]}),
+                encoding="utf-8",
+            )
+            errors = check_bundle.check_source_tree(root)
+            self.assertTrue(any("custom mixin registration is not expected in the bundle base" in error for error in errors))
+
     def test_missing_required_dependency_is_rejected(self):
         path = make_bundle(depends={"fabricloader": ">=0.19.3"})
         try:
