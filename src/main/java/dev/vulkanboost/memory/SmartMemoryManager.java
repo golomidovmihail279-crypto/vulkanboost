@@ -140,8 +140,8 @@ public final class SmartMemoryManager {
             return;
         }
 
-        int nextRender = Math.max(4, render.getAsInt() - 2);
-        int nextSimulation = Math.max(2, simulation.getAsInt() - 1);
+        int nextRender = MemoryDistancePolicy.reduce(render.getAsInt(), 2, 4);
+        int nextSimulation = MemoryDistancePolicy.reduce(simulation.getAsInt(), 1, 2);
         if (nextRender == render.getAsInt() && nextSimulation == simulation.getAsInt()) {
             statusKey = "screen.vulkanboost.memory.status.minimum";
             highPressureSamples = 0;

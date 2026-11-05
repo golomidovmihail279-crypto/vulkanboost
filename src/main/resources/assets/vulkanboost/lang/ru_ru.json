@@ -80,7 +80,7 @@
   "screen.vulkanboost.memory.status.error": "Не удалось безопасно изменить дальность",
   "screen.vulkanboost.common.previous": "Предыдущая",
   "screen.vulkanboost.common.next": "Следующая",
-  "screen.vulkanboost.common.page": "Страница %s из %s",
+  "screen.vulkanboost.common.page": "%s / %s",
   "screen.vulkanboost.autotune.apply_short": "Применить",
   "screen.vulkanboost.autotune.undo_short": "Отменить",
   "screen.vulkanboost.autotune.preview_summary": "Прорисовка: %s | Симуляция: %s"

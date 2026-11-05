@@ -58,14 +58,11 @@ public final class AutoTuneService {
     }
 
     public static Profile recommendedProfile() {
-        Runtime runtime = Runtime.getRuntime();
-        int processors = runtime.availableProcessors();
-        long maxHeap = runtime.maxMemory();
+        int processors = Runtime.getRuntime().availableProcessors();
 
-        if (processors <= 6 || maxHeap <= 6L * 1024L * 1024L * 1024L) {
-            return Profile.LOW_MEMORY;
-        }
-        return Profile.BALANCED;
+        // JVM max heap is a launch setting, not a measurement of physical RAM.
+        // Do not automatically classify a machine as low-memory from a small -Xmx.
+        return processors <= 4 ? Profile.FPS_PRIORITY : Profile.BALANCED;
     }
 
     public static Plan preview(Minecraft client, Profile profile) {

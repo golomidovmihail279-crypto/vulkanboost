@@ -7,6 +7,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 LANG_DIR = ROOT / "src" / "main" / "resources" / "assets" / "vulkanboost" / "lang"
 JAVA_DIR = ROOT / "src" / "main" / "java" / "dev" / "vulkanboost" / "client"
+REGISTRY_FILE = ROOT / "src" / "main" / "java" / "dev" / "vulkanboost" / "optimization" / "OptimizationRegistry.java"
+import sys
+sys.path.insert(0, str(ROOT / "scripts"))
+import check_bundle
 
 
 def reject_duplicate_keys(pairs):
@@ -32,6 +36,17 @@ class UiLocaleTests(unittest.TestCase):
             set(russian),
             "en_us.json and ru_ru.json must contain exactly the same keys",
         )
+
+    def test_registry_matches_the_complete_bundle_manifest(self):
+        registry = REGISTRY_FILE.read_text(encoding="utf-8")
+        registered_ids = set(re.findall(r'new Entry\(\s*"([^"]+)"', registry))
+        self.assertEqual(check_bundle.EXPECTED_COMPONENT_IDS, registered_ids)
+
+    def test_release_version_matches_gradle_and_validator(self):
+        properties = (ROOT / "gradle.properties").read_text(encoding="utf-8")
+        match = re.search(r"^mod_version=(\S+)$", properties, re.MULTILINE)
+        self.assertIsNotNone(match)
+        self.assertEqual(check_bundle.EXPECTED_BUNDLE_VERSION, match.group(1))
 
     def test_literal_screen_translation_keys_exist(self):
         english = self.load_locale("en_us.json")

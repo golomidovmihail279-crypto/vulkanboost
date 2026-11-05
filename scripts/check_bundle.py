@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the distributable VulkanBoost bundle.
 
-Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.7.1.jar
+Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-1.0.jar
 """
 from __future__ import annotations
 import io
@@ -12,7 +12,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-EXPECTED_BUNDLE_VERSION = "0.7.1"
+EXPECTED_BUNDLE_VERSION = "1.0"
 EXPECTED_COMPONENT_IDS = {
     "fabric-api", "vulkanmod", "lithium", "ferritecore", "alternate-current",
     "badoptimizations", "modernfix", "scalablelux", "zfastnoise", "krypton",
@@ -40,6 +40,25 @@ REQUIRED_DEPENDENCIES = {
 }
 
 CLIENT_ENTRYPOINT_ID = "dev.vulkanboost.client.VulkanBoostClient"
+
+
+REQUIRED_PROJECT_CLASSES = {
+    "dev/vulkanboost/client/VulkanBoostClient.class",
+    "dev/vulkanboost/client/ControlCenterScreen.class",
+    "dev/vulkanboost/client/OptimizationScreen.class",
+    "dev/vulkanboost/client/AutoTuneScreen.class",
+    "dev/vulkanboost/client/AutoTuneResultScreen.class",
+    "dev/vulkanboost/client/MemoryScreen.class",
+    "dev/vulkanboost/client/PerformanceScreen.class",
+    "dev/vulkanboost/client/PerformanceMonitor.class",
+    "dev/vulkanboost/client/ScreenLayout.class",
+    "dev/vulkanboost/config/VulkanBoostConfig.class",
+    "dev/vulkanboost/memory/SmartMemoryManager.class",
+    "dev/vulkanboost/memory/MemoryDistancePolicy.class",
+    "dev/vulkanboost/autotune/AutoTuneService.class",
+    "dev/vulkanboost/autotune/ReversibleOptionChanges.class",
+    "dev/vulkanboost/optimization/OptimizationRegistry.class",
+}
 
 
 def is_unsafe_nested_path(path: object) -> bool:
@@ -77,10 +96,10 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
             except ValueError as exc:
                 errors.append(str(exc))
                 return
-            child_entries = metadata.get("jars") or []
+            child_entries = metadata.get("jars", [])
             if not isinstance(child_entries, list):
                 errors.append(f"{label}: nested metadata jars must be a JSON array")
-                child_entries = []
+                return
             for child in child_entries:
                 if not isinstance(child, dict):
                     errors.append(f"{label}: malformed nested-JAR entry")
@@ -150,7 +169,7 @@ def check_bundle(path: str | Path) -> list[str]:
                 errors.append(
                     f"bundle version mismatch: expected {EXPECTED_BUNDLE_VERSION!r}, found {actual_bundle_version!r}"
                 )
-            dependencies = metadata.get("depends") or {}
+            dependencies = metadata.get("depends", {})
             if not isinstance(dependencies, dict):
                 errors.append("root metadata depends must be a JSON object")
                 dependencies = {}
@@ -168,7 +187,10 @@ def check_bundle(path: str | Path) -> list[str]:
             )
             if unexpected_root_classes:
                 errors.append(f"unexpected classes outside the VulkanBoost namespace: {unexpected_root_classes}")
-            nested_entries = metadata.get("jars") or []
+            missing_project_classes = sorted(REQUIRED_PROJECT_CLASSES - names)
+            if missing_project_classes:
+                errors.append(f"required VulkanBoost runtime classes are missing: {missing_project_classes}")
+            nested_entries = metadata.get("jars", [])
             if not isinstance(nested_entries, list):
                 errors.append("root metadata jars must be a JSON array")
                 nested_entries = []
@@ -200,7 +222,7 @@ def check_bundle(path: str | Path) -> list[str]:
                             continue
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
-                        child_entries = child_metadata.get("jars") or []
+                        child_entries = child_metadata.get("jars", [])
                         if not isinstance(child_entries, list):
                             errors.append(f"{nested_path}: nested metadata jars must be a JSON array")
                             child_entries = []
@@ -212,7 +234,7 @@ def check_bundle(path: str | Path) -> list[str]:
                             if not isinstance(child_path, str) or is_unsafe_nested_path(child_path) or child_path not in child.namelist():
                                 errors.append(f"{nested_path}: missing nested JAR entry {child_path!r}")
                                 continue
-                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, 1)
+                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, depth=1)
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
                     errors.append(f"{nested_path}: invalid nested JAR/metadata: {exc}")
             if len(nested_entries) != len(EXPECTED_COMPONENT_IDS):

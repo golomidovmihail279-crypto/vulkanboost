@@ -80,7 +80,7 @@
   "screen.vulkanboost.memory.status.error": "Could not change distances safely",
   "screen.vulkanboost.common.previous": "Previous",
   "screen.vulkanboost.common.next": "Next",
-  "screen.vulkanboost.common.page": "Page %s of %s",
+  "screen.vulkanboost.common.page": "%s / %s",
   "screen.vulkanboost.autotune.apply_short": "Apply",
   "screen.vulkanboost.autotune.undo_short": "Undo",
   "screen.vulkanboost.autotune.preview_summary": "Render: %s | Simulation: %s"

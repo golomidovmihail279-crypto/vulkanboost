@@ -1,0 +1,102 @@
+name: Publish VulkanBoost release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out tagged source
+        uses: actions/checkout@v4
+
+      - name: Set up Java 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.5.0"
+
+      - name: Verify tag and project version
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          MOD_VERSION="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          if [[ "$TAG_VERSION" != "$MOD_VERSION" ]]; then
+            echo "Tag version $TAG_VERSION does not match mod_version $MOD_VERSION"
+            exit 1
+          fi
+
+      - name: Build remapped mod JAR
+        run: gradle --no-daemon clean build
+
+      - name: Validate bundle and source tree
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          JAR="build/libs/vulkanboost-$VERSION.jar"
+          test -f "$JAR"
+          python3 scripts/check_bundle.py "$JAR"
+
+      - name: Run Python regression tests
+        run: python3 -m unittest discover -s scripts -p "test_*.py"
+
+      - name: Run Java option-transaction tests
+        run: |
+          set -euo pipefail
+          mkdir -p build/option-transaction-tests
+          javac -encoding UTF-8 -d build/option-transaction-tests \
+            src/main/java/dev/vulkanboost/autotune/ReversibleOptionChanges.java \
+            scripts/java-tests/dev/vulkanboost/autotune/ReversibleOptionChangesSelfTest.java
+          java -cp build/option-transaction-tests dev.vulkanboost.autotune.ReversibleOptionChangesSelfTest
+
+      - name: Run Java UI layout regression tests
+        run: |
+          set -euo pipefail
+          mkdir -p build/screen-layout-tests
+          javac -encoding UTF-8 -d build/screen-layout-tests \
+            src/main/java/dev/vulkanboost/client/ScreenLayout.java \
+            scripts/java-tests/dev/vulkanboost/client/ScreenLayoutSelfTest.java
+          java -cp build/screen-layout-tests dev.vulkanboost.client.ScreenLayoutSelfTest
+
+      - name: Run Java memory-distance policy tests
+        run: |
+          set -euo pipefail
+          mkdir -p build/memory-policy-tests
+          javac -encoding UTF-8 -d build/memory-policy-tests \
+            src/main/java/dev/vulkanboost/memory/MemoryDistancePolicy.java \
+            scripts/java-tests/dev/vulkanboost/memory/MemoryDistancePolicySelfTest.java
+          java -cp build/memory-policy-tests dev.vulkanboost.memory.MemoryDistancePolicySelfTest
+
+      - name: Prepare release asset and checksum
+        shell: bash
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          SOURCE_JAR="build/libs/vulkanboost-$VERSION.jar"
+          RELEASE_JAR="build/libs/VulkanBoost-$VERSION-for-1.21.11.jar"
+          cp "$SOURCE_JAR" "$RELEASE_JAR"
+          sha256sum "$RELEASE_JAR" > "$RELEASE_JAR.sha256"
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VERSION="${GITHUB_REF_NAME#v}"
+          gh release create "$GITHUB_REF_NAME" \
+            "build/libs/VulkanBoost-$VERSION-for-1.21.11.jar" \
+            "build/libs/VulkanBoost-$VERSION-for-1.21.11.jar.sha256" \
+            --title "VulkanBoost-$VERSION-for-1.21.11" \
+            --notes-file CHANGELOG.md

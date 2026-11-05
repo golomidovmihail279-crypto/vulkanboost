@@ -1,6 +1,6 @@
-# VulkanBoost Control Center — v0.7.1 safety update
+# VulkanBoost Control Center — v1.0 release preparation
 
-**Status:** implemented on the feature branch; awaiting live Minecraft validation.  
+**Status:** implemented in the v1.0 release branch; automated checks run in CI, while live Minecraft validation remains a release gate.  
 **Target baseline:** Minecraft 1.21.11, Fabric Loader 0.20.1, Java 21, VulkanMod 0.6.8+1.21.11.  
 **Release policy:** keep the frozen 0.6 release unchanged. Develop the Control Center on a separate feature branch and target a later release.
 
@@ -75,9 +75,9 @@ Do not claim precise per-mod CPU/GPU attribution unless a real profiling source 
 
 Each phase must build and pass automated checks before moving on. The completed feature set also requires an in-game test on the target Minecraft/Fabric/Java/VulkanMod combination.
 
-## Implementation status on `feature/control-center-v0.7`
+## Implementation status for v1.0
 
-The first implementation of all five phases is now present in this branch. Automated CI and in-game validation are tracked separately.
+The first-party client implementation is present in the v1.0 release branch. Automated CI and in-game validation are tracked separately.
 
 | Phase | Implemented scope | Remaining validation |
 |---|---|---|
@@ -95,7 +95,7 @@ The first implementation of all five phases is now present in this branch. Autom
 
 ### Auto-tune safety
 
-The tuner uses the available logical CPU count and maximum Java heap as its initial hardware signals. Profiles only lower render and simulation distances; they do not silently increase the user's view distance. Before applying, it checks that the vanilla options and optimization switches still match the preview. Distance changes are transactional: a failed option write or save triggers rollback. Undo restores only values that still match those written by the profile, preserving later user or third-party changes. No operating-system settings, JVM launch arguments, drivers, or GPU settings are modified.
+The tuner uses the available logical CPU count to make its automatic recommendation. Maximum Java heap is displayed as runtime information; it is not treated as physical RAM. Profiles only lower render and simulation distances; they do not silently increase the user's view distance. Before applying, it checks that the vanilla options and optimization switches still match the preview. Distance changes are transactional: a failed option write or save triggers rollback. Undo restores only values that still match those written by the profile, preserving later user or third-party changes. No operating-system settings, JVM launch arguments, drivers, or GPU settings are modified.
 
 ### Memory-assistance safety
 
@@ -103,7 +103,7 @@ Memory assistance is disabled by default and must be enabled in the UI. It sampl
 
 
 
-### v0.7.1 regression coverage
+### v1.0 regression coverage
 
 The build now compiles and runs a standalone Java test harness for the transactional option helper. It covers normal apply/restore, manual override preservation, partial-write rollback, save-failure rollback, retry after incomplete rollback, and values already restored by an earlier attempt. The bundle validator also rejects an outer JAR whose metadata version does not match the expected build version.
 
@@ -120,7 +120,7 @@ The build now compiles and runs a standalone Java test harness for the transacti
 
 ## Important limitation
 
-VulkanBoost currently has no project-owned Java runtime implementation; its existing build is primarily a nested-mod bundle. The Control Center therefore requires new Fabric client code and tests. The bundled mods cannot all be switched on/off live merely because they are packed into one JAR. Actual controls depend on each upstream mod exposing a safe configuration interface or on a separately tested VulkanBoost integration.
+VulkanBoost includes its own Java client runtime: Control Center screens, the metrics collector, versioned settings, auto-tuning, memory assistance, a 25-component registry, and verified upstream adapters. It still cannot safely hot-disable every nested Fabric mod. Components without a verified live adapter are displayed as read-only rather than as fake switches.
 
 
 ## Responsive layout and pagination
@@ -137,3 +137,14 @@ The client screens use shared, dependency-free layout calculations in `ScreenLay
 The dependency-free `ScreenLayoutSelfTest` checks the geometry calculations at 320×180, 427×240, 640×360, 854×480, and 1920×1080. `test_ui_locales.py` checks JSON validity, duplicate keys, matching English/Russian key sets, and literal screen translation references.
 
 These automated tests validate layout calculations and translation data; they do not render Minecraft screens. Live visual testing on Minecraft 1.21.11 with Fabric Loader 0.20.1 and VulkanMod 0.6.8+1.21.11 remains required before treating the Control Center as fully validated.
+
+
+## v1.0 release hardening
+
+- The component registry and validator are checked against the same 25 top-level mod IDs in CI.
+- The validator checks the exact outer version and requires key VulkanBoost runtime classes in the built JAR.
+- Nested metadata is checked strictly; malformed `jars` and `depends` fields are rejected instead of silently treated as empty.
+- Nested-JAR recursion limits are tested.
+- Automatic profile recommendation no longer mistakes a low JVM maximum heap for low physical RAM.
+- Smart memory assistance cannot increase a distance setting that is already below its soft minimum.
+- Tag-based release automation builds, validates, tests, calculates SHA-256, and publishes the GitHub Release after a matching version tag is pushed.
