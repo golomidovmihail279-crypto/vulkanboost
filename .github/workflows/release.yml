@@ -2,6 +2,8 @@ name: Publish VulkanBoost release
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
 
@@ -10,10 +12,12 @@ permissions:
 
 jobs:
   release:
-    if: startsWith(github.ref, 'refs/tags/v')
+    # A tagged release is built from its tag. The first v1.0 publication is
+    # created automatically by the explicitly marked release PR merge.
+    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-v1.0]'))
     runs-on: ubuntu-latest
     steps:
-      - name: Check out tagged source
+      - name: Check out release source
         uses: actions/checkout@v4
 
       - name: Set up Java 21
@@ -27,16 +31,22 @@ jobs:
         with:
           gradle-version: "9.5.0"
 
-      - name: Verify tag and project version
+      - name: Resolve and verify release version
+        id: version
         shell: bash
         run: |
           set -euo pipefail
-          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          else
+            VERSION="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          fi
           MOD_VERSION="$(sed -n 's/^mod_version=//p' gradle.properties)"
-          if [[ "$TAG_VERSION" != "$MOD_VERSION" ]]; then
-            echo "Tag version $TAG_VERSION does not match mod_version $MOD_VERSION"
+          if [[ "$VERSION" != "$MOD_VERSION" ]]; then
+            echo "Release version $VERSION does not match mod_version $MOD_VERSION"
             exit 1
           fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Build remapped mod JAR
         run: gradle --no-daemon clean build
@@ -44,7 +54,7 @@ jobs:
       - name: Validate bundle and source tree
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.version.outputs.version }}"
           JAR="build/libs/vulkanboost-$VERSION.jar"
           test -f "$JAR"
           python3 scripts/check_bundle.py "$JAR"
@@ -83,7 +93,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
+          VERSION="${{ steps.version.outputs.version }}"
           SOURCE_JAR="build/libs/vulkanboost-$VERSION.jar"
           RELEASE_JAR="build/libs/VulkanBoost-$VERSION-for-1.21.11.jar"
           cp "$SOURCE_JAR" "$RELEASE_JAR"
@@ -92,11 +102,19 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+        shell: bash
         run: |
           set -euo pipefail
-          VERSION="${GITHUB_REF_NAME#v}"
-          gh release create "$GITHUB_REF_NAME" \
-            "build/libs/VulkanBoost-$VERSION-for-1.21.11.jar" \
-            "build/libs/VulkanBoost-$VERSION-for-1.21.11.jar.sha256" \
-            --title "VulkanBoost-$VERSION-for-1.21.11" \
-            --notes-file CHANGELOG.md
+          VERSION="${{ steps.version.outputs.version }}"
+          ASSET="build/libs/VulkanBoost-$VERSION-for-1.21.11.jar"
+          CHECKSUM="$ASSET.sha256"
+          TITLE="VulkanBoost-$VERSION-for-1.21.11"
+          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
+            gh release create "$GITHUB_REF_NAME" "$ASSET" "$CHECKSUM" \
+              --title "$TITLE" --notes-file CHANGELOG.md
+          else
+            # Publish v1.0 as a prerelease until live Minecraft acceptance is complete.
+            gh release create "v$VERSION" "$ASSET" "$CHECKSUM" \
+              --target "$GITHUB_SHA" --title "$TITLE" \
+              --notes-file CHANGELOG.md --prerelease
+          fi
