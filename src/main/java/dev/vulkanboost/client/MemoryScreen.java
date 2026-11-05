@@ -45,10 +45,11 @@ public final class MemoryScreen extends Screen {
             button.setMessage(thresholdLabel());
         }).bounds(x, y + 28, width, 20).build());
 
+        int backY = Math.max(this.height - 30, y + 56);
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.performance.back"),
                 button -> this.onClose()
-        ).bounds(x, y + 56, width, 20).build());
+        ).bounds(x, backY, width, 20).build());
     }
 
     private static Component enabledLabel() {
@@ -66,23 +67,27 @@ public final class MemoryScreen extends Screen {
     public void render(GuiGraphics graphics, int mouseX, int mouseY, float partialTick) {
         super.render(graphics, mouseX, mouseY, partialTick);
         int center = this.width / 2;
+        int lineY = 42;
 
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.memory.subtitle"),
-                center, 36, 0xB8C7D9);
+                center, lineY, 0xB8C7D9);
+        lineY += 22;
 
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.memory.pressure",
                         SmartMemoryManager.pressurePercent()),
-                center, this.height / 2 + 70, 0xFFFFFF);
+                center, lineY, 0xFFFFFF);
+        lineY += 16;
 
         graphics.drawCenteredString(this.font,
                 Component.translatable(SmartMemoryManager.statusKey()),
-                center, this.height / 2 + 86, 0xA0A0A0);
+                center, lineY, 0xA0A0A0);
+        lineY += 16;
 
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.memory.note"),
-                center, Math.min(this.height - 18, this.height / 2 + 112), 0x707070);
+                center, Math.min(this.height - 18, lineY), 0x707070);
     }
 
     @Override

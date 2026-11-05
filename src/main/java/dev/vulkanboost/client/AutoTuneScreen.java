@@ -61,10 +61,12 @@ public final class AutoTuneScreen extends Screen {
         ).bounds(x, y, width, 20).build());
         y += 24;
 
+        // Back button stays at the bottom edge, but is pushed down if needed to avoid overlap.
+        int backY = Math.max(this.height - 30, y + 4);
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.performance.back"),
                 button -> this.onClose()
-        ).bounds(x, y, width, 20).build());
+        ).bounds(x, backY, width, 20).build());
 
         refreshPlan();
         updateActionButtons();

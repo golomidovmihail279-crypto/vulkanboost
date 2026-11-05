@@ -23,7 +23,10 @@ public final class ControlCenterScreen extends Screen {
     protected void init() {
         int buttonWidth = 230;
         int buttonX = (this.width - buttonWidth) / 2;
-        int firstButtonY = this.height / 2 - 86;
+
+        // Reserve space for subtitle (at y=48) and bottom margin.
+        int firstButtonY = Math.max(62, this.height / 2 - 86);
+        int buttonStep = 28;
 
         this.hintsButton = this.addRenderableWidget(Button.builder(
                 hintsButtonLabel(),
@@ -40,7 +43,7 @@ public final class ControlCenterScreen extends Screen {
                         this.minecraft.setScreen(new PerformanceScreen(this));
                     }
                 }
-        ).bounds(buttonX, firstButtonY + 28, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + buttonStep, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.optimizations"),
@@ -49,7 +52,7 @@ public final class ControlCenterScreen extends Screen {
                         this.minecraft.setScreen(new OptimizationScreen(this));
                     }
                 }
-        ).bounds(buttonX, firstButtonY + 56, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 2 * buttonStep, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.autotune"),
@@ -58,7 +61,7 @@ public final class ControlCenterScreen extends Screen {
                         this.minecraft.setScreen(new AutoTuneScreen(this));
                     }
                 }
-        ).bounds(buttonX, firstButtonY + 84, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 3 * buttonStep, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.memory"),
@@ -67,7 +70,7 @@ public final class ControlCenterScreen extends Screen {
                         this.minecraft.setScreen(new MemoryScreen(this));
                     }
                 }
-        ).bounds(buttonX, firstButtonY + 112, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 4 * buttonStep, buttonWidth, 20).build());
 
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.reset"),
@@ -75,12 +78,13 @@ public final class ControlCenterScreen extends Screen {
                     VulkanBoostConfig.resetToDefaults();
                     this.hintsButton.setMessage(hintsButtonLabel());
                 }
-        ).bounds(buttonX, firstButtonY + 140, buttonWidth, 20).build());
+        ).bounds(buttonX, firstButtonY + 5 * buttonStep, buttonWidth, 20).build());
 
+        int closeY = Math.max(this.height - 30, firstButtonY + 6 * buttonStep + 8);
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.control_center.close"),
                 button -> this.onClose()
-        ).bounds(buttonX, firstButtonY + 168, buttonWidth, 20).build());
+        ).bounds(buttonX, closeY, buttonWidth, 20).build());
     }
 
     private static Component hintsButtonLabel() {

@@ -107,4 +107,18 @@ Memory assistance is disabled by default and must be enabled in the UI. It sampl
 
 The build now compiles and runs a standalone Java test harness for the transactional option helper. It covers normal apply/restore, manual override preservation, partial-write rollback, save-failure rollback, retry after incomplete rollback, and values already restored by an earlier attempt. The bundle validator also rejects an outer JAR whose metadata version does not match the expected build version.
 
+## Acceptance criteria
+
+- The settings screen opens reliably and the key binding can be changed.
+- Settings survive a game restart and malformed config files recover to safe defaults without deleting the user's data silently.
+- Every visible switch changes a verified setting; unsupported options are not presented as functional toggles.
+- Restart-required changes are clearly labelled.
+- Monitor values update without noticeable extra frame-time cost.
+- Auto-tuning previews its changes and can restore the previous values.
+- Memory management never relies on repeated forced garbage collection.
+- No feature is labelled complete based only on compilation; it must pass an in-game check.
+
+## Important limitation
+
+VulkanBoost currently has no project-owned Java runtime implementation; its existing build is primarily a nested-mod bundle. The Control Center therefore requires new Fabric client code and tests. The bundled mods cannot all be switched on/off live merely because they are packed into one JAR. Actual controls depend on each upstream mod exposing a safe configuration interface or on a separately tested VulkanBoost integration.
 
