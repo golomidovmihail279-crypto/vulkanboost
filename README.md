@@ -1,21 +1,27 @@
 # VulkanBoost
 
-**A single-JAR performance bundle for Minecraft Java Edition 1.21.11, built around VulkanMod.**
+**A first-party Fabric client performance mod for Minecraft 1.21.11, built around VulkanMod.**
 
-This branch establishes a clean foundation for research into native-resolution temporal anti-aliasing and image reconstruction. It does not ship a reconstruction filter yet: the goal is to understand the renderer's frame lifecycle, available buffers, camera transforms, and object-rendering paths before adding an algorithm.
+VulkanBoost combines a curated set of upstream optimization components with its own in-game Control Center, performance monitoring, reversible tuning, and optional memory-pressure assistance. The goal is not only to put several mods into one JAR, but to give players one reliable place to inspect and manage the parts VulkanBoost can safely control.
 
-## Current state
+## What VulkanBoost provides
 
-- The one-JAR bundle retains 25 pinned top-level mod/library components.
-- Custom rendering hooks and resolution-scaling integration are not part of this branch.
-- No rendering option is advertised as working when no implementation exists.
-- The v0.6 package is the expanded optimization bundle; image reconstruction is not implemented yet.
-- Temporal reconstruction is a research target, not yet an implemented or validated feature.
+- **One installable JAR:** 25 pinned top-level mod and library components.
+- **Control Center:** open it with the configurable `O` key binding. Screens use pagination and responsive positioning.
+- **Complete component registry:** inspect the status of all 25 bundled components. Only Cull Leaves and Dynamic FPS currently have verified live switches; other components remain informational until a safe upstream control API is verified.
+- **Performance monitor:** live FPS, frame time, Java heap usage, and loaded Fabric component count. VulkanBoost does not invent per-mod CPU/GPU attribution.
+- **Auto-tuning:** Balanced, FPS Priority, and Lower Memory profiles with preview, apply, and undo. The automatic recommendation uses logical CPU count; JVM `-Xmx` is displayed but is not treated as physical RAM.
+- **Smart memory assistance:** optional and disabled by default. After sustained heap pressure it can lower render/simulation distances and restore them when pressure subsides, unless the player changes those values manually. It never calls `System.gc()`.
+- **Reproducible validation:** CI builds the mod, verifies nested-JAR metadata and component IDs, checks first-party runtime classes, and runs Python/Java regression tests.
+
+## Release status
+
+Version **1.0** is being prepared from the v0.6 bundle plus the Control Center implementation and reliability fixes. A passing CI build proves that the JAR compiles and its archive structure is valid; it does not replace testing inside Minecraft. Do not treat v1.0 as stable until the [release checklist](docs/VULKANBOOST_1.0_RELEASE_CHECKLIST.md) is completed.
 
 ## Platform
 
 - Minecraft Java Edition **1.21.11**
-- Fabric Loader **0.20.1** (minimum declared by the project remains `>=0.19.3`)
+- Fabric Loader **0.20.1** (minimum declared by the project: `>=0.19.3`)
 - Java **21**
 - GPU and driver supporting **Vulkan 1.2+**
 - VulkanMod **0.6.8+1.21.11** and Fabric API are included
@@ -58,16 +64,11 @@ The add-on is required on both client and server in multiplayer. It replaces ite
 
 ## Compatibility notes
 
-The aggregate remains experimental. C2ME, Bura and Fast Noise affect overlapping chunk-generation or rendering-scheduling areas; troubleshoot them independently if crashes, missing chunks, flicker or frame pacing issues occur. Structure Layout Optimizer changes structure-generation code paths; test new-world creation and saving before using the pack with important worlds.
+C2ME, Bura and Fast Noise affect overlapping chunk-generation or rendering-scheduling areas. Test them in a disposable world if another mod also changes chunk generation or scheduling. Structure Layout Optimizer changes structure-generation code paths, so create and save a new test world before using the bundle with important worlds. Back up important saves before installing or updating a large optimization bundle.
 
+## Graphics roadmap (not included in v1.0)
 
-## Temporal reconstruction research
-
-The target is **stable, clean image quality at native output resolution first**. A temporal approach may use sub-pixel camera jitter and information from previous frames to reduce edge stair-stepping and shimmer. It must also reject stale history when camera motion, animated entities, particles, transparency, or newly visible pixels make historical samples invalid.
-
-The plan, related projects, open technical questions, and validation matrix are documented in [Temporal Reconstruction Research](docs/TEMPORAL_RECONSTRUCTION_RESEARCH.md).
-
-No temporal reconstruction is implemented by this branch yet. A clean package build is not proof of visual correctness; every future rendering change requires in-game validation on Minecraft 1.21.11 + VulkanMod.
+Future graphics work requires a separately designed and tested VulkanMod integration. This release does **not** include FSR, DLSS, DLAA, temporal anti-aliasing, FXAA/SMAA, or custom upscaling. Historical renderer experiments are not part of the current build.
 
 ## Installation
 
@@ -88,8 +89,8 @@ Requirements: JDK 21 and Gradle 9.5.0.
 
 ```bash
 gradle --no-daemon clean build
-python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
+python3 scripts/check_bundle.py build/libs/vulkanboost-1.0.jar
 python3 -m unittest discover -s scripts -p "test_*.py"
 ```
 
-CI verifies bundle metadata, nested JAR integrity, pinned core components, and the absence of unexpected project-owned rendering hooks. It does not claim that temporal reconstruction is implemented or that graphics quality has passed an in-game test.
+CI also compiles and runs dependency-free Java regression tests for transactional option changes, small-screen layout, and memory-distance policy. These checks do not replace a live Minecraft test.

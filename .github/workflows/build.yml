@@ -17,7 +17,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Java 21
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
@@ -43,6 +43,36 @@ jobs:
       - name: Run checker unit tests
         run: python3 -m unittest discover -s scripts -p "test_*.py"
 
+      - name: Run Java option-transaction tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/option-transaction-tests
+          javac -encoding UTF-8 -d build/option-transaction-tests \
+            src/main/java/dev/vulkanboost/autotune/ReversibleOptionChanges.java \
+            scripts/java-tests/dev/vulkanboost/autotune/ReversibleOptionChangesSelfTest.java
+          java -cp build/option-transaction-tests dev.vulkanboost.autotune.ReversibleOptionChangesSelfTest
+
+      - name: Run Java UI layout regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/screen-layout-tests
+          javac -encoding UTF-8 -d build/screen-layout-tests \
+            src/main/java/dev/vulkanboost/client/ScreenLayout.java \
+            scripts/java-tests/dev/vulkanboost/client/ScreenLayoutSelfTest.java
+          java -cp build/screen-layout-tests dev.vulkanboost.client.ScreenLayoutSelfTest
+
+      - name: Run Java memory-distance policy tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/memory-policy-tests
+          javac -encoding UTF-8 -d build/memory-policy-tests \
+            src/main/java/dev/vulkanboost/memory/MemoryDistancePolicy.java \
+            scripts/java-tests/dev/vulkanboost/memory/MemoryDistancePolicySelfTest.java
+          java -cp build/memory-policy-tests dev.vulkanboost.memory.MemoryDistancePolicySelfTest
+
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:
@@ -52,4 +82,3 @@ jobs:
             !build/libs/*-sources.jar
           if-no-files-found: error
           retention-days: 14
-

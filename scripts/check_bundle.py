@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Validate the distributable VulkanBoost bundle.
 
-Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
+Usage: python3 scripts/check_bundle.py build/libs/vulkanboost-1.0.jar
 """
 from __future__ import annotations
 import io
@@ -12,6 +12,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
+EXPECTED_BUNDLE_VERSION = "1.0"
 EXPECTED_COMPONENT_IDS = {
     "fabric-api", "vulkanmod", "lithium", "ferritecore", "alternate-current",
     "badoptimizations", "modernfix", "scalablelux", "zfastnoise", "krypton",
@@ -38,6 +39,27 @@ REQUIRED_DEPENDENCIES = {
     "betterhurtcam": ">=1.12.0", "ukulib": "^1.10.0",
 }
 
+CLIENT_ENTRYPOINT_ID = "dev.vulkanboost.client.VulkanBoostClient"
+
+
+REQUIRED_PROJECT_CLASSES = {
+    "dev/vulkanboost/client/VulkanBoostClient.class",
+    "dev/vulkanboost/client/ControlCenterScreen.class",
+    "dev/vulkanboost/client/OptimizationScreen.class",
+    "dev/vulkanboost/client/AutoTuneScreen.class",
+    "dev/vulkanboost/client/AutoTuneResultScreen.class",
+    "dev/vulkanboost/client/MemoryScreen.class",
+    "dev/vulkanboost/client/PerformanceScreen.class",
+    "dev/vulkanboost/client/PerformanceMonitor.class",
+    "dev/vulkanboost/client/ScreenLayout.class",
+    "dev/vulkanboost/config/VulkanBoostConfig.class",
+    "dev/vulkanboost/memory/SmartMemoryManager.class",
+    "dev/vulkanboost/memory/MemoryDistancePolicy.class",
+    "dev/vulkanboost/autotune/AutoTuneService.class",
+    "dev/vulkanboost/autotune/ReversibleOptionChanges.class",
+    "dev/vulkanboost/optimization/OptimizationRegistry.class",
+}
+
 
 def is_unsafe_nested_path(path: object) -> bool:
     """Return True when a nested-JAR reference cannot name a safe archive member."""
@@ -49,6 +71,7 @@ def is_unsafe_nested_path(path: object) -> bool:
         return True
     return posixpath.normpath(path) != path
 
+
 def load_metadata(archive: zipfile.ZipFile, label: str) -> dict[str, Any]:
     try:
         value = json.loads(archive.read("fabric.mod.json"))
@@ -59,6 +82,7 @@ def load_metadata(archive: zipfile.ZipFile, label: str) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValueError(f"{label}: fabric.mod.json must be an object")
     return value
+
 
 def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 0) -> None:
     if depth > 8:
@@ -72,7 +96,11 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
             except ValueError as exc:
                 errors.append(str(exc))
                 return
-            for child in metadata.get("jars") or []:
+            child_entries = metadata.get("jars", [])
+            if not isinstance(child_entries, list):
+                errors.append(f"{label}: nested metadata jars must be a JSON array")
+                return
+            for child in child_entries:
                 if not isinstance(child, dict):
                     errors.append(f"{label}: malformed nested-JAR entry")
                     continue
@@ -84,31 +112,46 @@ def inspect_nested_jar(data: bytes, label: str, errors: list[str], depth: int = 
     except (zipfile.BadZipFile, OSError) as exc:
         errors.append(f"{label}: invalid nested JAR: {exc}")
 
+
 def check_source_tree(root: str | Path = ".") -> list[str]:
-    """Ensure the base bundle declares no custom runtime hooks."""
+    """Allow the Control Center client code but reject unreviewed runtime hooks."""
     root = Path(root)
     errors: list[str] = []
     metadata_path = root / "src" / "main" / "resources" / "fabric.mod.json"
+    metadata = None
     if metadata_path.is_file():
         try:
             metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
         except (json.JSONDecodeError, UnicodeDecodeError, OSError) as exc:
             errors.append(f"fabric.mod.json: invalid metadata: {exc}")
-        else:
-            if not isinstance(metadata, dict):
-                errors.append("fabric.mod.json: metadata must be a JSON object")
-            elif metadata.get("mixins"):
-                errors.append("custom mixin registration is not expected in the bundle base")
+        if metadata is not None and not isinstance(metadata, dict):
+            errors.append("fabric.mod.json: metadata must be a JSON object")
+    if metadata is not None and isinstance(metadata, dict):
+        if metadata.get("mixins"):
+            errors.append("custom mixin registration is not expected in the Control Center foundation")
+        entrypoints = metadata.get("entrypoints")
+        client_entrypoints = entrypoints.get("client") if isinstance(entrypoints, dict) else None
+        if not isinstance(client_entrypoints, list) or CLIENT_ENTRYPOINT_ID not in client_entrypoints:
+            errors.append(f"fabric.mod.json: VulkanBoost client entrypoint {CLIENT_ENTRYPOINT_ID} is missing")
+    allowed_java_root = root / "src" / "main" / "java" / "dev" / "vulkanboost"
     source_root = root / "src" / "main"
     if source_root.exists():
         for path in source_root.rglob("*"):
             if not path.is_file():
                 continue
-            if path.suffix.lower() in {".java", ".class", ".glsl", ".fsh", ".vsh"}:
-                errors.append(f"unexpected project-owned runtime file: {path.relative_to(root).as_posix()}")
+            relative = path.relative_to(root).as_posix()
+            suffix = path.suffix.lower()
+            if suffix == ".java":
+                try:
+                    path.relative_to(allowed_java_root)
+                except ValueError:
+                    errors.append(f"unexpected project-owned runtime file: {relative}")
+            elif suffix in {".class", ".glsl", ".fsh", ".vsh"}:
+                errors.append(f"unexpected project-owned runtime file: {relative}")
             if path.name.endswith(".mixins.json"):
-                errors.append(f"unexpected mixin configuration: {path.relative_to(root).as_posix()}")
+                errors.append(f"unexpected mixin configuration: {relative}")
     return errors
+
 
 def check_bundle(path: str | Path) -> list[str]:
     errors: list[str] = []
@@ -121,7 +164,12 @@ def check_bundle(path: str | Path) -> list[str]:
                 return [str(exc)]
             if metadata.get("id") != "vulkanboost":
                 errors.append("outer metadata id must be 'vulkanboost'")
-            dependencies = metadata.get("depends") or {}
+            actual_bundle_version = str(metadata.get("version", ""))
+            if actual_bundle_version != EXPECTED_BUNDLE_VERSION:
+                errors.append(
+                    f"bundle version mismatch: expected {EXPECTED_BUNDLE_VERSION!r}, found {actual_bundle_version!r}"
+                )
+            dependencies = metadata.get("depends", {})
             if not isinstance(dependencies, dict):
                 errors.append("root metadata depends must be a JSON object")
                 dependencies = {}
@@ -133,11 +181,16 @@ def check_bundle(path: str | Path) -> list[str]:
                 errors.append("unexpected root mixin registration remains")
             if "vulkanboost.mixins.json" in names:
                 errors.append("unexpected mixin config remains")
-            custom_classes = sorted(name for name in names if name.startswith("dev/vulkanboost/") and name.endswith(".class"))
-            if custom_classes:
-                errors.append(f"unexpected project-owned runtime classes remain: {custom_classes}")
-
-            nested_entries = metadata.get("jars") or []
+            unexpected_root_classes = sorted(
+                name for name in names
+                if name.endswith(".class") and not name.startswith("dev/vulkanboost/")
+            )
+            if unexpected_root_classes:
+                errors.append(f"unexpected classes outside the VulkanBoost namespace: {unexpected_root_classes}")
+            missing_project_classes = sorted(REQUIRED_PROJECT_CLASSES - names)
+            if missing_project_classes:
+                errors.append(f"required VulkanBoost runtime classes are missing: {missing_project_classes}")
+            nested_entries = metadata.get("jars", [])
             if not isinstance(nested_entries, list):
                 errors.append("root metadata jars must be a JSON array")
                 nested_entries = []
@@ -169,7 +222,7 @@ def check_bundle(path: str | Path) -> list[str]:
                             continue
                         nested_ids.append(mod_id)
                         nested_versions[mod_id] = str(version)
-                        child_entries = child_metadata.get("jars") or []
+                        child_entries = child_metadata.get("jars", [])
                         if not isinstance(child_entries, list):
                             errors.append(f"{nested_path}: nested metadata jars must be a JSON array")
                             child_entries = []
@@ -181,10 +234,9 @@ def check_bundle(path: str | Path) -> list[str]:
                             if not isinstance(child_path, str) or is_unsafe_nested_path(child_path) or child_path not in child.namelist():
                                 errors.append(f"{nested_path}: missing nested JAR entry {child_path!r}")
                                 continue
-                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, 1)
+                            inspect_nested_jar(child.read(child_path), f"{nested_path}!/{child_path}", errors, depth=1)
                 except (zipfile.BadZipFile, ValueError, OSError) as exc:
                     errors.append(f"{nested_path}: invalid nested JAR/metadata: {exc}")
-
             if len(nested_entries) != len(EXPECTED_COMPONENT_IDS):
                 errors.append(f"expected {len(EXPECTED_COMPONENT_IDS)} top-level components, found {len(nested_entries)}")
             duplicates = sorted({item for item in nested_ids if nested_ids.count(item) > 1})
@@ -204,6 +256,7 @@ def check_bundle(path: str | Path) -> list[str]:
         return [f"{path}: cannot read bundle JAR: {exc}"]
     return errors
 
+
 def main() -> int:
     if len(sys.argv) != 2:
         print(__doc__.strip(), file=sys.stderr)
@@ -214,8 +267,12 @@ def main() -> int:
     if findings:
         print(f"Validation failed: {len(findings)} error(s).")
         return 1
-    print("Validation passed: 25 unique top-level components, pinned component versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks.")
+    print(
+        f"Validation passed: version {EXPECTED_BUNDLE_VERSION}, {len(EXPECTED_COMPONENT_IDS)} unique top-level "
+        "components, pinned component versions, valid nested-JAR metadata, and no unexpected project-owned runtime hooks."
+    )
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())
