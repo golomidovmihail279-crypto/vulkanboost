@@ -6,7 +6,6 @@ import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.network.chat.Component;
 
 /** A small non-blocking result notice used when reflective settings cannot be applied. */
-
 public final class AutoTuneResultScreen extends Screen {
     private final Screen parent;
     private final boolean success;
@@ -19,9 +18,9 @@ public final class AutoTuneResultScreen extends Screen {
 
     @Override
     protected void init() {
-        int buttonWidth = 180;
+        int buttonWidth = ScreenLayout.centeredWidth(this.width, 180, 12);
         int buttonX = (this.width - buttonWidth) / 2;
-        int buttonY = this.height - 34;
+        int buttonY = ScreenLayout.clampButtonY(this.height, this.height - 26, 20, 4);
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.performance.back"),
                 button -> this.onClose()

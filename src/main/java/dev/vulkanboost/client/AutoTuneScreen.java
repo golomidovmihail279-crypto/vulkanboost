@@ -1,7 +1,6 @@
 package dev.vulkanboost.client;
 
 import dev.vulkanboost.autotune.AutoTuneService;
-import dev.vulkanboost.autotune.MinecraftOptionAccess;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
@@ -11,7 +10,8 @@ import net.minecraft.network.chat.Component;
 import java.util.Locale;
 
 /**
- * Shows the hardware-based recommendation, a preview, and reversible apply action.
+ * Shows a compact preview, profile selection, and reversible apply action.
+ * Actions are kept above a fixed Back button on short screens.
  */
 public final class AutoTuneScreen extends Screen {
     private final Screen parent;
@@ -27,42 +27,39 @@ public final class AutoTuneScreen extends Screen {
 
     @Override
     protected void init() {
-        int width = Math.min(320, this.width - 24);
+        int width = ScreenLayout.centeredWidth(this.width, 320, 12);
         int x = (this.width - width) / 2;
-        int y = 52;
+        int profileY = 64;
 
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.autotune.profile.balanced"),
                 button -> selectProfile(AutoTuneService.Profile.BALANCED)
-        ).bounds(x, y, width, 20).build());
-        y += 24;
+        ).bounds(x, profileY, width, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.autotune.profile.fps"),
                 button -> selectProfile(AutoTuneService.Profile.FPS_PRIORITY)
-        ).bounds(x, y, width, 20).build());
-        y += 24;
+        ).bounds(x, profileY + 22, width, 20).build());
 
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.autotune.profile.memory"),
                 button -> selectProfile(AutoTuneService.Profile.LOW_MEMORY)
-        ).bounds(x, y, width, 20).build());
-        y += 30;
+        ).bounds(x, profileY + 44, width, 20).build());
 
+        int actionY = 130;
+        int gap = 6;
+        int actionWidth = (width - gap) / 2;
         applyButton = addRenderableWidget(Button.builder(
-                Component.translatable("screen.vulkanboost.autotune.apply"),
+                Component.translatable("screen.vulkanboost.autotune.apply_short"),
                 button -> applyPlan()
-        ).bounds(x, y, width, 20).build());
-        y += 24;
+        ).bounds(x, actionY, actionWidth, 20).build());
 
         undoButton = addRenderableWidget(Button.builder(
-                Component.translatable("screen.vulkanboost.autotune.undo"),
+                Component.translatable("screen.vulkanboost.autotune.undo_short"),
                 button -> undo()
-        ).bounds(x, y, width, 20).build());
-        y += 24;
+        ).bounds(x + actionWidth + gap, actionY, actionWidth, 20).build());
 
-        // Back button stays at the bottom edge, but is pushed down if needed to avoid overlap.
-        int backY = Math.max(this.height - 30, y + 4);
+        int backY = ScreenLayout.clampButtonY(this.height, this.height - 26, 20, 4);
         addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.performance.back"),
                 button -> this.onClose()
@@ -129,47 +126,28 @@ public final class AutoTuneScreen extends Screen {
         }
 
         int center = this.width / 2;
-        int y = 28;
-        graphics.drawCenteredString(this.font,
-                Component.translatable("screen.vulkanboost.autotune.subtitle"), center, y, 0xB8C7D9);
-        y += 14;
-
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.autotune.detected",
                         plan.logicalProcessors(), formatGiB(plan.maxHeapBytes())),
-                center, y, 0xFFFFFF);
-        y += 14;
+                center, 27, 0xFFFFFF);
 
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.autotune.selected",
                         Component.translatable(plan.profile().titleKey())),
-                center, y, 0xFFFFFF);
-        y += 14;
+                center, 39, 0xFFFFFF);
 
         graphics.drawCenteredString(this.font,
-                distanceLine("render", plan.currentRenderDistance(), plan.targetRenderDistance()),
-                center, y, 0xFFFFFF);
-        y += 14;
-        graphics.drawCenteredString(this.font,
-                distanceLine("simulation", plan.currentSimulationDistance(), plan.targetSimulationDistance()),
-                center, y, 0xFFFFFF);
-        y += 14;
-
-        graphics.drawCenteredString(this.font,
-                Component.translatable("screen.vulkanboost.autotune.adapters", plan.featureTargets().size()),
-                center, y, 0xFFFFFF);
-        y += 14;
-
-        graphics.drawCenteredString(this.font,
-                Component.translatable("screen.vulkanboost.autotune.preview_note"),
-                center, Math.min(this.height - 34, y + 3), 0xA0A0A0);
+                Component.translatable("screen.vulkanboost.autotune.preview_summary",
+                        distancePair(plan.currentRenderDistance(), plan.targetRenderDistance()),
+                        distancePair(plan.currentSimulationDistance(), plan.targetSimulationDistance())),
+                center, 51, 0xA0A0A0);
     }
 
-    private Component distanceLine(String key, int current, int target) {
+    private static String distancePair(int current, int target) {
         if (current < 0 || target < 0) {
-            return Component.translatable("screen.vulkanboost.autotune.option_unavailable", key);
+            return "—";
         }
-        return Component.translatable("screen.vulkanboost.autotune.option_change", key, current, target);
+        return current + " → " + target;
     }
 
     private static String formatGiB(long bytes) {

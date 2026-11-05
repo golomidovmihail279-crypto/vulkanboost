@@ -122,3 +122,18 @@ The build now compiles and runs a standalone Java test harness for the transacti
 
 VulkanBoost currently has no project-owned Java runtime implementation; its existing build is primarily a nested-mod bundle. The Control Center therefore requires new Fabric client code and tests. The bundled mods cannot all be switched on/off live merely because they are packed into one JAR. Actual controls depend on each upstream mod exposing a safe configuration interface or on a separately tested VulkanBoost integration.
 
+
+## Responsive layout and pagination
+
+The client screens use shared, dependency-free layout calculations in `ScreenLayout` so their placement rules can be regression-tested without starting Minecraft.
+
+- The Control Center paginates its six actions when vertical space is limited; page navigation and Close stay in a reserved footer.
+- The Optimization screen paginates every registry entry instead of silently dropping entries that do not fit. Refresh, page navigation, and Back use separate footer rows.
+- Auto-tuning keeps all three profiles and the Apply/Undo actions above a fixed Back button. Its preview is condensed to fit the small-screen layout.
+- Performance metrics wrap to the available screen width and are laid out above Back.
+- Memory status text is kept above the controls; the previous status line could collide with the threshold button at 320×180.
+- Button widths and bottom positions are clamped to the available screen bounds.
+
+The dependency-free `ScreenLayoutSelfTest` checks the geometry calculations at 320×180, 427×240, 640×360, 854×480, and 1920×1080. `test_ui_locales.py` checks JSON validity, duplicate keys, matching English/Russian key sets, and literal screen translation references.
+
+These automated tests validate layout calculations and translation data; they do not render Minecraft screens. Live visual testing on Minecraft 1.21.11 with Fabric Loader 0.20.1 and VulkanMod 0.6.8+1.21.11 remains required before treating the Control Center as fully validated.
