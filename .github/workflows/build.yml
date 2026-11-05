@@ -53,6 +53,16 @@ jobs:
             scripts/java-tests/dev/vulkanboost/autotune/ReversibleOptionChangesSelfTest.java
           java -cp build/option-transaction-tests dev.vulkanboost.autotune.ReversibleOptionChangesSelfTest
 
+      - name: Run Java UI layout regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p build/screen-layout-tests
+          javac -encoding UTF-8 -d build/screen-layout-tests \
+            src/main/java/dev/vulkanboost/client/ScreenLayout.java \
+            scripts/java-tests/dev/vulkanboost/client/ScreenLayoutSelfTest.java
+          java -cp build/screen-layout-tests dev.vulkanboost.client.ScreenLayoutSelfTest
+
       - name: Upload installable JAR
         uses: actions/upload-artifact@v4
         with:

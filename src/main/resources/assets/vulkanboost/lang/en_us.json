@@ -3,7 +3,7 @@
   "key.vulkanboost.open_control_center": "Open Control Center",
   "screen.vulkanboost.control_center.title": "VulkanBoost Control Center",
   "screen.vulkanboost.control_center.subtitle": "Your optimization settings in one place",
-  "screen.vulkanboost.control_center.hint": "You can change this shortcut in Options → Controls → Key Binds.",
+  "screen.vulkanboost.control_center.hint": "Shortcut: Options → Controls → Key Binds.",
   "screen.vulkanboost.control_center.hints_on": "Show interface hints: ON",
   "screen.vulkanboost.control_center.hints_off": "Show interface hints: OFF",
   "screen.vulkanboost.control_center.reset": "Reset settings",
@@ -77,5 +77,11 @@
   "screen.vulkanboost.memory.status.manual": "Your distance settings changed manually; automatic restore was cancelled",
   "screen.vulkanboost.memory.status.api_unavailable": "Vanilla distance settings are not accessible on this version",
   "screen.vulkanboost.memory.status.minimum": "Already at the safe minimum distance",
-  "screen.vulkanboost.memory.status.error": "Could not safely change distance settings"
+  "screen.vulkanboost.memory.status.error": "Could not safely change distance settings",
+  "screen.vulkanboost.common.previous": "Previous",
+  "screen.vulkanboost.common.next": "Next",
+  "screen.vulkanboost.common.page": "Page %s of %s",
+  "screen.vulkanboost.autotune.apply_short": "Apply",
+  "screen.vulkanboost.autotune.undo_short": "Undo",
+  "screen.vulkanboost.autotune.preview_summary": "Render: %s | Simulation: %s"
 }
