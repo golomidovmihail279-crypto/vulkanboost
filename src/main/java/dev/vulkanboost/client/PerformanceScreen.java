@@ -21,10 +21,12 @@ public final class PerformanceScreen extends Screen {
     @Override
     protected void init() {
         int buttonWidth = 180;
+        int buttonX = (this.width - buttonWidth) / 2;
+        int backY = this.height - 30;
         this.addRenderableWidget(Button.builder(
                 Component.translatable("screen.vulkanboost.performance.back"),
                 button -> this.onClose()
-        ).bounds((this.width - buttonWidth) / 2, this.height - 34, buttonWidth, 20).build());
+        ).bounds(buttonX, backY, buttonWidth, 20).build());
     }
 
     @Override
@@ -33,12 +35,27 @@ public final class PerformanceScreen extends Screen {
 
         PerformanceMonitor.Snapshot snapshot = PerformanceMonitor.latest();
         int centerX = this.width / 2;
-        int y = 42;
-        int lineHeight = 20;
+        int lineHeight = 16;
+        int topY = 42;
+
+        // Calculate total text height needed
+        int textLines = 9; // subtitle + 7 metrics + refresh
+        int totalTextHeight = textLines * lineHeight + 16; // extra for subtitle spacing
+
+        // Available space between top and back button
+        int backY = this.height - 30;
+        int availableHeight = backY - topY - 8;
+
+        if (totalTextHeight > availableHeight) {
+            // Not enough space - reduce line height
+            lineHeight = Math.max(12, availableHeight / textLines);
+        }
+
+        int y = topY;
 
         graphics.drawCenteredString(this.font, Component.translatable("screen.vulkanboost.performance.subtitle"),
                 centerX, y, 0xB8C7D9);
-        y += 34;
+        y += lineHeight + 8;
 
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.performance.fps", snapshot.fps()),
@@ -68,7 +85,7 @@ public final class PerformanceScreen extends Screen {
                         formatMiB(snapshot.committedHeapBytes())
                 ),
                 centerX, y, 0xFFFFFF);
-        y += lineHeight + 12;
+        y += lineHeight + 4;
 
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.performance.components",
@@ -88,7 +105,7 @@ public final class PerformanceScreen extends Screen {
 
         graphics.drawCenteredString(this.font,
                 Component.translatable("screen.vulkanboost.performance.refresh_rate"),
-                centerX, y + 8, 0x707070);
+                centerX, Math.min(y + 4, backY - 12), 0x707070);
     }
 
     private static String formatMiB(long bytes) {
