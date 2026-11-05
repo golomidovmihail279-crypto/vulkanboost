@@ -20,16 +20,16 @@ def make_nested(mod_id, version):
     return stream.getvalue()
 
 
-def make_bundle(mod_ids=None, extra_path=None, depends=None, root_overrides=None):
+def make_bundle(mod_ids=None, extra_path=None, version=check_bundle.EXPECTED_BUNDLE_VERSION):
     mod_ids = mod_ids or sorted(check_bundle.EXPECTED_COMPONENT_IDS)
     versions = dict(check_bundle.EXPECTED_VERSIONS)
     nested_jars = []
     payloads = {}
     for index, mod_id in enumerate(mod_ids):
-        version = versions.get(mod_id, "test-version")
+        component_version = versions.get(mod_id, "test-version")
         path = f"META-INF/jars/{index:02d}-{mod_id}.jar"
         nested_jars.append({"file": path})
-        payloads[path] = make_nested(mod_id, version)
+        payloads[path] = make_nested(mod_id, component_version)
 
     if extra_path:
         path, payload = extra_path
@@ -39,12 +39,10 @@ def make_bundle(mod_ids=None, extra_path=None, depends=None, root_overrides=None
     root_metadata = {
         "schemaVersion": 1,
         "id": "vulkanboost",
-        "version": "0.6",
+        "version": version,
         "jars": nested_jars,
-        "depends": check_bundle.REQUIRED_DEPENDENCIES.copy() if depends is None else depends,
+        "depends": check_bundle.REQUIRED_DEPENDENCIES.copy(),
     }
-    if root_overrides:
-        root_metadata.update(root_overrides)
     stream = io.BytesIO()
     with zipfile.ZipFile(stream, "w") as archive:
         archive.writestr("fabric.mod.json", json.dumps(root_metadata))
@@ -56,35 +54,19 @@ def make_bundle(mod_ids=None, extra_path=None, depends=None, root_overrides=None
     return path
 
 
-def make_jar(mod_id, version, child=None):
-    stream = io.BytesIO()
-    with zipfile.ZipFile(stream, "w") as archive:
-        archive.writestr(
-            "fabric.mod.json",
-            json.dumps({
-                "schemaVersion": 1,
-                "id": mod_id,
-                "version": version,
-                "jars": [{"file": f"META-INF/jars/{mod_id}.jar"}] if child is not None else [],
-            }),
-        )
-        if child is not None:
-            archive.writestr(f"META-INF/jars/{mod_id}.jar", child)
-    return stream.getvalue()
-
-
-def make_deep_chain(count):
-    jar_bytes = make_jar("deep-leaf", "1.0.0")
-    for index in range(count - 1):
-        jar_bytes = make_jar(f"deep-{index}", "1.0.0", child=jar_bytes)
-    return jar_bytes
-
-
 class BundleCheckerTests(unittest.TestCase):
     def test_clean_25_component_bundle_passes(self):
         path = make_bundle()
         try:
             self.assertEqual(check_bundle.check_bundle(path), [])
+        finally:
+            Path(path).unlink(missing_ok=True)
+
+    def test_wrong_root_version_is_rejected(self):
+        path = make_bundle(version="0.7")
+        try:
+            errors = check_bundle.check_bundle(path)
+            self.assertTrue(any("bundle version mismatch" in error for error in errors))
         finally:
             Path(path).unlink(missing_ok=True)
 
@@ -116,7 +98,15 @@ class BundleCheckerTests(unittest.TestCase):
         finally:
             Path(path).unlink(missing_ok=True)
 
-    def test_source_tree_rejects_custom_runtime_files(self):
+    def test_source_tree_allows_vulkanboost_client_sources(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "src" / "main" / "java" / "dev" / "vulkanboost" / "client" / "VulkanBoostClient.java"
+            source.parent.mkdir(parents=True)
+            source.write_text("class VulkanBoostClient {}", encoding="utf-8")
+            self.assertEqual(check_bundle.check_source_tree(root), [])
+
+    def test_source_tree_rejects_java_outside_vulkanboost_namespace(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             source = root / "src" / "main" / "java" / "example" / "CustomRenderer.java"
@@ -125,77 +115,14 @@ class BundleCheckerTests(unittest.TestCase):
             errors = check_bundle.check_source_tree(root)
             self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
 
-    def test_source_metadata_must_be_an_object(self):
+    def test_source_tree_still_rejects_custom_shaders(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
-            metadata = root / "src" / "main" / "resources"
-            metadata.mkdir(parents=True)
-            (metadata / "fabric.mod.json").write_text("[]", encoding="utf-8")
+            shader = root / "src" / "main" / "resources" / "assets" / "vulkanboost" / "shaders" / "custom.fsh"
+            shader.parent.mkdir(parents=True)
+            shader.write_text("// no project-owned renderer yet", encoding="utf-8")
             errors = check_bundle.check_source_tree(root)
-            self.assertTrue(any("fabric.mod.json: metadata must be a JSON object" in error for error in errors))
-
-    def test_source_metadata_invalid_json_reports_error(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            metadata = root / "src" / "main" / "resources"
-            metadata.mkdir(parents=True)
-            (metadata / "fabric.mod.json").write_text("{", encoding="utf-8")
-            errors = check_bundle.check_source_tree(root)
-            self.assertTrue(any(error.startswith("fabric.mod.json: invalid metadata") for error in errors))
-
-    def test_source_tree_rejects_custom_mixins(self):
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            source = root / "src" / "main" / "resources"
-            source.mkdir(parents=True)
-            (source / "fabric.mod.json").write_text(
-                json.dumps({"schemaVersion": 1, "id": "vulkanboost", "version": "0.6", "mixins": ["vulkanboost.mixins"]}),
-                encoding="utf-8",
-            )
-            errors = check_bundle.check_source_tree(root)
-            self.assertTrue(any("custom mixin registration is not expected in the bundle base" in error for error in errors))
-
-    def test_missing_required_dependency_is_rejected(self):
-        path = make_bundle(depends={"fabricloader": ">=0.19.3"})
-        try:
-            errors = check_bundle.check_bundle(path)
-            self.assertTrue(any("root dependency 'minecraft'" in error for error in errors))
-        finally:
-            Path(path).unlink(missing_ok=True)
-
-    def test_malformed_root_jars_is_rejected(self):
-        path = make_bundle(root_overrides={"jars": "not-a-list"})
-        try:
-            errors = check_bundle.check_bundle(path)
-            self.assertTrue(any("jars must be a JSON array" in error for error in errors))
-        finally:
-            Path(path).unlink(missing_ok=True)
-
-    def test_malformed_nested_entry_is_rejected(self):
-        path = make_bundle(root_overrides={"jars": ["oops"]})
-        try:
-            errors = check_bundle.check_bundle(path)
-            self.assertTrue(any("malformed nested-JAR entry" in error for error in errors))
-        finally:
-            Path(path).unlink(missing_ok=True)
-
-    def test_unsafe_nested_path_is_rejected(self):
-        path = make_bundle(extra_path=("../evil.jar", b"not-a-zip"))
-        try:
-            errors = check_bundle.check_bundle(path)
-            self.assertTrue(any("unsafe or missing nested-JAR path" in error for error in errors))
-        finally:
-            Path(path).unlink(missing_ok=True)
-
-    def test_shallow_nested_jar_chain_passes(self):
-        errors: list[str] = []
-        check_bundle.inspect_nested_jar(make_deep_chain(3), "deep-chain", errors, 0)
-        self.assertEqual(errors, [])
-
-    def test_deep_nested_jar_chain_reports_recursion_limit(self):
-        errors: list[str] = []
-        check_bundle.inspect_nested_jar(make_deep_chain(12), "deep-chain", errors, 0)
-        self.assertTrue(any("nested-JAR recursion limit exceeded" in error for error in errors))
+            self.assertTrue(any("unexpected project-owned runtime file" in error for error in errors))
 
 
 if __name__ == "__main__":

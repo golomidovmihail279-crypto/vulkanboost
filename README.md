@@ -11,6 +11,7 @@ This branch establishes a clean foundation for research into native-resolution t
 - No rendering option is advertised as working when no implementation exists.
 - The v0.6 package is the expanded optimization bundle; image reconstruction is not implemented yet.
 - Temporal reconstruction is a research target, not yet an implemented or validated feature.
+- The `feature/control-center-v0.7` branch contains the first-party **VulkanBoost Control Center** and its `0.7.1` safety update: transactional distance changes, rollback retry handling, and protection against overwriting settings changed after a preview or profile application. In-game validation is still required before a public release.
 
 ## Platform
 
@@ -88,8 +89,8 @@ Requirements: JDK 21 and Gradle 9.5.0.
 
 ```bash
 gradle --no-daemon clean build
-python3 scripts/check_bundle.py build/libs/vulkanboost-0.6.jar
+python3 scripts/check_bundle.py build/libs/vulkanboost-0.7.1.jar
 python3 -m unittest discover -s scripts -p "test_*.py"
 ```
 
-CI verifies bundle metadata, nested JAR integrity, pinned core components, and the absence of unexpected project-owned rendering hooks. It does not claim that temporal reconstruction is implemented or that graphics quality has passed an in-game test.
+CI verifies bundle version and metadata, nested JAR integrity, pinned core components, and the absence of unexpected project-owned rendering hooks. It also compiles and runs dependency-free Java regression tests for transactional option changes, partial write failures, save failures, manual overrides, and retryable rollback. These checks do not replace a live Minecraft test.
