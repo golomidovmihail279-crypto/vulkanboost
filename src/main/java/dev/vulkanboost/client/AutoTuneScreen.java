@@ -101,6 +101,9 @@ public final class AutoTuneScreen extends Screen {
             updateActionButtons();
             this.minecraft.setScreen(new AutoTuneResultScreen(this, true));
         } catch (ReflectiveOperationException | RuntimeException exception) {
+            // An incomplete rollback keeps a retryable snapshot; expose Undo on return.
+            refreshPlan();
+            updateActionButtons();
             this.minecraft.setScreen(new AutoTuneResultScreen(this, false));
         }
     }
@@ -114,6 +117,9 @@ public final class AutoTuneScreen extends Screen {
             refreshPlan();
             updateActionButtons();
         } catch (ReflectiveOperationException | RuntimeException exception) {
+            // Keep Undo enabled if restoration failed and the snapshot is still retryable.
+            refreshPlan();
+            updateActionButtons();
             this.minecraft.setScreen(new AutoTuneResultScreen(this, false));
         }
     }

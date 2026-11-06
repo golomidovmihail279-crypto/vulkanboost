@@ -2,32 +2,32 @@ name: Publish VulkanBoost release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
 
-permissions:
-  contents: write
+concurrency:
+  group: vulkanboost-release-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   release:
-    # A tagged release is built from its tag. The first v1.0 publication is
-    # created automatically by the explicitly marked release PR merge.
-    if: startsWith(github.ref, 'refs/tags/v') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish-v1.0]'))
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - name: Check out release source
-        uses: actions/checkout@v4
+      - name: Check out tagged source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Set up Java 21
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
         with:
           gradle-version: "9.5.0"
 
@@ -36,14 +36,18 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            VERSION="${GITHUB_REF_NAME#v}"
-          else
-            VERSION="$(sed -n 's/^mod_version=//p' gradle.properties)"
+          if [[ "$GITHUB_REF_TYPE" != "tag" || "$GITHUB_REF_NAME" != v* ]]; then
+            echo "This workflow only publishes version tags beginning with v."
+            exit 1
           fi
+          VERSION="${GITHUB_REF_NAME#v}"
           MOD_VERSION="$(sed -n 's/^mod_version=//p' gradle.properties)"
-          if [[ "$VERSION" != "$MOD_VERSION" ]]; then
-            echo "Release version $VERSION does not match mod_version $MOD_VERSION"
+          if [[ -z "$VERSION" || "$VERSION" != "$MOD_VERSION" ]]; then
+            echo "Release version '$VERSION' does not match mod_version '$MOD_VERSION'"
+            exit 1
+          fi
+          if [[ ! "$VERSION" =~ ^[0-9]+(\.[0-9]+){1,2}([+-][0-9A-Za-z.-]+)?$ ]]; then
+            echo "Invalid release version: $VERSION"
             exit 1
           fi
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -52,9 +56,11 @@ jobs:
         run: gradle --no-daemon clean build
 
       - name: Validate bundle and source tree
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
           JAR="build/libs/vulkanboost-$VERSION.jar"
           test -f "$JAR"
           python3 scripts/check_bundle.py "$JAR"
@@ -90,10 +96,11 @@ jobs:
           java -cp build/memory-policy-tests dev.vulkanboost.memory.MemoryDistancePolicySelfTest
 
       - name: Prepare release asset and checksum
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
           SOURCE_JAR="build/libs/vulkanboost-$VERSION.jar"
           RELEASE_JAR="build/libs/VulkanBoost-$VERSION-for-1.21.11.jar"
           cp "$SOURCE_JAR" "$RELEASE_JAR"
@@ -102,19 +109,12 @@ jobs:
       - name: Publish GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
         shell: bash
         run: |
           set -euo pipefail
-          VERSION="${{ steps.version.outputs.version }}"
           ASSET="build/libs/VulkanBoost-$VERSION-for-1.21.11.jar"
           CHECKSUM="$ASSET.sha256"
           TITLE="VulkanBoost-$VERSION-for-1.21.11"
-          if [[ "$GITHUB_REF_TYPE" == "tag" ]]; then
-            gh release create "$GITHUB_REF_NAME" "$ASSET" "$CHECKSUM" \
-              --title "$TITLE" --notes-file CHANGELOG.md
-          else
-            # Publish v1.0 as a prerelease until live Minecraft acceptance is complete.
-            gh release create "v$VERSION" "$ASSET" "$CHECKSUM" \
-              --target "$GITHUB_SHA" --title "$TITLE" \
-              --notes-file CHANGELOG.md --prerelease
-          fi
+          gh release create "$GITHUB_REF_NAME" "$ASSET" "$CHECKSUM" \
+            --title "$TITLE" --notes-file CHANGELOG.md

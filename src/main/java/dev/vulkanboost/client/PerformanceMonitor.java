@@ -47,7 +47,7 @@ public final class PerformanceMonitor {
             long usedHeapBytes,
             long committedHeapBytes,
             long maximumHeapBytes,
-            int loadedComponentCount
+            int loadedModCount
     ) {
         public double frameTimeMillis() {
             return frameTimeNs > 0 ? frameTimeNs / 1_000_000.0 : 0.0;

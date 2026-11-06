@@ -9,19 +9,19 @@ VulkanBoost combines a curated set of upstream optimization components with its 
 - **One installable JAR:** 25 pinned top-level mod and library components.
 - **Control Center:** open it with the configurable `O` key binding. Screens use pagination and responsive positioning.
 - **Complete component registry:** inspect the status of all 25 bundled components. Only Cull Leaves and Dynamic FPS currently have verified live switches; other components remain informational until a safe upstream control API is verified.
-- **Performance monitor:** live FPS, frame time, Java heap usage, and loaded Fabric component count. VulkanBoost does not invent per-mod CPU/GPU attribution.
+- **Performance monitor:** live FPS, frame time, Java heap usage, and loaded Fabric mod count. VulkanBoost does not invent per-mod CPU/GPU attribution.
 - **Auto-tuning:** Balanced, FPS Priority, and Lower Memory profiles with preview, apply, and undo. The automatic recommendation uses logical CPU count; JVM `-Xmx` is displayed but is not treated as physical RAM.
 - **Smart memory assistance:** optional and disabled by default. After sustained heap pressure it can lower render/simulation distances and restore them when pressure subsides, unless the player changes those values manually. It never calls `System.gc()`.
 - **Reproducible validation:** CI builds the mod, verifies nested-JAR metadata and component IDs, checks first-party runtime classes, and runs Python/Java regression tests.
 
 ## Release status
 
-Version **1.0** is being prepared from the v0.6 bundle plus the Control Center implementation and reliability fixes. A passing CI build proves that the JAR compiles and its archive structure is valid; it does not replace testing inside Minecraft. Do not treat v1.0 as stable until the [release checklist](docs/VULKANBOOST_1.0_RELEASE_CHECKLIST.md) is completed.
+Version **1.0** is published as the **Latest** non-prerelease GitHub release. This is the repository's publication status, not a claim that every manual Minecraft acceptance test has passed. The remaining in-game checks are tracked in the [release checklist](docs/VULKANBOOST_1.0_RELEASE_CHECKLIST.md); report reproducible issues before treating every feature as verified.
 
 ## Platform
 
 - Minecraft Java Edition **1.21.11**
-- Fabric Loader **0.20.1** (minimum declared by the project: `>=0.19.3`)
+- Fabric Loader **0.20.1** (tested build environment; declared minimum: `>=0.19.3`)
 - Java **21**
 - GPU and driver supporting **Vulkan 1.2+**
 - VulkanMod **0.6.8+1.21.11** and Fabric API are included
@@ -41,7 +41,7 @@ Version **1.0** is being prepared from the v0.6 bundle plus the Control Center i
 | [Fast Noise](https://modrinth.com/mod/zfastnoise) | 1.0.36+1.21.11 | World generation |
 | [Krypton](https://modrinth.com/mod/krypton) | 0.2.10 | Network stack |
 | [C2ME](https://modrinth.com/mod/c2me-fabric) | 0.3.6.0.0 | Concurrent chunk management |
-| [Bura](https://modrinth.com/mod/bura) | 0.1.0 alpha | Chunk compilation/upload scheduling |
+| [Bura](https://modrinth.com/mod/bura) | 0.1.0 alpha | Chunk compilation/upload scheduling; pinned pending VulkanMod compatibility testing |
 | [Epitaph Optimizer](https://modrinth.com/mod/epitaph-optimizer) | 1.0.0 | Performance-friendly video settings |
 | [Dynamic FPS](https://modrinth.com/mod/dynamic-fps) | 3.11.4 | Reduces background resource use |
 | [FastQuit](https://modrinth.com/mod/fastquit) | 3.1.3+mc1.21.11 | Lets saves finish after returning to menu |
@@ -64,7 +64,7 @@ The add-on is required on both client and server in multiplayer. It replaces ite
 
 ## Compatibility notes
 
-C2ME, Bura and Fast Noise affect overlapping chunk-generation or rendering-scheduling areas. Test them in a disposable world if another mod also changes chunk generation or scheduling. Structure Layout Optimizer changes structure-generation code paths, so create and save a new test world before using the bundle with important worlds. Back up important saves before installing or updating a large optimization bundle.
+C2ME, Bura and Fast Noise affect overlapping chunk-generation or rendering-scheduling areas. Bura 0.2.0 is available for Minecraft 1.21.11, but its published tested-combination list does not include VulkanMod and the project still documents alpha-stage culling limitations; VulkanBoost therefore keeps the pinned 0.1.0 artifact until the newer build is tested with VulkanMod. Do not update it solely because a newer version exists. Some upstream nested mods also package overlapping library versions; do not manually delete or deduplicate those libraries without a Fabric Loader runtime log proving a conflict. Structure Layout Optimizer changes structure-generation code paths, so create and save a new test world before using the bundle with important worlds. Back up important saves before installing or updating a large optimization bundle.
 
 ## Graphics roadmap (not included in v1.0)
 

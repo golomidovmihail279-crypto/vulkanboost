@@ -57,7 +57,7 @@ public final class PerformanceScreen extends Screen {
         ));
         metrics.add(Component.translatable(
                 "screen.vulkanboost.performance.components",
-                snapshot.loadedComponentCount()
+                snapshot.loadedModCount()
         ));
         metrics.add(Component.translatable("screen.vulkanboost.performance.component_usage_unavailable"));
         metrics.add(Component.translatable("screen.vulkanboost.performance.hardware_usage_unavailable"));
