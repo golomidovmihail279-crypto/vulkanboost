@@ -11,8 +11,8 @@
 - [x] Add recursive nested-JAR metadata regression tests.
 - [x] Add registry-to-bundle manifest consistency tests.
 - [x] Add tag-based build, test, checksum, and release automation.
-- [ ] Confirm the v1.0 PR build passes on GitHub Actions.
-- [ ] Inspect the exact release JAR and verify its 25 nested JARs and first-party classes.
+- [x] Confirm the v1.0 release build passes on GitHub Actions.
+- [x] Inspect the exact published release JAR and verify its 25 nested JARs and first-party classes.
 
 ## Manual Minecraft acceptance gate
 
@@ -32,6 +32,11 @@ These checks require a real game session. A successful Gradle build cannot repla
 - [ ] Test an existing world only after taking a backup.
 - [ ] Review latest.log and any crash reports after the full pass.
 
-## Publication rule
+## Post-publication status
 
-Do not publish v1.0 as a stable release until both automated and manual acceptance gates pass. The release workflow publishes a GitHub Release when a matching version tag is pushed. Do not create the `v1.0` tag before the manual acceptance gate is complete.
+- [x] VulkanBoost 1.0 is published on GitHub as the Latest non-prerelease release.
+- [x] The published JAR SHA-256 matches the inspected release artifact.
+- [ ] Complete the manual Minecraft acceptance gate above. GitHub's Latest/non-prerelease label does not mean these in-game checks have passed.
+- [ ] After manual testing, publish any required fixes as a new patch release; do not silently replace the existing v1.0 asset.
+
+The release workflow is tag-only. A new `vX.Y` tag builds, validates, and publishes that tagged version; ordinary pushes to `main` do not publish releases.
