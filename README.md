@@ -9,7 +9,7 @@ VulkanBoost combines a curated set of upstream optimization components with its 
 - **One installable JAR:** 25 pinned top-level mod and library components.
 - **Control Center:** open it with the configurable `O` key binding. Screens use pagination and responsive positioning.
 - **Complete component registry:** inspect the status of all 25 bundled components. Only Cull Leaves and Dynamic FPS currently have verified live switches; other components remain informational until a safe upstream control API is verified.
-- **Performance monitor:** live FPS, frame time, Java heap usage, and loaded Fabric component count. VulkanBoost does not invent per-mod CPU/GPU attribution.
+- **Performance monitor:** live FPS, frame time, Java heap usage, and loaded Fabric mod count. VulkanBoost does not invent per-mod CPU/GPU attribution.
 - **Auto-tuning:** Balanced, FPS Priority, and Lower Memory profiles with preview, apply, and undo. The automatic recommendation uses logical CPU count; JVM `-Xmx` is displayed but is not treated as physical RAM.
 - **Smart memory assistance:** optional and disabled by default. After sustained heap pressure it can lower render/simulation distances and restore them when pressure subsides, unless the player changes those values manually. It never calls `System.gc()`.
 - **Reproducible validation:** CI builds the mod, verifies nested-JAR metadata and component IDs, checks first-party runtime classes, and runs Python/Java regression tests.
