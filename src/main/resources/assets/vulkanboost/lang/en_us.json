@@ -15,7 +15,7 @@
   "screen.vulkanboost.performance.frame_time": "Frame time: %s ms",
   "screen.vulkanboost.performance.memory": "Java heap used: %s / %s MiB",
   "screen.vulkanboost.performance.committed": "Java heap committed: %s MiB",
-  "screen.vulkanboost.performance.components": "Loaded Fabric components: %s",
+  "screen.vulkanboost.performance.components": "Loaded Fabric mods: %s",
   "screen.vulkanboost.performance.component_usage_unavailable": "Fabric Loader does not expose per-mod CPU/GPU usage.",
   "screen.vulkanboost.performance.hardware_usage_unavailable": "No reliable cross-platform CPU/GPU usage source.",
   "screen.vulkanboost.performance.refresh_rate": "Metrics refresh every 0.5 seconds.",
