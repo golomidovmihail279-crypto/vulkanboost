@@ -15,7 +15,7 @@
   "screen.vulkanboost.performance.frame_time": "Время кадра: %s мс",
   "screen.vulkanboost.performance.memory": "Использовано памяти Java: %s / %s МиБ",
   "screen.vulkanboost.performance.committed": "Выделено памяти Java: %s МиБ",
-  "screen.vulkanboost.performance.components": "Загружено компонентов Fabric: %s",
+  "screen.vulkanboost.performance.components": "Загружено модов Fabric: %s",
   "screen.vulkanboost.performance.component_usage_unavailable": "CPU/GPU по отдельным модам не измеряется.",
   "screen.vulkanboost.performance.hardware_usage_unavailable": "Нет достоверных общих данных CPU/GPU.",
   "screen.vulkanboost.performance.refresh_rate": "Показатели обновляются каждые 0,5 секунды.",
