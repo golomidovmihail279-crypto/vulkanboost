@@ -1,0 +1,13 @@
+[package]
+name = "vulkanboost-horizon"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+publish = false
+description = "Experimental native performance utilities for Horizon"
+
+[lib]
+path = "mixins/vulkanboost/runtime.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
