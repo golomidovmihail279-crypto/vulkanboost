@@ -1,6 +1,5 @@
-//! VulkanBoost's Horizon-native policy and settings.
-//!
-//! This file is also the standalone Cargo library used by the unit tests.
+// VulkanBoost's Horizon-native policy and settings.
+// This file is also the standalone Cargo library used by the unit tests.
 
 pub const ID: &str = "vulkanboost";
 pub const NAME: &str = "VulkanBoost: Horizon Edition";
