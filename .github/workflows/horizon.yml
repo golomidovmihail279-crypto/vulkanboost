@@ -1,0 +1,56 @@
+name: Horizon Edition checks
+
+on:
+  push:
+    branches: [horizon-prototype]
+    paths:
+      - "horizon/**"
+      - ".github/workflows/horizon.yml"
+  pull_request:
+    paths:
+      - "horizon/**"
+      - ".github/workflows/horizon.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  native-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out VulkanBoost
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Install stable Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Check formatting
+        run: cargo fmt --manifest-path horizon/native/vulkanboost/Cargo.toml -- --check
+
+      - name: Run Rust policy tests
+        run: cargo test --manifest-path horizon/native/vulkanboost/Cargo.toml --locked
+
+      - name: Get the official Horizon native-mod tooling
+        run: |
+          git clone --depth 1 https://github.com/horizon-rust/horizon-mods.git /tmp/horizon-mods
+          cp -a horizon/native/vulkanboost /tmp/horizon-mods/native/vulkanboost
+
+      - name: Check the mod against the pinned Horizon source
+        run: python3 /tmp/horizon-mods/native/tools/native.py check vulkanboost
+
+      - name: Package the source bundle
+        run: python3 /tmp/horizon-mods/native/tools/native.py package vulkanboost
+
+      - name: Upload .hnmod test package
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: vulkanboost-horizon-0.1.0-dev
+          path: /tmp/horizon-mods/native/target/vulkanboost-0.1.0.hnmod
+          if-no-files-found: error
+          retention-days: 14
