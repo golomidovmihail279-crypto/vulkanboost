@@ -154,7 +154,10 @@ mod tests {
 
     #[test]
     fn menus_are_unchanged() {
-        assert_eq!(effective_background_limit(260, false, false, false, 30), 260);
+        assert_eq!(
+            effective_background_limit(260, false, false, false, 30),
+            260
+        );
     }
 
     #[test]
