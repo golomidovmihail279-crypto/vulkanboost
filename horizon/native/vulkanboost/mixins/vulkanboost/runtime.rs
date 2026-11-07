@@ -35,10 +35,7 @@ impl Settings {
     }
 
     pub fn labels(&self) -> Vec<String> {
-        vec![format!(
-            "Background FPS cap: {} FPS",
-            self.background_cap
-        )]
+        vec![format!("Background FPS cap: {} FPS", self.background_cap)]
     }
 
     pub fn click(&mut self, button: usize) {
@@ -142,41 +139,26 @@ mod tests {
 
     #[test]
     fn background_cap_applies_when_unfocused() {
-        assert_eq!(
-            effective_background_limit(260, false, false, true, 30),
-            30
-        );
+        assert_eq!(effective_background_limit(260, false, false, true, 30), 30);
     }
 
     #[test]
     fn background_cap_applies_when_minimized() {
-        assert_eq!(
-            effective_background_limit(260, true, true, true, 30),
-            30
-        );
+        assert_eq!(effective_background_limit(260, true, true, true, 30), 30);
     }
 
     #[test]
     fn foreground_gameplay_is_unchanged() {
-        assert_eq!(
-            effective_background_limit(260, true, false, true, 30),
-            260
-        );
+        assert_eq!(effective_background_limit(260, true, false, true, 30), 260);
     }
 
     #[test]
     fn menus_are_unchanged() {
-        assert_eq!(
-            effective_background_limit(260, false, false, false, 30),
-            260
-        );
+        assert_eq!(effective_background_limit(260, false, false, false, 30), 260);
     }
 
     #[test]
     fn a_lower_horizon_limit_is_preserved() {
-        assert_eq!(
-            effective_background_limit(20, false, false, true, 30),
-            20
-        );
+        assert_eq!(effective_background_limit(20, false, false, true, 30), 20);
     }
 }
